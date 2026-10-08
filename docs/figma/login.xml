@@ -1,0 +1,177 @@
+  </section>
+  <section id="255:469" name="Prototipo Funcional (Login)" x="4196" y="11300" width="4543" height="4204">
+    <frame id="255:470" name="Pantalla Logo" x="181" y="199" width="428" height="926">
+      <rounded-rectangle id="255:471" name="Fondo" x="0" y="0" width="428" height="926" />
+      <rounded-rectangle id="255:472" name="Logosímbolo" x="139" y="374" width="149" height="178" />
+    </frame>
+    <frame id="255:473" name="Pantalla Home" x="656" y="199" width="428" height="926">
+      <frame id="255:474" name="íconosLogo" x="-115" y="-61" width="631" height="1081">
+        <ellipse id="255:475" name="Ellipse 9" x="78" y="582" width="438" height="438" />
+        <ellipse id="255:476" name="Ellipse 7" x="-115" y="-61" width="319" height="319" />
+        <ellipse id="255:477" name="Ellipse 8" x="167" y="124" width="56" height="56" />
+        <ellipse id="255:478" name="Ellipse 10" x="23" y="738" width="43" height="43" />
+        <ellipse id="255:479" name="Ellipse 11" x="415" y="557" width="25" height="25" />
+      </frame>
+      <frame id="255:480" name="botónRegistrarse" x="36" y="811" width="356" height="61">
+        <rounded-rectangle id="255:481" name="Rectangle 34" x="36" y="811" width="356" height="61" />
+        <text id="255:482" name="Regístrate" x="164" y="830" width="100" height="24" />
+      </frame>
+      <frame id="255:483" name="Group 1000000944" x="36" y="646" width="356" height="102">
+        <frame id="255:484" name="botónIniciarSesión" x="36" y="646" width="356" height="61">
+          <rounded-rectangle id="255:485" name="Rectangle 33" x="36" y="646" width="356" height="61" />
+          <text id="255:486" name="Iniciar sesión" x="149" y="664" width="128" height="24" />
+        </frame>
+        <text id="255:487" name="¿Olvidaste tu contraseña?" x="36" y="714" width="356" height="34" />
+      </frame>
+      <rounded-rectangle id="255:488" name="Logo" x="75" y="263" width="279" height="104" />
+      <frame id="255:489" name="inputCorreo" x="36" y="408" width="356" height="80.546875">
+        <rounded-rectangle id="255:490" name="Rectangle 34" x="36" y="437" width="356" height="51.546875" />
+        <text id="255:491" name="ejemplo@correo.com" x="57" y="453" width="183" height="20" />
+        <text id="255:492" name="Correo electrónico" x="36" y="408" width="187" height="20" />
+      </frame>
+      <frame id="255:493" name="inputContraseña" x="36" y="518" width="357" height="80.546875">
+        <rounded-rectangle id="255:494" name="Rectangle 34" x="36" y="547" width="357" height="51.546875" />
+        <text id="255:495" name="********************" x="57.05898857116699" y="565" width="183.5140380859375" height="20" />
+        <text id="255:496" name="Contraseña" x="36" y="518" width="187.52528381347656" height="20" />
+        <frame id="255:497" name="visibility_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="344.86517333984375" y="561" width="24.067415237426758" height="24" />
+      </frame>
+    </frame>
+    <frame id="255:499" name="Pantalla Registrarse 5" x="2069" y="199" width="428" height="986">
+      <frame id="255:500" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <rounded-rectangle id="255:502" name="Rectangle 35" x="0" y="150" width="428" height="983" />
+      <text id="255:503" name="Crear Cuenta" x="116" y="90" width="196" height="35" />
+      <frame id="255:504" name="inputNombre" x="35" y="430" width="358" height="80.546875">
+        <rounded-rectangle id="255:505" name="Rectangle 34" x="35" y="459" width="358" height="51.546875" />
+        <text id="255:506" name="Nombre" x="56.117977142333984" y="475.0556640625" width="111.62359619140625" height="20.280736923217773" />
+        <text id="255:507" name="Nombre" x="35" y="430" width="111.62359619140625" height="20.280736923217773" />
+      </frame>
+      <frame id="368:1599" name="inputNombre" x="37" y="325" width="358" height="80.546875">
+        <rounded-rectangle id="368:1600" name="Rectangle 34" x="37" y="354" width="358" height="51.546875" />
+        <text id="368:1601" name="000-0000000-0" x="58" y="370" width="134" height="20" />
+        <text id="368:1602" name="Cédula" x="37" y="325" width="111.62359619140625" height="20.280736923217773" />
+      </frame>
+      <frame id="255:508" name="inputApellido" x="35" y="539" width="359" height="80.546875">
+        <rounded-rectangle id="255:509" name="Rectangle 34" x="35" y="568" width="359" height="51.546875" />
+        <text id="255:510" name="Apellido" x="56.17696571350098" y="584.0556640625" width="111.93539428710938" height="20.280736923217773" />
+        <text id="255:511" name="Apellido" x="35" y="539" width="111.93539428710938" height="20.280736923217773" />
+      </frame>
+      <frame id="255:512" name="inputCorreo" x="35" y="648" width="359" height="80.546875">
+        <rounded-rectangle id="255:513" name="Rectangle 34" x="35" y="677" width="359" height="51.546875" />
+        <text id="255:514" name="ejemplo@correo.com" x="56.17696571350098" y="693" width="184.54212951660156" height="20" />
+        <text id="255:515" name="Correo electrónico" x="35" y="648" width="188.57583618164062" height="20" />
+      </frame>
+      <frame id="255:516" name="inputTeléfono" x="35" y="757" width="360" height="80.546875">
+        <rounded-rectangle id="255:517" name="Rectangle 34" x="35" y="786" width="360" height="51.546875" />
+        <text id="255:518" name="000 000 0000" x="56.23596000671387" y="802.0556640625" width="112.2471923828125" height="20.280736923217773" />
+        <text id="255:519" name="Teléfono" x="35" y="757" width="112.2471923828125" height="20.280736923217773" />
+      </frame>
+      <frame id="255:520" name="botónSiguiente" x="35" y="886" width="356" height="61">
+        <rounded-rectangle id="255:521" name="Rectangle 34" x="35" y="886" width="356" height="61" />
+        <text id="255:522" name="Siguiente" x="167" y="905" width="92" height="24" />
+      </frame>
+      <frame id="255:523" name="barraProgreso" x="36" y="280" width="356" height="9">
+        <rounded-rectangle id="255:524" name="Rectangle 38" x="0" y="0" width="356" height="9" />
+        <rounded-rectangle id="255:525" name="Rectangle 39" x="0" y="0" width="178" height="9" />
+      </frame>
+      <rounded-rectangle id="255:526" name="IDS352-01_2026-2-Grupo_5-_Linea_Grafica__3_-removebg-preview 1" x="179" y="173" width="70" height="83" />
+    </frame>
+    <frame id="255:527" name="Pantalla Olvidaste Contraseña" x="1125" y="199" width="428" height="926">
+      <frame id="255:528" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <rounded-rectangle id="255:530" name="Rectangle 35" x="0" y="150" width="428" height="983" />
+      <text id="255:531" name="Recuperar Contraseña" x="40" y="90" width="348" height="35" />
+      <frame id="255:532" name="botónEnviar" x="36" y="811" width="356" height="61">
+        <rounded-rectangle id="255:533" name="Rectangle 33" x="36" y="811" width="356" height="61" />
+        <text id="255:534" name="Enviar enlace de recuperación" x="36" y="829" width="356" height="24" />
+      </frame>
+      <rounded-rectangle id="255:535" name="IDS352-01_2026-2-Grupo_5-_Linea_Grafica__3_-removebg-preview 1" x="177" y="334" width="70" height="83" />
+      <frame id="255:536" name="inputCorreo" x="36" y="522" width="356" height="80.546875">
+        <rounded-rectangle id="255:537" name="Rectangle 34" x="36" y="551" width="356" height="51.546875" />
+        <text id="255:538" name="ejemplo@correo.com" x="57" y="567" width="183" height="20" />
+        <text id="255:539" name="Correo electrónico" x="36" y="522" width="187" height="20" />
+      </frame>
+      <text id="255:540" name="Ingresa el correo electrónico asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña." x="36" y="429" width="352" height="68" />
+    </frame>
+    <frame id="255:541" name="Pantalla Restablecer Contraseña" x="1594" y="199" width="428" height="926">
+      <rounded-rectangle id="255:542" name="Rectangle 35" x="0" y="150" width="428" height="983" />
+      <text id="255:543" name="Restablecer Contraseña" x="40" y="90" width="348" height="35" />
+      <frame id="255:544" name="botónEnviar" x="35" y="811" width="357" height="61">
+        <rounded-rectangle id="255:545" name="Rectangle 33" x="35" y="811" width="357" height="61" />
+        <text id="255:546" name="Guardar nueva contraseña" x="35" y="829" width="357" height="24" />
+      </frame>
+      <rounded-rectangle id="255:547" name="IDS352-01_2026-2-Grupo_5-_Linea_Grafica__3_-removebg-preview 1" x="180" y="294" width="70" height="83" />
+      <text id="255:548" name="Ingrese su nueva contraseña para acceder a su cuenta de CuidaRed." x="39" y="371" width="352" height="68" />
+      <frame id="255:549" name="inputContraseña" x="35" y="443" width="358" height="80.546875">
+        <rounded-rectangle id="255:550" name="Rectangle 34" x="35" y="472" width="358" height="51.546875" />
+        <text id="255:551" name="********************" x="56.117977142333984" y="490" width="184.02809143066406" height="20" />
+        <text id="255:552" name="Contraseña" x="35" y="443" width="188.05056762695312" height="20" />
+        <frame id="255:553" name="visibility_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="344.7303466796875" y="486" width="24.13483238220215" height="24" />
+      </frame>
+      <frame id="255:555" name="inputConfirmarContraseña" x="35" y="552" width="358" height="80.546875">
+        <rounded-rectangle id="255:556" name="Rectangle 34" x="35" y="581" width="358" height="51.546875" />
+        <text id="255:557" name="********************" x="56.117977142333984" y="600" width="183.02247619628906" height="20" />
+        <text id="255:558" name="Confirmar contraseña" x="35" y="552" width="187.04493713378906" height="20" />
+        <frame id="255:559" name="visibility_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="343.7247314453125" y="597" width="24.13483238220215" height="24" />
+      </frame>
+    </frame>
+    <frame id="255:561" name="Pantalla Registrarse 6" x="2544" y="199" width="428" height="926">
+      <frame id="255:562" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <rounded-rectangle id="255:564" name="Rectangle 35" x="0" y="150" width="428" height="983" />
+      <text id="255:565" name="Crear Cuenta" x="116" y="90" width="196" height="35" />
+      <frame id="255:566" name="barraProgreso" x="36" y="280" width="356" height="9">
+        <rounded-rectangle id="255:567" name="Rectangle 38" x="0" y="0" width="356" height="9" />
+        <rounded-rectangle id="255:568" name="Rectangle 39" x="0" y="0" width="356" height="9" />
+      </frame>
+      <rounded-rectangle id="255:569" name="IDS352-01_2026-2-Grupo_5-_Linea_Grafica__3_-removebg-preview 1" x="179" y="173" width="70" height="83" />
+      <frame id="255:570" name="botónRegistrarse" x="36" y="811" width="356" height="61">
+        <rounded-rectangle id="255:571" name="Rectangle 33" x="36" y="811" width="356" height="61" />
+        <text id="255:572" name="Registrarse" x="159" y="829" width="111" height="24" />
+      </frame>
+      <frame id="255:573" name="inputContraseña" x="36" y="484" width="356" height="80.546875">
+        <rounded-rectangle id="255:574" name="Rectangle 34" x="36" y="513" width="356" height="51.546875" />
+        <text id="255:575" name="********************" x="57" y="531" width="183" height="20" />
+        <text id="255:576" name="Contraseña" x="36" y="484" width="187" height="20" />
+        <frame id="255:577" name="visibility_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="344" y="527" width="24" height="24" />
+      </frame>
+      <frame id="255:579" name="inputConfirmarContraseña" x="37" y="593" width="356" height="80.546875">
+        <rounded-rectangle id="255:580" name="Rectangle 34" x="37" y="622" width="356" height="51.546875" />
+        <text id="255:581" name="********************" x="58" y="641" width="182" height="20" />
+        <text id="255:582" name="Confirmar contraseña" x="37" y="593" width="186" height="20" />
+        <frame id="255:583" name="visibility_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="344" y="638" width="24" height="24" />
+      </frame>
+      <frame id="255:585" name="labelRol" x="37" y="346" width="233" height="20">
+        <text id="255:586" name="¿Vas a usar CuidaRed para...?" x="37" y="346" width="233" height="20" />
+      </frame>
+      <frame id="255:587" name="botónCuidador" x="71" y="384" width="125" height="81">
+        <rounded-rectangle id="255:588" name="Rectangle 34" x="72.42045450210571" y="383.9999999999982" width="123.57954406738281" height="81" />
+        <text id="255:589" name="Mi organización" x="71" y="431" width="125" height="20" />
+      </frame>
+      <frame id="255:592" name="botónFamiliar" x="234" y="384" width="125" height="81">
+        <rounded-rectangle id="255:593" name="Rectangle 36" x="235.42042100429535" y="384" width="123.57955169677734" height="81" />
+        <text id="255:594" name="Mi familia" x="234" y="431" width="125" height="20" />
+        <frame id="255:595" name="family_group_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="281.0062599182129" y="397.5052833557129" width="30.987533569335938" height="30.987533569335938" />
+      </frame>
+      <rounded-rectangle id="255:602" name="Input" x="36" y="711" width="16" height="16" />
+      <text id="255:603" name="Acepto los Términos y Condiciones y la" x="71" y="690" width="319" height="34" />
+      <text id="444:4181" name="Política de Privacidad de CuidaRed." x="71" y="713" width="319" height="34" />
+      <text id="255:604" name="¿Ya tienes una cuenta? Iniciar sesión" x="36" y="879" width="356" height="34" />
+      <frame id="264:828" name="Frame" x="117" y="395" width="34" height="35" />
+    </frame>
+    <frame id="275:465" name="Pantalla Términos " x="3019" y="199" width="428" height="1562">
+      <frame id="275:466" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <rounded-rectangle id="275:468" name="Rectangle 35" x="0" y="150" width="428" height="1412" />
+      <text id="298:455" name="Última actualización: 21 de agosto de 2026" x="95" y="1509" width="237" height="16" />
+      <text id="297:453" name="1. Aceptación El acceso y uso de la plataforma CuidaRed implica la aceptación plena de los presentes Términos y Condiciones. En caso de no estar de acuerdo con lo aquí establecido, se recomienda abstenerse de utilizar la plataforma. 2. Naturaleza del servicio CuidaRed es una herramienta de apoyo para el seguimiento comunitario de adultos mayores. La plataforma no sustituye servicios médicos, instituciones públicas ni organismos de emergencia. Ante cualquier situación de urgencia de salud, deberá contactarse de inmediato a los servicios médicos correspondientes. 3. Responsabilidades por rol Administrador y Coordinador Corresponde a estos roles la gestión de los usuarios de la organización o el grupo familiar, así como la correcta asignación de roles dentro del sistema. Cuidador Corresponde a este rol el registro veraz de visitas y necesidades, incluso en condiciones sin conexión a internet. Familiar Responsable Corresponde a este rol mantener actualizados los datos de contacto proporcionados al sistema. Su acceso es de carácter exclusivamente consultivo. 4. Uso adecuado de la plataforma Queda prohibido el uso indebido de la plataforma, la publicación de información falsa, así como cualquier acción que comprometa la seguridad de los datos registrados. El incumplimiento de esta disposición podrá resultar en la suspensión o eliminación de la cuenta. 5. Limitaciones del servicio CuidaRed no garantiza la disponibilidad continua e ininterrumpida del servicio, y no asume responsabilidad alguna por decisiones médicas o de cuidado adoptadas con base en la información registrada en la plataforma. 6. Terminación de cuenta La eliminación de la cuenta podrá solicitarse en cualquier momento a través del perfil del usuario, previa confirmación. 7. Marco legal aplicable El presente servicio se rige por la Ley No. 172-13 sobre Protección de Datos Personales y la Ley No. 352-98 sobre Protección de la Persona Envejeciente de la República Dominicana." x="38" y="327" width="355" height="1139" />
+      <text id="296:445" name="El presente documento establece los términos y condiciones de uso de la plataforma CuidaRed. Al crear una cuenta, el usuario declara haber leído y aceptado lo aquí establecido." x="38" y="194" width="356" height="67" />
+      <text id="275:469" name="Términos y Condiciones" x="116" y="90" width="196" height="35" />
+      <rounded-rectangle id="297:452" name="Rectangle 46" x="37" y="293" width="356" height="2" />
+    </frame>
+    <frame id="298:457" name="Pantalla Política " x="3494" y="199" width="428" height="1985">
+      <frame id="298:458" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <rounded-rectangle id="298:460" name="Rectangle 35" x="0" y="150" width="428" height="1835" />
+      <text id="298:461" name="Última actualización: 21 de agosto de 2026" x="95" y="1940" width="237" height="16" />
+      <text id="298:462" name="1. Objeto La presente Política de Privacidad describe el tratamiento que se otorga a los datos personales recolectados a través de la plataforma CuidaRed, en cumplimiento de la normativa vigente en materia de protección de datos. 2. Datos recolectados La plataforma recolecta los datos proporcionados durante el registro de cuenta, tales como nombre, correo electrónico y número de teléfono. Asimismo, recolecta la información registrada en relación con el seguimiento del adulto mayor, incluyendo perfiles, historial de visitas, necesidades reportadas y observaciones asociadas. 3. Finalidad del tratamiento Los datos recolectados se utilizan exclusivamente para el funcionamiento de la plataforma, incluyendo la autenticación del usuario, la habilitación de las funcionalidades correspondientes a su rol, y la coordinación del seguimiento comunitario dentro de la organización o el grupo familiar correspondiente. 4. Acceso a la información El acceso a los datos registrados está restringido a los usuarios autorizados dentro de la organización o el grupo familiar correspondiente, conforme a los permisos asignados a cada rol. La plataforma no comercializa ni comparte datos personales con terceros ajenos a dicha organización o grupo familiar. 5. Medidas de seguridad Las contraseñas se almacenan mediante mecanismos de cifrado (bcrypt) y no se conservan en texto legible. El acceso a la plataforma se gestiona mediante autenticación segura basada en tokens (JWT), y la totalidad de la información transmitida entre el dispositivo del usuario y los servidores se protege mediante cifrado TLS. 6. Tratamiento de datos sin conexión a internet En caso de utilizarse la plataforma sin conexión a internet, los registros correspondientes se almacenan de manera temporal en el dispositivo del usuario, sincronizándose automáticamente con los servidores de CuidaRed al restablecerse la conexión. 7. Derechos del titular de los datos De conformidad con la Ley No. 172-13 sobre Protección de Datos Personales de la República Dominicana, el titular de los datos tiene derecho a acceder, rectificar y solicitar la eliminación de su información personal. Estos derechos podrán ejercerse a través del perfil del usuario o mediante los canales de contacto disponibles en la plataforma. 8. Conservación de datos Los datos personales se conservarán mientras la cuenta del usuario permanezca activa, o mientras sea necesario para cumplir con la finalidad para la cual fueron recolectados. 9. Modificaciones a esta política La presente Política de Privacidad podrá ser modificada en el futuro. Cualquier cambio será notificado a través de la plataforma antes de su entrada en vigencia. 10. Marco legal aplicable El tratamiento de los datos personales se rige por la Ley No. 172-13 sobre Protección de Datos Personales y la Ley No. 352-98 sobre Protección de la Persona Envejeciente de la República Dominicana." x="37" y="327" width="355" height="1581" />
+      <text id="298:463" name="El presente documento describe la Política de Privacidad de la plataforma CuidaRed. Al crear una cuenta, el usuario declara haber leído y aceptado el tratamiento que se otorga a sus datos personales conforme a lo aquí establecido." x="37" y="188" width="356" height="67" />
+      <text id="298:464" name="Política de Privacidad" x="116" y="90" width="196" height="35" />
+      <rounded-rectangle id="298:465" name="Rectangle 46" x="37" y="293" width="356" height="2" />
+    </frame>
+  </section>

@@ -1,0 +1,87 @@
+/* Design tokens de CuidaRed (extraídos del Figma). Añade tokens nuevos aquí; no cambies los existentes. */
+@import '@fontsource-variable/inter';
+
+:root {
+  /* Marca */
+  --c-navy: #0c3b6e;          /* primario: headers, bottom-nav, botones */
+  --c-navy-700: #0a3160;
+  --c-blue: #378add;          /* acento / bordes de iconos */
+  --c-blue-bright: #3b8de0;
+  --c-blue-100: #e6f1fb;      /* fondos suaves azules, texto sobre navy */
+  --c-teal: #14a085;          /* acciones positivas / en línea */
+  --c-teal-100: #e1f5ee;      /* botones "soft" verdes */
+  --c-green: #1d9e75;
+
+  /* Superficies y texto */
+  --c-bg: #f7f9fc;
+  --c-surface: #ffffff;
+  --c-surface-2: #e2e8f0;
+  --c-border: #64748b;
+  --c-border-soft: #cbd5e1;
+  --c-text: #1a2b3c;
+  --c-text-2: #434652;
+  --c-muted: #64748b;
+  --c-white: #ffffff;
+
+  /* Semánticos */
+  --c-danger: #c0392b;
+  --c-danger-100: #faece7;
+  --c-warning: #d4880a;
+  --c-warning-100: #faeeda;
+  --c-success: #14a085;
+  --c-success-100: #e1f5ee;
+  --c-info: #378add;
+  --c-info-100: #e6f1fb;
+
+  /* Riesgo */
+  --risk-alto: var(--c-danger);
+  --risk-medio: var(--c-warning);
+  --risk-bajo: var(--c-green);
+
+  /* Gradientes de cabecera (auth / overlays de éxito) */
+  --grad-auth: linear-gradient(180deg, #1f6fd0 0%, #14a085 100%);
+  --grad-splash: linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%);
+  --grad-success: linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%);
+
+  /* Tipografía */
+  --font: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-xs: 0.75rem;   /* 12 */
+  --fs-sm: 0.875rem;  /* 14 */
+  --fs-md: 1rem;      /* 16 */
+  --fs-lg: 1.125rem;  /* 18 */
+  --fs-xl: 1.25rem;   /* 20 */
+  --fs-2xl: 1.5rem;   /* 24 */
+  --fs-3xl: 2rem;     /* 32 */
+
+  /* Forma */
+  --r-sm: 7px;   /* inputs, tarjetas */
+  --r-md: 12px;  /* botones */
+  --r-lg: 20px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 4px rgba(100, 116, 139, 0.42);
+  --shadow-2: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Espaciado */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Layout */
+  --gutter: 20px;              /* margen lateral móvil (Figma: 36px a 428 de ancho incl. padding interno) */
+  --appbar-h: 64px;
+  --bottomnav-h: 72px;
+  --sidebar-w: 248px;
+  --content-max: 1040px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Breakpoints de referencia (usar con @media): móvil < 768 · tablet ≥ 768 · escritorio ≥ 1100 */
+@media (min-width: 768px) {
+  :root { --gutter: 32px; }
+}

@@ -1,0 +1,2290 @@
+  </section>
+  <section id="361:556" name="Prototipo Funcional (Coordinador)" x="8956" y="16448" width="8415" height="5282">
+    <frame id="361:692" name="Pantalla Mi Perfil" x="3599" y="199" width="428" height="926">
+      <rounded-rectangle id="361:693" name="Rectangle 40" x="-9" y="-14" width="447" height="110" />
+      <frame id="361:694" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="361:696" name="Mi Perfil" x="91" y="53" width="80" height="20" />
+      <frame id="361:697" name="Container" x="117" y="149" width="195" height="195">
+        <frame id="361:698" name="Overlay+Border+Shadow" x="0" y="0" width="195" height="195">
+          <frame id="361:699" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="187" height="187" />
+        </frame>
+      </frame>
+      <text id="361:700" name="Carlos Ruiz" x="116" y="360" width="196" height="35" />
+      <text id="361:701" name="Información Personal" x="36" y="509" width="356" height="35" />
+      <rounded-rectangle id="361:702" name="Rectangle 41" x="147" y="404" width="134" height="29" />
+      <text id="361:703" name="Coordinador" x="147" y="404" width="133" height="29" />
+      <frame id="361:704" name="InfoCorreo" x="36" y="567" width="356.01263427734375" height="67">
+        <text id="361:705" name="carlos.ruiz@cuidared.com" x="35" y="34" width="223" height="20" />
+        <text id="361:706" name="Correo electrónico" x="1" y="0" width="187" height="20" />
+        <frame id="361:707" name="mail_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="32" width="24" height="24" />
+        <line id="361:709" name="Line 1" x="0" y="67" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="361:710" name="infoTeléfono" x="36" y="663" width="356.01263427734375" height="67">
+        <text id="361:711" name="829 777 9865" x="71" y="694" width="174" height="20" />
+        <frame id="361:712" name="call_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37" y="692" width="24" height="24" />
+        <text id="361:714" name="Teléfono" x="37" y="663" width="111" height="20.280736923217773" />
+        <line id="361:715" name="Line 2" x="36" y="730" width="356.01263427734375" height="0" />
+      </frame>
+      <text id="361:716" name="Editar Perfil" x="103" y="447" width="223" height="20" />
+      <frame id="361:717" name="botónCerrarSesion" x="36" y="811" width="356" height="61">
+        <rounded-rectangle id="361:718" name="Rectangle 34" x="36" y="811" width="356" height="61" />
+        <frame id="361:719" name="Frame 4929" x="128" y="830" width="172" height="24">
+          <text id="361:720" name="Cerrar Sesión" x="0" y="0" width="133" height="24" />
+          <frame id="361:721" name="logout_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="148" y="0" width="24" height="24" />
+        </frame>
+      </frame>
+    </frame>
+    <frame id="361:723" name="Pantalla Editar Mi Perfil" x="4067" y="199" width="428" height="926">
+      <rounded-rectangle id="361:724" name="Rectangle 40" x="-9" y="-14" width="447" height="110" />
+      <frame id="361:725" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="361:727" name="Editar Mi Perfil" x="91" y="53" width="217" height="20" />
+      <frame id="361:728" name="Container" x="117" y="149" width="195" height="195">
+        <frame id="361:729" name="Overlay+Border+Shadow" x="0" y="0" width="195" height="195">
+          <frame id="361:730" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="187" height="187" />
+        </frame>
+        <frame id="361:731" name="Button" x="150" y="128" width="45" height="45">
+          <frame id="361:732" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="10.5" y="11" width="24" height="24" />
+        </frame>
+      </frame>
+      <text id="361:734" name="Carlos Ruiz" x="116" y="360" width="196" height="35" />
+      <text id="361:735" name="Información Personal" x="36" y="476" width="356" height="35" />
+      <rounded-rectangle id="361:736" name="Rectangle 41" x="147" y="404" width="134" height="29" />
+      <text id="361:737" name="Coordinador" x="147" y="404" width="133" height="29" />
+      <frame id="361:738" name="InfoCorreo" x="36" y="534" width="356.01263427734375" height="67">
+        <text id="361:739" name="carlos.ruiz@cuidared.com" x="35" y="34" width="223" height="20" />
+        <text id="361:740" name="Correo electrónico" x="1" y="0" width="187" height="20" />
+        <frame id="361:741" name="mail_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="32" width="24" height="24" />
+        <line id="361:743" name="Line 1" x="0" y="67" width="356.01263427734375" height="0" />
+        <frame id="361:744" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="332" y="32" width="24" height="24" />
+      </frame>
+      <frame id="361:746" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 2" x="365" y="659" width="24" height="24" />
+      <frame id="361:748" name="infoTeléfono" x="36" y="630" width="356.01263427734375" height="67">
+        <text id="361:749" name="829 777 9865" x="71" y="661" width="174" height="20" />
+        <frame id="361:750" name="call_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37" y="659" width="24" height="24" />
+        <text id="361:752" name="Teléfono" x="37" y="630" width="111" height="20.280736923217773" />
+        <line id="361:753" name="Line 2" x="36" y="697" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="361:754" name="botónCerrarSesion" x="36" y="811" width="356" height="61">
+        <rounded-rectangle id="361:755" name="Rectangle 34" x="36" y="811" width="356" height="61" />
+        <frame id="361:756" name="Frame 4929" x="128" y="830" width="172" height="24">
+          <text id="361:757" name="Guardar Cambios" x="-91" y="0" width="355" height="24" />
+        </frame>
+      </frame>
+    </frame>
+    <frame id="487:439" name="Pantalla Dashboard coordinador" x="226" y="1358" width="428" height="1797">
+      <text id="487:440" name="Hola, Patrick" x="36" y="122" width="148" height="20" />
+      <rounded-rectangle id="487:441" name="Rectangle 34" x="36" y="200" width="356" height="124" />
+      <text id="487:442" name="Lunes 24 de Agosto 2026" x="37" y="154" width="210" height="20" />
+      <text id="487:443" name="Alertas Activas" x="59" y="218" width="187" height="20" />
+      <text id="487:444" name="12" x="21" y="259" width="75" height="41" />
+      <frame id="487:445" name="Adultos Mayores" x="35" y="345" width="171" height="132">
+        <frame id="487:446" name="Margin" x="16" y="16" width="139" height="24">
+          <frame id="487:447" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="0" width="22" height="24">
+            <vector id="487:448" name="Vector" x="4" y="1" width="14" height="22" />
+          </frame>
+        </frame>
+        <frame id="487:449" name="Heading 3:margin" x="16" y="50" width="139" height="24">
+          <frame id="487:450" name="Heading 3" x="0" y="0" width="139" height="20">
+            <text id="487:451" name="Adultos Mayores" x="0" y="0" width="139" height="20" />
+          </frame>
+        </frame>
+        <frame id="487:452" name="Container" x="16" y="84" width="139" height="32">
+          <text id="487:453" name="128" x="0" y="0" width="139" height="32" />
+        </frame>
+      </frame>
+      <frame id="487:454" name="Cuidadores" x="222" y="345" width="171" height="132">
+        <frame id="487:455" name="Heading 3:margin" x="15" y="19" width="92" height="24">
+          <frame id="487:456" name="Heading 3" x="0" y="0" width="87" height="20">
+            <text id="487:457" name="Necesidades Pendientes" x="0" y="0" width="105" height="40" />
+          </frame>
+        </frame>
+        <frame id="487:458" name="Container" x="16" y="66" width="139" height="44">
+          <frame id="487:459" name="Container" x="0" y="0" width="139" height="32">
+            <text id="487:460" name="18" x="0" y="0" width="28" height="32" />
+          </frame>
+          <frame id="487:461" name="Container" x="0" y="32" width="139" height="12">
+            <text id="487:462" name="6 urgente" x="0" y="0" width="61" height="12" />
+          </frame>
+        </frame>
+        <vector id="487:463" name="Icon" x="125" y="30" width="20" height="20" />
+      </frame>
+      <frame id="487:464" name="Estadísticas Section" x="35" y="604" width="358" height="451">
+        <frame id="487:465" name="Container" x="0" y="0" width="358" height="28">
+          <frame id="487:466" name="Heading 2" x="4" y="0" width="121" height="28">
+            <text id="487:467" name="Estadísticas" x="0" y="0" width="121" height="28" />
+          </frame>
+          <frame id="487:468" name="Link" x="300" y="12" width="54" height="16">
+            <text id="487:469" name="Ver todo" x="0" y="0" width="54" height="12" />
+          </frame>
+        </frame>
+        <frame id="487:470" name="Visitas por Mes (Bar Chart Placeholder)" x="0" y="44" width="358" height="224">
+          <frame id="487:471" name="Heading 3" x="16" y="16" width="326" height="24">
+            <text id="487:472" name="Visitas por Mes" x="0" y="0" width="326" height="24" />
+          </frame>
+          <frame id="487:473" name="Margin" x="16" y="48" width="326" height="136">
+            <frame id="487:474" name="Container" x="0" y="8" width="326" height="128">
+              <frame id="487:475" name="Background" x="8" y="76.80999755859375" width="51.66666793823242" height="51.189998626708984">
+                <frame id="487:476" name="Container" x="17.25666618347168" y="-24" width="17.15333366394043" height="12">
+                  <text id="487:477" name="Text" x="0" y="0" width="14.9399995803833" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:478" name="Background" x="59.66666793823242" y="51.19999694824219" width="51.66666793823242" height="76.80000305175781">
+                <frame id="487:479" name="Container" x="17.25666618347168" y="-24" width="17.15333366394043" height="12">
+                  <text id="487:480" name="Text" x="0" y="0" width="14.9399995803833" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:481" name="Background" x="111.33333587646484" y="70.41000366210938" width="51.66666793823242" height="57.59000015258789">
+                <frame id="487:482" name="Container" x="17.25666618347168" y="-24" width="17.15333366394043" height="12">
+                  <text id="487:483" name="Text" x="0" y="0" width="14.9399995803833" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:484" name="Background+Shadow" x="163" y="19.199996948242188" width="51.66666793823242" height="108.80000305175781">
+                <frame id="487:485" name="Container" x="17.25666618347168" y="-24" width="17.15333366394043" height="12">
+                  <text id="487:486" name="85" x="0" y="0" width="15" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:487" name="Background" x="214.6666717529297" y="57.61000061035156" width="51.666664123535156" height="70.38999938964844">
+                <frame id="487:488" name="Container" x="17.25666618347168" y="-24" width="17.153331756591797" height="12">
+                  <text id="487:489" name="Text" x="0" y="0" width="14.9399995803833" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:490" name="Background" x="266.3333435058594" y="38.410003662109375" width="51.666664123535156" height="89.58999633789062">
+                <frame id="487:491" name="Container" x="17.25666618347168" y="-24" width="17.153331756591797" height="12">
+                  <text id="487:492" name="Text" x="0" y="0" width="14.9399995803833" height="12" />
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:493" name="Margin" x="16" y="192" width="326" height="16">
+            <frame id="487:494" name="Container" x="0" y="4" width="326" height="12">
+              <frame id="487:495" name="Container" x="8" y="0" width="23" height="12">
+                <text id="487:496" name="Ene" x="0" y="0" width="23" height="12" />
+              </frame>
+              <frame id="487:497" name="Container" x="64.5999984741211" y="0" width="23" height="12">
+                <text id="487:498" name="Feb" x="0" y="0" width="23" height="12" />
+              </frame>
+              <frame id="487:499" name="Container" x="121.19999694824219" y="0" width="24" height="12">
+                <text id="487:500" name="Mar" x="0" y="0" width="24" height="12" />
+              </frame>
+              <frame id="487:501" name="Container" x="178.79998779296875" y="0" width="23" height="12">
+                <text id="487:502" name="Abr" x="0" y="0" width="23" height="12" />
+              </frame>
+              <frame id="487:503" name="Container" x="235.39999389648438" y="0" width="26" height="12">
+                <text id="487:504" name="May" x="0" y="0" width="26" height="12" />
+              </frame>
+              <frame id="487:505" name="Container" x="295" y="0" width="23" height="12">
+                <text id="487:506" name="Jun" x="0" y="0" width="23" height="12" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:507" name="Tipos de Necesidades (Segmented Bar)" x="0" y="284" width="358" height="167">
+          <frame id="487:508" name="Heading 3" x="16" y="16" width="326" height="24">
+            <text id="487:509" name="Tipos de Necesidades" x="0" y="0" width="326" height="24" />
+          </frame>
+          <frame id="487:510" name="Segmented Bar:margin" x="16" y="48" width="326" height="20">
+            <frame id="487:511" name="Segmented Bar" x="0" y="4" width="326" height="16">
+              <rounded-rectangle id="487:512" name="Background" x="0" y="0" width="136.91000366210938" height="16" />
+              <rounded-rectangle id="487:513" name="Background" x="136.91000366210938" y="0" width="114.08999633789062" height="16" />
+              <rounded-rectangle id="487:514" name="Background" x="251" y="0" width="74.97000122070312" height="16" />
+            </frame>
+          </frame>
+          <frame id="487:515" name="Legend:margin" x="16" y="76" width="326" height="75">
+            <frame id="487:516" name="Legend" x="0" y="8" width="326" height="67">
+              <frame id="487:517" name="Container" x="0" y="0" width="326" height="20">
+                <frame id="487:518" name="Container" x="0" y="0" width="65" height="20">
+                  <rounded-rectangle id="487:519" name="Background" x="0" y="4" width="12" height="12" />
+                  <text id="487:520" name="Médica" x="16" y="0" width="49" height="20" />
+                </frame>
+                <frame id="487:521" name="Container" x="299" y="4" width="27" height="12">
+                  <text id="487:522" name="42%" x="0" y="0" width="27" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:523" name="Container" x="0" y="23.5" width="326" height="20">
+                <frame id="487:524" name="Container" x="0" y="0" width="56" height="20">
+                  <rounded-rectangle id="487:525" name="Background" x="0" y="4" width="12" height="12" />
+                  <text id="487:526" name="Social" x="16" y="0" width="40" height="20" />
+                </frame>
+                <frame id="487:527" name="Container" x="299" y="4" width="27" height="12">
+                  <text id="487:528" name="35%" x="0" y="0" width="27" height="12" />
+                </frame>
+              </frame>
+              <frame id="487:529" name="Container" x="0" y="47" width="326" height="20">
+                <frame id="487:530" name="Container" x="0" y="0" width="76" height="20">
+                  <rounded-rectangle id="487:531" name="Background" x="0" y="4" width="12" height="12" />
+                  <text id="487:532" name="Nutrición" x="16" y="0" width="60" height="20" />
+                </frame>
+                <frame id="487:533" name="Container" x="299" y="4" width="27" height="12">
+                  <text id="487:534" name="23%" x="0" y="0" width="27" height="12" />
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:535" name="Alertas Recientes Section" x="35" y="1083" width="358" height="592">
+        <frame id="487:536" name="Container" x="0" y="0" width="358" height="28">
+          <frame id="487:537" name="Heading 2" x="4" y="0" width="350" height="28">
+            <text id="487:538" name="Alertas Recientes" x="0" y="0" width="350" height="28" />
+          </frame>
+        </frame>
+        <frame id="487:539" name="Container" x="0" y="44" width="358" height="548">
+          <frame id="487:540" name="Card 1" x="0" y="0" width="358" height="172">
+            <frame id="487:541" name="Container" x="16" y="16" width="326" height="48">
+              <frame id="487:542" name="Container" x="0" y="0" width="145" height="48">
+                <frame id="487:543" name="AB6AXuBYcdsILIPEFfhEwvN3BtWlGqT-TnA8dC3mKWYT4U_-FKFga-KuUK8WbYc4PaleozUdbmRvYAwKdTebhTf2OBaeRxNqJvTOh_mMI2TjngYr3mJsmC_WZmb8j2sIlMLJ5SyVflYAHmnnbN8nXsJLactMdrdr27h-od1L6sd7FavmcXnWJSqExpYGAvXFSkjgmBpJWDjiJWcy5ah_j5oqgxVfc2596sb0KuKEPgFJHlrb8CJhdTi4f48ltA" x="0" y="0" width="48" height="48" />
+                <frame id="487:544" name="Container" x="56" y="2" width="89" height="44">
+                  <frame id="487:545" name="Container" x="0" y="0" width="89" height="24">
+                    <text id="487:546" name="Carmen R." x="0" y="0" width="81" height="24" />
+                  </frame>
+                  <frame id="487:547" name="Container" x="0" y="24" width="89" height="20">
+                    <text id="487:548" name="Adulto Mayor" x="0" y="0" width="89" height="20" />
+                  </frame>
+                </frame>
+              </frame>
+              <text id="487:549" name="Hace 10 min" x="249" y="0" width="77" height="12" />
+            </frame>
+            <frame id="487:550" name="Margin" x="16" y="72" width="326" height="52">
+              <frame id="487:551" name="Container" x="0" y="4" width="326" height="48">
+                <text id="487:552" name="Caída reportada por voluntario durante visita domiciliaria." x="0" y="0" width="326" height="48" />
+              </frame>
+            </frame>
+            <frame id="487:553" name="Margin" x="16" y="132" width="326" height="24">
+              <frame id="487:554" name="Container" x="0" y="4" width="326" height="20">
+                <frame id="487:555" name="Background" x="0" y="0" width="48" height="20">
+                  <text id="487:556" name="ALTA" x="8" y="4" width="32" height="12" />
+                </frame>
+                <frame id="487:557" name="Background" x="52" y="0" width="156" height="20">
+                  <text id="487:558" name="EMERGENCIA MÉDICA" x="8" y="4" width="140" height="12" />
+                </frame>
+              </frame>
+            </frame>
+            <rounded-rectangle id="487:559" name="Background" x="0" y="0" width="4" height="172" />
+          </frame>
+          <frame id="487:560" name="Card 2" x="0" y="188" width="358" height="172">
+            <frame id="487:561" name="Container" x="16" y="16" width="326" height="48">
+              <frame id="487:562" name="Container" x="0" y="0" width="145" height="48">
+                <frame id="487:563" name="AB6AXuBS3rFvhtBl2I01eI7tw7aLuUMOvQhS12nzFSZV-TqIzpYRLFEaaOaUt0AUi9Qpf0XjDHKMyhEV-qC_JTIke4sUWNzEt8lSH4bc1ltYvT1Me7yISuMX2KRJ0fwhwYKZ7s6pDiqBHs67c15pQ4nMjuI9-ubisxfmbK6TKJTcPUI8AqaBgnzX4AIETKkZcRW78QuwyS3ZuAtTCldKZ-gEnh4b1pMrjuXB4NQ645qzn5G6DAqzLJqZCmnOUg" x="0" y="0" width="48" height="48" />
+                <frame id="487:564" name="Container" x="56" y="2" width="89" height="44">
+                  <frame id="487:565" name="Container" x="0" y="0" width="89" height="24">
+                    <text id="487:566" name="Roberto V." x="0" y="0" width="82" height="24" />
+                  </frame>
+                  <frame id="487:567" name="Container" x="0" y="24" width="89" height="20">
+                    <text id="487:568" name="Adulto Mayor" x="0" y="0" width="89" height="20" />
+                  </frame>
+                </frame>
+              </frame>
+              <text id="487:569" name="Hace 2 horas" x="243" y="0" width="83" height="12" />
+            </frame>
+            <frame id="487:570" name="Margin" x="16" y="72" width="326" height="52">
+              <frame id="487:571" name="Container" x="0" y="4" width="326" height="48">
+                <text id="487:572" name="Solicitud de apoyo para traslado a cita médica programada en el hospital central." x="0" y="0" width="326" height="48" />
+              </frame>
+            </frame>
+            <frame id="487:573" name="Margin" x="16" y="132" width="326" height="24">
+              <frame id="487:574" name="Container" x="0" y="4" width="326" height="20">
+                <frame id="487:575" name="Background" x="0" y="0" width="58" height="20">
+                  <text id="487:576" name="MEDIA" x="8" y="4" width="42" height="12" />
+                </frame>
+                <frame id="487:577" name="Background" x="62" y="0" width="106" height="20">
+                  <text id="487:578" name="SEGUIMIENTO" x="8" y="4" width="90" height="12" />
+                </frame>
+              </frame>
+            </frame>
+            <rounded-rectangle id="487:579" name="Background" x="0" y="0" width="4" height="172" />
+          </frame>
+          <frame id="487:580" name="Card 3" x="0" y="376" width="358" height="172">
+            <frame id="487:581" name="Container" x="16" y="16" width="326" height="48">
+              <frame id="487:582" name="Container" x="0" y="0" width="139" height="48">
+                <frame id="487:583" name="AB6AXuCP3Eh9Sg98Dz2xVX9YUaHkka_kpyHnHQh7avNsGoD4lvBG49AeGhW2Gr8lPRQXOsbpE6fscJqTEtzcRNp56ZDaTUrLRhWhjW7xTypCQvTn0vnUCZrsC1amfUUQ-XFa6ErXfYjFeRHF1DweTiZWEEjZHRB7-gpsVJHqjaVwV4ZSJ8Y9v9kGduyPGLVWfGaHvtlKJmgc7l7X0Jk06SFG6XVdy8V3DaU4_hIRbvhSVniLgV7bYVK6qNUdTQ" x="0" y="0" width="48" height="48" />
+                <frame id="487:584" name="Container" x="56" y="2" width="83" height="44">
+                  <frame id="487:585" name="Container" x="0" y="0" width="83" height="24">
+                    <text id="487:586" name="Ana López" x="0" y="0" width="83" height="24" />
+                  </frame>
+                  <frame id="487:587" name="Container" x="0" y="24" width="83" height="20">
+                    <text id="487:588" name="Cuidadora" x="0" y="0" width="69" height="20" />
+                  </frame>
+                </frame>
+              </frame>
+              <text id="487:589" name="Ayer" x="297" y="0" width="29" height="12" />
+            </frame>
+            <frame id="487:590" name="Margin" x="16" y="72" width="326" height="52">
+              <frame id="487:591" name="Container" x="0" y="4" width="326" height="48">
+                <text id="487:592" name="Actualización del expediente nutricional de la paciente María completada…" x="0" y="0" width="326" height="48" />
+              </frame>
+            </frame>
+            <frame id="487:593" name="Margin" x="16" y="132" width="326" height="24">
+              <frame id="487:594" name="Container" x="0" y="4" width="326" height="20">
+                <frame id="487:595" name="Background" x="0" y="0" width="50" height="20">
+                  <text id="487:596" name="BAJA" x="8" y="4" width="34" height="12" />
+                </frame>
+                <frame id="487:597" name="Background" x="54" y="0" width="139" height="20">
+                  <text id="487:598" name="ACTUALIZACIÓN R." x="8" y="4" width="123" height="12" />
+                </frame>
+              </frame>
+            </frame>
+            <rounded-rectangle id="487:599" name="Background" x="0" y="0" width="4" height="172" />
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:600" name="Casos Prioritarios" x="35" y="498" width="358" height="80">
+        <frame id="487:601" name="Container" x="16" y="16" width="145.88999938964844" height="48">
+          <frame id="487:602" name="Heading 3" x="0" y="0" width="145.88999938964844" height="24">
+            <text id="487:603" name="Casos Prioritarios" x="0" y="0" width="140" height="24" />
+          </frame>
+          <frame id="487:604" name="Container" x="0" y="28" width="145.88999938964844" height="20">
+            <text id="487:605" name="04 Pendientes" x="0" y="0" width="96" height="20" />
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:606" name="Overlay" x="147" y="367" width="42" height="20">
+        <text id="487:607" name="+12%" x="4" y="4" width="34" height="12" />
+      </frame>
+      <frame id="487:608" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:609" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="487:610" name="Container" x="350" y="28" width="44" height="44">
+          <frame id="487:611" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="487:612" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:613" name="menu" x="-11" y="1691" width="447" height="106">
+        <rounded-rectangle id="487:614" name="Rectangle 45" x="-11" y="1691" width="447" height="106" />
+        <frame id="487:615" name="Frame 1000000945" x="21" y="1720" width="384" height="45">
+          <frame id="487:616" name="botónDashboard" x="7" y="0" width="85" height="45">
+            <text id="487:617" name="Inicio" x="7" y="31" width="85" height="14" />
+            <frame id="487:618" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:620" name="botónMisAdultos" x="102" y="0" width="85" height="45">
+            <frame id="487:621" name="botónDashboard" x="102" y="31" width="85" height="14">
+              <text id="487:622" name="Adultos" x="102" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:623" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:2301" name="botónMisAdultos" x="197" y="0" width="85" height="45">
+            <frame id="487:2302" name="botónDashboard" x="197" y="31" width="85" height="14">
+              <text id="487:2303" name="Visitas" x="197" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2304" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="228" y="0" width="24" height="24">
+              <frame id="487:2305" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+          <frame id="487:631" name="botónMisAdultos" x="292" y="0" width="85" height="45">
+            <frame id="487:632" name="botónDashboard" x="292" y="31" width="85" height="14">
+              <text id="487:633" name="Más" x="292" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:634" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:635" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:636" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <text id="487:638" name="Dashboard" x="42" y="52" width="185" height="20" />
+    </frame>
+    <frame id="487:1000" name="Pantalla agregar adulto admin" x="1185" y="1358" width="428" height="1654">
+      <frame id="487:1001" name="botónGuardar" x="36" y="1466" width="356" height="61">
+        <rounded-rectangle id="487:1002" name="Rectangle 33" x="36" y="1466" width="356" height="61" />
+        <text id="487:1003" name="Guardar perfil" x="36" y="1484" width="356" height="24" />
+      </frame>
+      <frame id="487:1004" name="Overlay" x="35" y="1342" width="358" height="91">
+        <frame id="487:1005" name="Margin" x="16" y="16" width="20" height="24">
+          <vector id="487:1006" name="Icon" x="0" y="4" width="20" height="20" />
+        </frame>
+        <frame id="487:1007" name="Container" x="52" y="16" width="300.3399963378906" height="59">
+          <text id="487:1008" name="El nivel de riesgo se calculará automáticamente después de completar la evaluación inicial." x="0" y="0" width="283" height="59" />
+        </frame>
+      </frame>
+      <frame id="487:1009" name="inputApellido" x="36" y="616" width="356" height="81.546875">
+        <rounded-rectangle id="487:1010" name="Rectangle 34" x="36" y="646" width="356" height="51.546875" />
+        <text id="487:1011" name="mm/dd/yyyy" x="57" y="662" width="153" height="20" />
+        <frame id="487:1012" name="dropdown" x="354" y="657" width="28" height="30" />
+        <text id="487:1013" name="Fecha de Nacimiento" x="37" y="616" width="187" height="19" />
+      </frame>
+      <frame id="487:1014" name="inputApellido" x="35" y="944" width="356" height="81.546875">
+        <rounded-rectangle id="487:1015" name="Rectangle 34" x="35" y="974" width="356" height="51.546875" />
+        <text id="487:1016" name="Seleccionar" x="56" y="990" width="153" height="20" />
+        <frame id="487:1017" name="dropdown" x="353" y="985" width="28" height="30" />
+        <text id="487:1019" name="Zona/Municipio" x="36" y="944" width="187" height="19" />
+      </frame>
+      <frame id="487:1020" name="botónCancelar" x="37" y="1545" width="356" height="61">
+        <rounded-rectangle id="487:1021" name="Rectangle 34" x="37" y="1545" width="356" height="61" />
+        <text id="487:1022" name="Cancelar" x="172" y="1564" width="87" height="24" />
+      </frame>
+      <frame id="487:1023" name="Frame" x="37" y="883" width="24" height="24" />
+      <frame id="487:1025" name="Frame" x="172" y="883" width="24" height="24" />
+      <text id="487:1027" name="Femenino" x="68" y="885" width="174" height="20" />
+      <text id="487:1028" name="Masculino" x="204" y="885" width="174" height="20" />
+      <frame id="487:1029" name="Frame" x="356" y="660" width="24" height="24" />
+      <text id="487:1031" name="Contacto de Emergencia" x="39" y="1057" width="241" height="20" />
+      <frame id="487:1032" name="inputNombreEmergencia" x="36" y="1121" width="358" height="80.546875">
+        <rounded-rectangle id="487:1033" name="Rectangle 34" x="36" y="1150" width="358" height="51.546875" />
+        <text id="487:1034" name="Nombre" x="57.117977142333984" y="1166.0556640625" width="111.62359619140625" height="20.280736923217773" />
+        <text id="487:1035" name="Nombre del Contacto" x="36" y="1121" width="173" height="20" />
+      </frame>
+      <frame id="487:1036" name="inputCedula" x="36" y="507" width="359" height="80.546875">
+        <rounded-rectangle id="487:1037" name="Rectangle 34" x="36" y="536" width="359" height="51.546875" />
+        <text id="487:1038" name="000-0000000-0" x="57.17696571350098" y="552" width="184.54212951660156" height="20" />
+        <text id="487:1039" name="Cédula" x="36" y="507" width="188.57583618164062" height="20" />
+      </frame>
+      <frame id="487:1040" name="inputTelefono" x="35" y="726" width="359" height="80.546875">
+        <rounded-rectangle id="487:1041" name="Rectangle 34" x="35" y="755" width="359" height="51.546875" />
+        <text id="487:1042" name="000 000 0000" x="56.17696571350098" y="771" width="184.54212951660156" height="20" />
+        <text id="487:1043" name="Teléfono" x="35" y="726" width="188.57583618164062" height="20" />
+      </frame>
+      <frame id="487:1044" name="inputApellido" x="36" y="398" width="359" height="80.546875">
+        <rounded-rectangle id="487:1045" name="Rectangle 34" x="36" y="427" width="359" height="51.546875" />
+        <text id="487:1046" name="Apellido" x="57.17696571350098" y="443.0556640625" width="111.93539428710938" height="20.280736923217773" />
+        <text id="487:1047" name="Apellido" x="36" y="398" width="111.93539428710938" height="20.280736923217773" />
+      </frame>
+      <frame id="487:1048" name="inputNombre" x="36" y="289" width="358" height="80.546875">
+        <rounded-rectangle id="487:1049" name="Rectangle 34" x="36" y="318" width="358" height="51.546875" />
+        <text id="487:1050" name="Nombre" x="57.117977142333984" y="334.0556640625" width="111.62359619140625" height="20.280736923217773" />
+        <text id="487:1051" name="Nombre" x="36" y="289" width="111.62359619140625" height="20.280736923217773" />
+      </frame>
+      <frame id="487:1052" name="Sexo" x="35" y="835" width="188.57583618164062" height="20">
+        <text id="487:1053" name="Sexo" x="35" y="835" width="188.57583618164062" height="20" />
+      </frame>
+      <frame id="487:1054" name="inputEmergenciaTelefono" x="37" y="1230" width="359" height="80.546875">
+        <rounded-rectangle id="487:1055" name="Rectangle 34" x="37" y="1259" width="359" height="51.546875" />
+        <text id="487:1056" name="000 000 0000" x="58.17696571350098" y="1275" width="184.54212951660156" height="20" />
+        <text id="487:1057" name="Teléfono de Emergencia" x="37" y="1230" width="188.57583618164062" height="20" />
+      </frame>
+      <text id="487:1058" name="Completa los datos del adulto mayor para registrarlo en el sistema y comenzar su seguimiento." x="35" y="206" width="340" height="20" />
+      <text id="487:1059" name="Agregar Adulto Mayor" x="35" y="139" width="258" height="20" />
+      <frame id="487:1060" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1061" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <text id="487:1062" name="Adultos Mayores" x="71" y="55" width="185" height="20" />
+      </frame>
+      <frame id="487:1063" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+    </frame>
+    <frame id="487:1065" name="Pantalla evaluación de riesgo" x="2586" y="1358" width="428" height="1537">
+      <frame id="487:1066" name="botónEnviar" x="36" y="1367" width="356" height="61">
+        <rounded-rectangle id="487:1067" name="Rectangle 33" x="36" y="1367" width="356" height="61" />
+        <text id="487:1068" name="Calcular nivel de riesgo" x="36" y="1385" width="356" height="24" />
+      </frame>
+      <frame id="487:1069" name="Overlay" x="35" y="178" width="358" height="91">
+        <frame id="487:1070" name="Margin" x="16" y="16" width="20" height="24">
+          <vector id="487:1071" name="Icon" x="0" y="4" width="20" height="20" />
+        </frame>
+        <frame id="487:1072" name="Container" x="52" y="16" width="300.3399963378906" height="59">
+          <text id="487:1073" name="Esta evaluación determina automáticamente el nivel de vulnerabilidad del adulto mayor." x="0" y="0" width="283" height="59" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="487:1074" name="Rectangle 62" x="35" y="299" width="358" height="319" />
+      <line id="487:1075" name="Line 7" x="37" y="358" width="354" height="0" />
+      <frame id="487:1076" name="inputApellido" x="37" y="394" width="356" height="189">
+        <rounded-rectangle id="487:1077" name="Rectangle 34" x="37" y="477" width="356" height="51.546875" />
+        <text id="487:1078" name="Seleccionar" x="58" y="493" width="153" height="20" />
+        <frame id="487:1079" name="dropdown" x="355" y="488" width="28" height="30" />
+        <text id="487:1081" name="Tipo de vivienda" x="38" y="448" width="187" height="19" />
+        <text id="487:1082" name="¿Cuenta con ingresos fijos?" x="38" y="394" width="226" height="19" />
+        <text id="487:1083" name="¿Vive solo/a?" x="38" y="564" width="226" height="19" />
+      </frame>
+      <frame id="487:1084" name="Frame" x="332" y="384" width="40" height="40" />
+      <text id="487:1086" name="Sí" x="309" y="394" width="174" height="20" />
+      <text id="487:1087" name="No" x="309" y="564" width="174" height="20" />
+      <frame id="487:1088" name="Frame" x="335" y="554" width="40" height="40" />
+      <rounded-rectangle id="487:1090" name="Rectangle 63" x="35" y="648" width="358" height="319" />
+      <frame id="487:1091" name="Frame" x="332" y="902" width="40" height="40" />
+      <text id="487:1093" name="Sí" x="309" y="912" width="174" height="20" />
+      <line id="487:1094" name="Line 8" x="37" y="707" width="354" height="0" />
+      <frame id="487:1095" name="inputApellido" x="37" y="733" width="356" height="208">
+        <rounded-rectangle id="487:1096" name="Rectangle 34" x="37" y="826" width="356" height="51.546875" />
+        <text id="487:1097" name="Seleccionar" x="58" y="842" width="153" height="20" />
+        <frame id="487:1098" name="dropdown" x="355" y="837" width="28" height="30" />
+        <text id="487:1100" name="Nivel de movilidad" x="38" y="797" width="187" height="19" />
+        <text id="487:1101" name="¿Tiene alguna condición médica crónica?" x="38" y="733" width="226" height="38" />
+        <text id="487:1102" name="¿Requiere medicamentos permanentes?" x="38" y="903" width="226" height="38" />
+      </frame>
+      <frame id="487:1103" name="Frame" x="332" y="733" width="40" height="40" />
+      <text id="487:1105" name="Sí" x="309" y="743" width="174" height="20" />
+      <rounded-rectangle id="487:1106" name="Rectangle 64" x="35" y="997" width="358" height="319" />
+      <line id="487:1107" name="Line 9" x="37" y="1056" width="354" height="0" />
+      <frame id="487:1108" name="inputApellido" x="37" y="1082" width="356" height="208">
+        <rounded-rectangle id="487:1109" name="Rectangle 34" x="37" y="1175" width="356" height="51.546875" />
+        <text id="487:1110" name="Seleccionar" x="58" y="1191" width="153" height="20" />
+        <frame id="487:1111" name="dropdown" x="355" y="1186" width="28" height="30" />
+        <text id="487:1113" name="Frecuencia de contacto familiar" x="38" y="1146" width="248" height="19" />
+        <text id="487:1114" name="¿Tiene familiares cercanos que lo visiten regularmente?" x="38" y="1082" width="226" height="38" />
+        <text id="487:1115" name="¿Cuenta con cuidador asignado?" x="38" y="1252" width="226" height="38" />
+      </frame>
+      <frame id="487:1116" name="Frame" x="332" y="1082" width="40" height="40" />
+      <text id="487:1118" name="Sí" x="309" y="1092" width="174" height="20" />
+      <text id="487:1119" name="No" x="309" y="1262" width="174" height="20" />
+      <frame id="487:1120" name="Frame" x="335" y="1252" width="40" height="40" />
+      <frame id="487:1122" name="Frame" x="44" y="318" width="24" height="24" />
+      <vector id="487:1124" name="Vector" x="46" y="1020.7060546875" width="24" height="11.151148796081543" />
+      <frame id="487:1125" name="Frame" x="46" y="667" width="24" height="24" />
+      <text id="487:1127" name="Red de Apoyo" x="81" y="1018" width="135" height="20" />
+      <text id="487:1128" name="El resultado se calculará automáticamente según las respuestas." x="44" y="1458" width="340" height="20" />
+      <text id="487:1129" name="Condición de Salud" x="77" y="669" width="190" height="20" />
+      <text id="487:1130" name="Elena Rodríguez" x="35" y="139" width="191" height="20" />
+      <text id="487:1131" name="Situación Socioeconómica" x="77" y="320" width="260" height="20" />
+      <frame id="487:1132" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1133" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <text id="487:1134" name="Evaluación de Riesgo" x="71" y="52" width="222" height="20" />
+      </frame>
+      <frame id="487:1135" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+    </frame>
+    <frame id="487:1137" name="Pantalla editar adulto admin" x="1662" y="1359" width="428" height="1569">
+      <frame id="487:1138" name="botónGuardar" x="34" y="1381" width="356" height="61">
+        <rounded-rectangle id="487:1139" name="Rectangle 33" x="34" y="1381" width="356" height="61" />
+        <text id="487:1140" name="Guardar cambios" x="34" y="1399" width="356" height="24" />
+      </frame>
+      <frame id="487:1141" name="Overlay" x="35" y="1253" width="358" height="91">
+        <frame id="487:1142" name="Margin" x="16" y="16" width="20" height="24">
+          <vector id="487:1143" name="Icon" x="0" y="4" width="20" height="20" />
+        </frame>
+        <frame id="487:1144" name="Container" x="52" y="16" width="300.3399963378906" height="59">
+          <text id="487:1145" name="El nivel de riesgo se calculará automáticamente después de completar la evaluación inicial." x="0" y="0" width="283" height="59" />
+        </frame>
+      </frame>
+      <frame id="487:1146" name="inputApellido" x="36" y="529" width="356" height="81.546875">
+        <rounded-rectangle id="487:1147" name="Rectangle 34" x="36" y="559" width="356" height="51.546875" />
+        <text id="487:1148" name="18/10/1950" x="57" y="575" width="153" height="20" />
+        <frame id="487:1149" name="dropdown" x="354" y="570" width="28" height="30" />
+        <text id="487:1151" name="Fecha de Nacimiento" x="37" y="529" width="187" height="19" />
+      </frame>
+      <frame id="487:1152" name="inputApellido" x="35" y="857" width="356" height="81.546875">
+        <rounded-rectangle id="487:1153" name="Rectangle 34" x="35" y="887" width="356" height="51.546875" />
+        <text id="487:1154" name="El Millón" x="56" y="903" width="153" height="20" />
+        <frame id="487:1155" name="dropdown" x="353" y="898" width="28" height="30" />
+        <text id="487:1157" name="Zona/Municipio" x="36" y="857" width="187" height="19" />
+      </frame>
+      <frame id="487:1158" name="botónCancelar" x="35" y="1460" width="356" height="61">
+        <rounded-rectangle id="487:1159" name="Rectangle 34" x="35" y="1460" width="356" height="61" />
+        <text id="487:1160" name="Cancelar" x="170" y="1479" width="87" height="24" />
+      </frame>
+      <frame id="487:1161" name="Frame" x="37" y="796" width="24" height="24" />
+      <frame id="487:1163" name="Frame" x="172" y="796" width="24" height="24" />
+      <text id="487:1165" name="Femenino" x="68" y="798" width="174" height="20" />
+      <text id="487:1166" name="Masculino" x="204" y="798" width="174" height="20" />
+      <vector id="487:1167" name="Vector" x="3" y="1.7279735803604126" width="18" height="17.279735565185547" />
+      <frame id="487:1168" name="inputNombreContacto" x="36" y="1032" width="358" height="80.546875">
+        <rounded-rectangle id="487:1169" name="Rectangle 34" x="36" y="1061" width="358" height="51.546875" />
+        <text id="487:1170" name="Nombre" x="57.117977142333984" y="1077.0556640625" width="111.62359619140625" height="20.280736923217773" />
+        <text id="487:1171" name="Nombre del Contacto" x="36" y="1032" width="173" height="20" />
+        <frame id="487:1172" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="357" y="1075" width="24" height="24" />
+      </frame>
+      <frame id="487:1174" name="inputCedula" x="36" y="420" width="359" height="80.546875">
+        <rounded-rectangle id="487:1175" name="Rectangle 34" x="36" y="449" width="359" height="51.546875" />
+        <text id="487:1176" name="001-0012154-2" x="57.17696571350098" y="465" width="184.54212951660156" height="20" />
+        <text id="487:1177" name="Cédula" x="36" y="420" width="188.57583618164062" height="20" />
+        <frame id="487:1178" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="358" y="463" width="24" height="24" />
+      </frame>
+      <frame id="487:1180" name="inputTelefono" x="35" y="639" width="359" height="80.546875">
+        <rounded-rectangle id="487:1181" name="Rectangle 34" x="35" y="668" width="359" height="51.546875" />
+        <text id="487:1182" name="849 787 0346" x="56.17696571350098" y="684" width="184.54212951660156" height="20" />
+        <text id="487:1183" name="Teléfono" x="35" y="639" width="188.57583618164062" height="20" />
+        <frame id="487:1184" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="358" y="682" width="24" height="24" />
+      </frame>
+      <frame id="487:1186" name="inputApellido" x="36" y="311" width="359" height="80.546875">
+        <rounded-rectangle id="487:1187" name="Rectangle 34" x="36" y="340" width="359" height="51.546875" />
+        <text id="487:1188" name="Rodríguez" x="57.17696571350098" y="356.0556640625" width="111.93539428710938" height="20.280736923217773" />
+        <text id="487:1189" name="Apellido" x="36" y="311" width="111.93539428710938" height="20.280736923217773" />
+        <frame id="487:1190" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 2" x="358" y="354" width="24" height="24" />
+      </frame>
+      <frame id="487:1192" name="inputSexo" x="35" y="748" width="188.57583618164062" height="20">
+        <text id="487:1193" name="Sexo" x="35" y="748" width="188.57583618164062" height="20" />
+      </frame>
+      <frame id="487:1194" name="inputNombre" x="36" y="202" width="358" height="80.546875">
+        <rounded-rectangle id="487:1195" name="Rectangle 34" x="36" y="231" width="358" height="51.546875" />
+        <text id="487:1196" name="Elena" x="57" y="247" width="139" height="20" />
+        <text id="487:1197" name="Nombre" x="36" y="202" width="111.62359619140625" height="20.280736923217773" />
+        <frame id="487:1198" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="358" y="245" width="24" height="24" />
+      </frame>
+      <text id="487:1200" name="Contacto de Emergencia" x="37" y="982" width="241" height="20" />
+      <frame id="487:1201" name="inputTelefonoEmergencia" x="37" y="1141" width="359" height="80.546875">
+        <rounded-rectangle id="487:1202" name="Rectangle 34" x="37" y="1170" width="359" height="51.546875" />
+        <text id="487:1203" name="000 000 0000" x="58.17696571350098" y="1186" width="184.54212951660156" height="20" />
+        <text id="487:1204" name="Teléfono de Emergencia" x="37" y="1141" width="188.57583618164062" height="20" />
+        <frame id="487:1205" name="edit_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="360" y="1184" width="24" height="24" />
+      </frame>
+      <text id="487:1207" name="Editar Adulto Mayor" x="35" y="139" width="233" height="20" />
+      <frame id="487:1208" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1209" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <text id="487:1210" name="Adultos Mayores" x="71" y="55" width="185" height="20" />
+      </frame>
+      <frame id="487:1211" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+    </frame>
+    <frame id="487:1213" name="Pantalla adultos admin" x="708" y="1358" width="428" height="1138">
+      <rounded-rectangle id="487:1214" name="Rectangle 51" x="35" y="206" width="129" height="33" />
+      <text id="487:1215" name="Riesgo: Todos" x="45" y="214" width="89" height="16" />
+      <frame id="487:1216" name="dropdown" x="132" y="210" width="28" height="26" />
+      <rounded-rectangle id="487:1218" name="Rectangle 52" x="170" y="206" width="123" height="32" />
+      <text id="487:1219" name="Zona: Todos" x="173" y="214" width="97" height="14" />
+      <frame id="487:1220" name="dropdown" x="261" y="209" width="28" height="26" />
+      <frame id="487:1222" name="tarjetaEnvejeciente" x="36" y="272" width="360" height="174">
+        <rounded-rectangle id="487:1223" name="Rectangle 43" x="36" y="272" width="356" height="174" />
+        <rounded-rectangle id="487:1224" name="Rectangle 44" x="36" y="416" width="356" height="30" />
+        <frame id="487:1225" name="Background+Border" x="57" y="290" width="48" height="48">
+          <frame id="487:1226" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+        </frame>
+        <frame id="487:1228" name="Heading 3" x="121" y="300" width="157" height="28">
+          <text id="487:1229" name="Elena Rodríguez" x="0" y="0" width="157" height="28" />
+        </frame>
+        <frame id="487:1230" name="Background" x="325" y="304.5" width="50" height="19">
+          <text id="487:1231" name="MEDIO" x="8" y="2" width="34" height="15" />
+        </frame>
+        <text id="487:1232" name="Cédula" x="57" y="356" width="148" height="14" />
+        <text id="487:1233" name="Ver más" x="234" y="424" width="114" height="14" />
+        <text id="487:1234" name="001-0012154-2" x="57" y="379" width="148" height="14" />
+        <text id="487:1235" name="Zona" x="227" y="356" width="148" height="14" />
+        <text id="487:1236" name="D. N., Renacimiento" x="227" y="379" width="169" height="14" />
+        <frame id="487:1237" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="421" width="20" height="20" />
+      </frame>
+      <frame id="487:1239" name="tarjetaEnvejeciente" x="36" y="662" width="356" height="174">
+        <rounded-rectangle id="487:1240" name="Rectangle 43" x="36" y="662" width="356" height="174" />
+        <rounded-rectangle id="487:1241" name="Rectangle 44" x="36" y="806" width="356" height="30" />
+        <frame id="487:1242" name="Background+Border" x="57" y="680" width="48" height="48">
+          <frame id="487:1243" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+        </frame>
+        <frame id="487:1245" name="Heading 3" x="121" y="690" width="134" height="28">
+          <text id="487:1246" name="Camila Torres" x="0" y="0" width="134" height="28" />
+        </frame>
+        <frame id="487:1247" name="Background" x="328" y="694.5" width="43" height="19">
+          <text id="487:1248" name="ALTO" x="8" y="2" width="27" height="15" />
+        </frame>
+        <text id="487:1249" name="Cédula" x="57" y="746" width="148" height="14" />
+        <text id="487:1250" name="Ver más" x="234" y="814" width="114" height="14" />
+        <text id="487:1251" name="001-0012554-8" x="57" y="769" width="148" height="14" />
+        <text id="487:1252" name="Zona" x="227" y="746" width="148" height="14" />
+        <text id="487:1253" name="D. N., Renacimiento" x="227" y="769" width="162" height="14" />
+        <frame id="487:1254" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="811" width="20" height="20" />
+      </frame>
+      <frame id="487:1256" name="tarjetaEnvejeciente" x="36" y="467" width="356" height="174">
+        <rounded-rectangle id="487:1257" name="Rectangle 43" x="36" y="467" width="356" height="174" />
+        <rounded-rectangle id="487:1258" name="Rectangle 44" x="36" y="611" width="356" height="30" />
+        <frame id="487:1259" name="Background+Border" x="57" y="485" width="48" height="48">
+          <frame id="487:1260" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+        </frame>
+        <frame id="487:1262" name="Heading 3" x="121" y="495" width="131" height="28">
+          <text id="487:1263" name="José Santana" x="0" y="0" width="131" height="28" />
+        </frame>
+        <frame id="487:1264" name="Background" x="328" y="499.5" width="44" height="19">
+          <text id="487:1265" name="BAJO" x="8" y="2" width="28" height="15" />
+        </frame>
+        <text id="487:1266" name="Cédula" x="57" y="551" width="148" height="14" />
+        <text id="487:1267" name="Ver más" x="234" y="619" width="114" height="14" />
+        <text id="487:1268" name="001-6545889-2" x="57" y="574" width="148" height="14" />
+        <text id="487:1269" name="Zona" x="227" y="551" width="148" height="14" />
+        <text id="487:1270" name="D. N., El Millón" x="227" y="574" width="148" height="14" />
+        <frame id="487:1271" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="616" width="20" height="20" />
+      </frame>
+      <frame id="487:1273" name="botónAgregar" x="36" y="873" width="356" height="61">
+        <rounded-rectangle id="487:1274" name="Rectangle 33" x="36" y="873" width="356" height="61" />
+        <text id="487:1275" name="Agregar adulto mayor" x="36" y="891" width="356" height="24" />
+      </frame>
+      <frame id="487:1276" name="buscador" x="34" y="139" width="359" height="51.546875">
+        <rounded-rectangle id="487:1277" name="Rectangle 34" x="34" y="139" width="359" height="51.546875" />
+        <text id="487:1278" name="Buscar adultos..." x="54.16867637634277" y="155" width="184.54212951660156" height="20" />
+        <frame id="487:1279" name="search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="349.95599365234375" y="151.8723659515381" width="26.25414276123047" height="26.25414276123047" />
+      </frame>
+      <frame id="487:1281" name="menu" x="0" y="978" width="447" height="106">
+        <rounded-rectangle id="487:1282" name="Rectangle 45" x="0" y="978" width="447" height="106" />
+        <frame id="487:1283" name="Frame 1000000945" x="32" y="1007" width="384" height="45">
+          <frame id="487:1284" name="botónDashboard" x="7" y="0" width="85" height="45">
+            <text id="487:1285" name="Inicio" x="7" y="31" width="85" height="14" />
+            <frame id="487:1286" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1288" name="botónMisAdultos" x="102" y="0" width="85" height="45">
+            <frame id="487:1289" name="botónDashboard" x="102" y="31" width="85" height="14">
+              <text id="487:1290" name="Adultos" x="102" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:1291" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:2357" name="botónMisAdultos" x="197" y="0" width="85" height="45">
+            <frame id="487:2358" name="botónDashboard" x="197" y="31" width="85" height="14">
+              <text id="487:2359" name="Visitas" x="197" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2360" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="228" y="0" width="24" height="24">
+              <frame id="487:2361" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+          <frame id="487:1299" name="botónMisAdultos" x="292" y="0" width="85" height="45">
+            <frame id="487:1300" name="botónDashboard" x="292" y="31" width="85" height="14">
+              <text id="487:1301" name="Más" x="292" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:1302" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:1303" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:1304" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:1306" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1307" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="487:1308" name="Container" x="350" y="28" width="44" height="44">
+          <frame id="487:1309" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="487:1310" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+        <text id="487:1311" name="Adultos Mayores" x="39" y="55" width="218" height="20" />
+      </frame>
+    </frame>
+    <frame id="487:1315" name="Pantalla Perfil Envejeciente admin" x="2131" y="1360" width="428" height="1630">
+      <text id="487:1316" name="Información Personal" x="35" y="392" width="209" height="24" />
+      <frame id="487:1317" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="159" y="150" width="111" height="111" />
+      <rounded-rectangle id="487:1319" name="Rectangle 43" x="32" y="923" width="174" height="78" />
+      <rounded-rectangle id="487:1320" name="Rectangle 42" x="214" y="923" width="174" height="78" />
+      <text id="487:1321" name="2" x="295" y="961" width="13" height="24" />
+      <text id="487:1322" name="24/08/2026" x="58" y="960" width="121" height="24" />
+      <text id="487:1323" name="Registrar" x="31" y="1033" width="90" height="24" />
+      <frame id="487:1331" name="tarjetaAlertaGestionad" x="36" y="1465" width="356" height="127">
+        <rounded-rectangle id="487:1332" name="Rectangle 43" x="36" y="1465" width="356" height="127" />
+        <frame id="487:1333" name="Heading 3" x="57" y="1501" width="69" height="28">
+          <text id="487:1334" name="Compañía" x="0" y="0" width="69" height="28" />
+        </frame>
+        <frame id="487:1335" name="Heading 4" x="57" y="1521" width="109" height="28">
+          <text id="487:1336" name="Elena Rodríguez" x="0" y="0" width="109" height="28" />
+        </frame>
+        <text id="487:1337" name="24/08/2026 - 12:30 p.m." x="57" y="1487" width="142" height="15" />
+        <frame id="487:1338" name="Background" x="315" y="1484" width="55" height="19">
+          <text id="487:1339" name="ACTIVA" x="8" y="2" width="39" height="15" />
+        </frame>
+        <rounded-rectangle id="487:1340" name="Rectangle 44" x="36" y="1562" width="355" height="30" />
+        <text id="487:1341" name="Ver más" x="299" y="1570" width="48" height="15" />
+        <frame id="487:1342" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="354" y="1567" width="20" height="20" />
+      </frame>
+      <text id="487:1344" name="Elena Rodríguez" x="103" y="268" width="222" height="34" />
+      <text id="487:1345" name="Información Personal" x="35" y="392" width="209" height="24" />
+      <rounded-rectangle id="487:1346" name="Rectangle 44" x="166" y="330" width="97" height="29" />
+      <text id="487:1347" name="Medio" x="190" y="335" width="48" height="19" />
+      <frame id="487:1348" name="InfoFecha" x="35" y="445" width="356.01263427734375" height="67">
+        <text id="487:1349" name="18/10/1950" x="35" y="35" width="84" height="19" />
+        <text id="487:1350" name="Fecha de Nacimiento" x="1" y="1" width="162" height="19" />
+        <frame id="487:1351" name="mail_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="32" width="24" height="24">
+          <frame id="487:1352" name="cake_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="0" width="24" height="24" />
+        </frame>
+        <line id="487:1354" name="Line 1" x="0" y="67" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="487:1355" name="infoTeléfono" x="35" y="542" width="356.01263427734375" height="66">
+        <text id="487:1356" name="809 777 1234" x="70" y="573" width="105" height="19" />
+        <frame id="487:1357" name="call_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="36" y="570" width="24" height="24" />
+        <text id="487:1359" name="Teléfono" x="36" y="542" width="68" height="19" />
+        <line id="487:1360" name="Line 2" x="35" y="608" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="487:1361" name="infoContacto" x="38" y="825" width="356.01263427734375" height="66">
+        <text id="487:1362" name="849 787 0346" x="73" y="856" width="108" height="19" />
+        <frame id="487:1363" name="call_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="39" y="853" width="24" height="24" />
+        <text id="487:1365" name="Contacto de Emergencia" x="39" y="825" width="191" height="19" />
+        <line id="487:1366" name="Line 2" x="38" y="891" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="487:1367" name="infoSexo" x="33" y="638" width="356.01263427734375" height="66">
+        <text id="487:1368" name="Femenino" x="68" y="669" width="74" height="19" />
+        <frame id="487:1369" name="call_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="34" y="666" width="24" height="24">
+          <frame id="487:1370" name="wc_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="0" y="0" width="24" height="24" />
+        </frame>
+        <text id="487:1372" name="Sexo" x="34" y="638" width="39" height="19" />
+        <line id="487:1373" name="Line 2" x="33" y="704" width="356.01263427734375" height="0" />
+      </frame>
+      <frame id="487:1374" name="infoZona" x="36" y="731" width="356.01263427734375" height="66">
+        <text id="487:1375" name="El Millón" x="71" y="762" width="63" height="19" />
+        <text id="487:1376" name="Zona" x="37" y="731" width="40" height="19" />
+        <line id="487:1377" name="Line 2" x="36" y="797" width="356.01263427734375" height="0" />
+      </frame>
+      <text id="487:1378" name="001-0012154-2" x="154" y="304" width="121" height="19" />
+      <rounded-rectangle id="487:1379" name="Rectangle 45" x="32" y="923" width="174" height="78" />
+      <text id="487:1380" name="Última Visita" x="76" y="940" width="86" height="17" />
+      <rounded-rectangle id="487:1381" name="Rectangle 46" x="214" y="923" width="174" height="78" />
+      <text id="487:1382" name="Necesidades Activas" x="230" y="941" width="143" height="17" />
+      <text id="487:1383" name="2" x="295" y="961" width="13" height="24" />
+      <text id="487:1384" name="24/08/2026" x="58" y="960" width="121" height="24" />
+      <text id="487:1385" name="Acciones Rápidas" x="31" y="1175" width="175" height="24" />
+      <frame id="487:1386" name="Filters Horizontal Scroll" x="69" y="1401" width="274" height="34">
+        <frame id="487:1387" name="Button" x="0" y="0" width="102" height="34">
+          <text id="487:1388" name="Necesidades" x="6.5" y="8.5" width="89" height="16" />
+        </frame>
+        <frame id="487:1389" name="Button" x="111" y="0" width="77" height="34">
+          <text id="487:1390" name="Visitas" x="15" y="9" width="47" height="16" />
+        </frame>
+        <frame id="487:1391" name="Button" x="197" y="0" width="77" height="34">
+          <text id="487:1392" name="Alertas" x="13.5" y="9" width="50" height="16" />
+        </frame>
+      </frame>
+      <frame id="487:1393" name="Frame" x="37" y="759" width="24" height="24" />
+      <frame id="487:1395" name="botónEditar" x="33" y="1224" width="356" height="61">
+        <rounded-rectangle id="487:1396" name="Rectangle 33" x="33" y="1224" width="356" height="61" />
+        <text id="487:1397" name="Editar información" x="122" y="1242" width="178" height="24" />
+      </frame>
+      <frame id="487:1398" name="botónEvaluacion" x="35" y="1310" width="356" height="61">
+        <rounded-rectangle id="487:1399" name="Rectangle 33" x="35" y="1310" width="356" height="61" />
+        <text id="487:1400" name="Realizar evaluación de riesgo" x="72" y="1328" width="282" height="24" />
+      </frame>
+      <frame id="488:2419" name="botónCerrarSesion" x="35" y="1082" width="171" height="61">
+        <rounded-rectangle id="488:2420" name="Rectangle 34" x="35" y="1082" width="171" height="61" />
+        <frame id="488:2421" name="Frame 4929" x="79.19085311889648" y="1101" width="82.61798095703125" height="24">
+          <text id="488:2422" name="Visita" x="16" y="0" width="50" height="22" />
+        </frame>
+      </frame>
+      <frame id="488:2429" name="botónCerrarSesion" x="221" y="1082" width="171" height="61">
+        <rounded-rectangle id="488:2430" name="Rectangle 34" x="221" y="1082" width="171" height="61" />
+        <frame id="488:2431" name="Frame 4929" x="265.1908531188965" y="1101" width="82.61798095703125" height="24">
+          <text id="488:2432" name="Necesidad" x="-5" y="0" width="93" height="22" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="487:1401" name="Rectangle 47" x="-9" y="-14" width="447" height="110" />
+      <frame id="487:1402" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="487:1404" name="Perfil Envejeciente" x="91" y="53" width="181" height="20" />
+    </frame>
+    <frame id="487:1447" name="Pantalla Más coord" x="4495" y="3149" width="428" height="928">
+      <ellipse id="487:1459" name="Ellipse 13" x="253" y="630" width="100" height="100" />
+      <rounded-rectangle id="493:3155" name="Rectangle 51" x="35" y="206" width="129" height="33" />
+      <text id="493:3156" name="Riesgo: Todos" x="45" y="214" width="89" height="16" />
+      <frame id="493:3157" name="dropdown" x="132" y="210" width="28" height="26" />
+      <rounded-rectangle id="493:3159" name="Rectangle 52" x="170" y="206" width="123" height="32" />
+      <text id="493:3160" name="Zona: Todos" x="173" y="214" width="97" height="14" />
+      <frame id="493:3161" name="dropdown" x="261" y="209" width="28" height="26" />
+      <frame id="493:3164" name="tarjetaEnvejeciente" x="36" y="272" width="360" height="174">
+        <rounded-rectangle id="493:3165" name="Rectangle 43" x="36" y="272" width="356" height="174" />
+        <rounded-rectangle id="493:3166" name="Rectangle 44" x="36" y="416" width="356" height="30" />
+        <frame id="493:3167" name="Background+Border" x="57" y="290" width="48" height="48">
+          <frame id="493:3168" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+        </frame>
+        <frame id="493:3170" name="Heading 3" x="121" y="300" width="157" height="28">
+          <text id="493:3171" name="Elena Rodríguez" x="0" y="0" width="157" height="28" />
+        </frame>
+        <frame id="493:3172" name="Background" x="325" y="304.5" width="50" height="19">
+          <text id="493:3173" name="MEDIO" x="8" y="2" width="34" height="15" />
+        </frame>
+        <text id="493:3174" name="Cédula" x="57" y="356" width="148" height="14" />
+        <text id="493:3175" name="Ver más" x="234" y="424" width="114" height="14" />
+        <text id="493:3176" name="001-0012154-2" x="57" y="379" width="148" height="14" />
+        <text id="493:3177" name="Zona" x="227" y="356" width="148" height="14" />
+        <text id="493:3178" name="D. N., Renacimiento" x="227" y="379" width="169" height="14" />
+        <frame id="493:3179" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="421" width="20" height="20" />
+      </frame>
+      <frame id="487:1460" name="tarjetaEnvejeciente" x="34" y="427" width="358" height="481">
+        <rounded-rectangle id="487:1461" name="Rectangle 43" x="35" y="427" width="357" height="129" />
+        <rounded-rectangle id="487:1462" name="Rectangle 44" x="35" y="526" width="356" height="30" />
+        <frame id="487:1463" name="Background+Border" x="56" y="449" width="48" height="48">
+          <frame id="487:1464" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+        </frame>
+        <frame id="487:1466" name="Heading 3" x="120" y="449" width="131" height="28">
+          <text id="487:1467" name="José Santana" x="0" y="0" width="131" height="28" />
+        </frame>
+        <frame id="487:1468" name="Background" x="314" y="480" width="56" height="19">
+          <text id="487:1469" name="ACTIVO" x="8" y="2" width="40" height="15" />
+        </frame>
+        <frame id="487:1470" name="Background" x="314" y="480" width="56" height="19">
+          <text id="487:1471" name="ACTIVO" x="8" y="2" width="40" height="15" />
+        </frame>
+        <text id="487:1472" name="josesantana01@gmail.com" x="122" y="483" width="151" height="15" />
+        <frame id="487:1473" name="Background" x="277" y="454" width="93" height="19">
+          <text id="487:1474" name="Coordinador" x="8" y="2" width="77" height="15" />
+        </frame>
+        <text id="487:1475" name="Ver más" x="299" y="534" width="48" height="15" />
+        <frame id="487:1476" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="531" width="20" height="20" />
+        <frame id="487:1478" name="tarjetaEnvejeciente" x="35" y="427" width="357" height="129">
+          <rounded-rectangle id="487:1479" name="Rectangle 43" x="35" y="427" width="357" height="129" />
+          <rounded-rectangle id="487:1480" name="Rectangle 44" x="35" y="526" width="356" height="30" />
+          <frame id="487:1481" name="Background+Border" x="56" y="449" width="48" height="48">
+            <frame id="487:1482" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+          </frame>
+          <frame id="487:1484" name="Heading 3" x="120" y="449" width="123" height="28">
+            <text id="487:1485" name="Giselle Mejía" x="0" y="0" width="123" height="28" />
+          </frame>
+          <frame id="487:1486" name="Background" x="314" y="480" width="56" height="19">
+            <text id="487:1487" name="ACTIVO" x="8" y="2" width="40" height="15" />
+          </frame>
+          <frame id="487:1488" name="Background" x="314" y="480" width="56" height="19">
+            <text id="487:1489" name="ACTIVO" x="8" y="2" width="40" height="15" />
+          </frame>
+          <frame id="487:1490" name="Background" x="298" y="453" width="70" height="19">
+            <text id="487:1491" name="CUIDADOR" x="8" y="2" width="54" height="15" />
+          </frame>
+          <text id="487:1492" name="Ver más" x="299" y="534" width="48" height="15" />
+          <frame id="487:1493" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="531" width="20" height="20" />
+        </frame>
+        <frame id="487:1495" name="tarjetaEnvejeciente" x="34" y="590" width="358" height="318">
+          <rounded-rectangle id="487:1496" name="Rectangle 43" x="34" y="590" width="357" height="129" />
+          <rounded-rectangle id="487:1497" name="Rectangle 44" x="34" y="689" width="356" height="30" />
+          <frame id="487:1498" name="Background+Border" x="55" y="612" width="48" height="48">
+            <frame id="487:1499" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+          </frame>
+          <frame id="487:1501" name="Heading 3" x="119" y="612" width="130" height="28">
+            <text id="487:1502" name="Carlos Torres" x="0" y="0" width="130" height="28" />
+          </frame>
+          <frame id="487:1503" name="Background" x="313" y="643" width="56" height="19">
+            <text id="487:1504" name="ACTIVO" x="8" y="2" width="40" height="15" />
+          </frame>
+          <text id="487:1505" name="carlostorress01@gmail.com" x="121" y="646" width="157" height="15" />
+          <frame id="487:1506" name="Background" x="298" y="617" width="70" height="19">
+            <text id="487:1507" name="CUIDADOR" x="8" y="2" width="54" height="15" />
+          </frame>
+          <text id="487:1508" name="Ver más" x="298" y="697" width="48" height="15" />
+          <frame id="487:1509" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="354" y="694" width="20" height="20" />
+          <frame id="487:1511" name="tarjetaEnvejeciente" x="35" y="751" width="357" height="157">
+            <rounded-rectangle id="487:1512" name="Rectangle 43" x="35" y="751" width="357" height="157" />
+            <rounded-rectangle id="487:1513" name="Rectangle 44" x="35" y="878" width="356" height="30" />
+            <frame id="487:1514" name="Background+Border" x="56" y="773" width="48" height="48">
+              <frame id="487:1515" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24" />
+            </frame>
+            <frame id="487:1517" name="Heading 3" x="122" y="773" width="123" height="56">
+              <text id="487:1518" name="Eduardo Hernández" x="0" y="0" width="148" height="56" />
+            </frame>
+            <frame id="487:1519" name="Background" x="314" y="804" width="56" height="19">
+              <text id="487:1520" name="ACTIVO" x="8" y="2" width="40" height="15" />
+            </frame>
+            <frame id="487:1521" name="Background" x="303" y="804" width="66" height="19">
+              <text id="487:1522" name="INACTIVO" x="8" y="2" width="50" height="15" />
+            </frame>
+            <text id="487:1523" name="josesantana01@gmail.com" x="121" y="835" width="151" height="15" />
+            <frame id="487:1524" name="Background" x="277" y="778" width="93" height="19">
+              <text id="487:1525" name="Coordinador" x="8" y="2" width="77" height="15" />
+            </frame>
+            <frame id="487:1526" name="arrow_forward_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="355" y="883" width="20" height="20" />
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:1528" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1529" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="487:1530" name="Container" x="350" y="28" width="44" height="44">
+          <frame id="487:1531" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="487:1532" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+        <text id="487:1533" name="Miembros" x="39" y="55" width="97" height="20" />
+      </frame>
+      <frame id="487:1534" name="menu" x="0" y="836" width="447" height="106">
+        <rounded-rectangle id="487:1535" name="Rectangle 45" x="0" y="836" width="447" height="106" />
+        <frame id="487:1536" name="Frame 1000000945" x="32" y="865" width="384" height="45">
+          <frame id="487:1537" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="487:1538" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="487:1539" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1541" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="487:1542" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="487:1543" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="487:1544" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1546" name="botónMisAdultos" x="205" y="0" width="68" height="47">
+            <frame id="487:1547" name="botónDashboard" x="205" y="30" width="68" height="17">
+              <text id="487:1548" name="Miembros" x="205" y="30" width="68" height="17" />
+            </frame>
+            <frame id="487:1549" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="228" y="0" width="24" height="24">
+              <frame id="487:1550" name="Frame" x="0" y="0" width="24" height="24" />
+            </frame>
+          </frame>
+          <frame id="487:1552" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="487:1553" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="487:1554" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="487:1555" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:1556" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:1557" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:1559" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1560" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="487:1561" name="Container" x="350" y="28" width="44" height="44">
+          <frame id="487:1562" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="487:1563" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+        <text id="487:1564" name="Miembros" x="39" y="55" width="97" height="20" />
+      </frame>
+      <frame id="487:1565" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1566" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="487:1567" name="Container" x="350" y="28" width="44" height="44">
+          <frame id="487:1568" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="487:1569" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+        <text id="487:1570" name="Adultos Mayores" x="39" y="55" width="163" height="20" />
+      </frame>
+      <frame id="487:1571" name="buscador" x="34" y="139" width="359" height="51.546875">
+        <rounded-rectangle id="487:1572" name="Rectangle 34" x="34" y="139" width="359" height="51.546875" />
+        <text id="487:1573" name="Buscar adultos..." x="54.16867637634277" y="156" width="130" height="19" />
+        <frame id="487:1574" name="search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="349.95599365234375" y="151.8723659515381" width="26.25414276123047" height="26.25414276123047" />
+      </frame>
+      <frame id="487:1594" name="botónEnviar" x="37" y="746" width="356" height="61">
+        <rounded-rectangle id="487:1595" name="Rectangle 33" x="37" y="746" width="356" height="61" />
+        <text id="487:1596" name="Agregar miembros" x="125" y="764" width="180" height="24" />
+      </frame>
+      <rounded-rectangle id="487:1597" name="Rectangle 49" x="0" y="-1" width="428" height="945" />
+      <rounded-rectangle id="487:1598" name="Rectangle 54" x="-14" y="369" width="442" height="597" />
+      <rounded-rectangle id="487:1599" name="Rectangle 34" x="36" y="477" width="358" height="71" />
+      <rounded-rectangle id="487:1600" name="Rectangle 55" x="36" y="577" width="358" height="71" />
+      <frame id="487:1602" name="Frame" x="351" y="501" width="24" height="24">
+        <frame id="487:1603" name="Frame" x="-157" y="48" width="40" height="40" />
+        <vector id="487:1605" name="Vector" x="6.25" y="1.9999998807907104" width="11.77500057220459" height="20" />
+      </frame>
+      <frame id="487:1606" name="Frame" x="353" y="600" width="24" height="24" />
+      <text id="487:1610" name="Alertas" x="85" y="503" width="57" height="19" />
+      <text id="487:1611" name="Reportes y Estadísticas" x="80" y="603" width="182" height="19" />
+      <frame id="487:1615" name="Frame" x="50" y="601" width="24" height="24" />
+      <frame id="487:1617" name="Frame" x="54" y="501" width="24" height="24" />
+      <vector id="487:1619" name="Vector" x="380" y="394" width="11.637500762939453" height="12.053125381469727" />
+      <text id="487:1620" name="Más Opciones" x="37" y="412" width="167" height="20" />
+      <frame id="487:1621" name="menu" x="-8" y="822" width="447" height="106">
+        <rounded-rectangle id="487:1622" name="Rectangle 45" x="-8" y="822" width="447" height="106" />
+        <frame id="487:1623" name="Frame 1000000945" x="24" y="851" width="384" height="45">
+          <frame id="487:1624" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="487:1625" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="487:1626" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1628" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="487:1629" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="487:1630" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="487:1631" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1639" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="487:1640" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="487:1641" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="487:1642" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:1643" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:1644" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2350" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="487:2351" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="487:2352" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2353" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="487:2354" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+    </frame>
+    <frame id="487:1646" name="Pantalla Alertas admin" x="4982" y="3149" width="428" height="1042">
+      <rounded-rectangle id="487:1647" name="Rectangle 51" x="35" y="206" width="137" height="33" />
+      <rounded-rectangle id="487:1648" name="Rectangle 52" x="177" y="206" width="127" height="32" />
+      <frame id="487:1649" name="dropdown" x="275" y="209" width="28" height="26" />
+      <frame id="487:1651" name="dropdown" x="143" y="210" width="28" height="26" />
+      <frame id="487:1653" name="Contador y estatus informativo" x="22" y="262" width="387" height="44">
+        <frame id="487:1654" name="Container" x="16" y="16" width="191" height="20">
+          <rounded-rectangle id="487:1655" name="Background" x="0" y="6" width="8" height="8" />
+          <frame id="487:1656" name="Paragraph" x="12" y="0" width="179" height="20">
+            <text id="487:1657" name="Mostrando" x="0" y="0" width="72" height="20" />
+            <text id="487:1658" name="3 alertas" x="72" y="1" width="56" height="19" />
+            <text id="487:1659" name="activas" x="128" y="0" width="51" height="20" />
+          </frame>
+        </frame>
+        <frame id="487:1660" name="Background+Shadow" x="231" y="16" width="140" height="20">
+          <text id="487:1661" name="1 Crítica pendiente" x="10" y="4" width="120" height="12" />
+        </frame>
+      </frame>
+      <frame id="487:1662" name="Listado de Tarjetas de Alertas" x="20" y="308" width="390" height="600.5">
+        <frame id="487:1663" name="Article - ALERTA 1: ALTA PRIORIDAD" x="16" y="8" width="358" height="226">
+          <frame id="487:1664" name="Container" x="0" y="0" width="358" height="226">
+            <rounded-rectangle id="487:1665" name="Indicador vertical rojo" x="0" y="0" width="6" height="226" />
+            <frame id="487:1666" name="Container" x="6" y="0" width="352" height="226">
+              <frame id="487:1667" name="Encabezado de alerta" x="16" y="16" width="320" height="57">
+                <frame id="487:1668" name="Container" x="0" y="0" width="194" height="57">
+                  <frame id="487:1669" name="Background" x="0" y="12.5" width="32" height="32">
+                    <frame id="487:1670" name="Container" x="8.5" y="9.118749618530273" width="15" height="13.762499809265137">
+                      <vector id="487:1671" name="Icon" x="0" y="0" width="15" height="13.762499809265137" />
+                    </frame>
+                  </frame>
+                  <frame id="487:1672" name="Container" x="40" y="0" width="154" height="57">
+                    <frame id="487:1673" name="Heading 2" x="0" y="0" width="154" height="24">
+                      <text id="487:1674" name="Elena Rodríguez" x="0" y="0" width="127" height="24" />
+                    </frame>
+                    <frame id="487:1675" name="Container" x="0" y="23.25" width="154" height="33.75">
+                      <text id="487:1676" name="Cuidado Domiciliario • Sector Norte" x="0" y="0" width="154" height="33" />
+                    </frame>
+                  </frame>
+                </frame>
+                <frame id="487:1677" name="Container" x="230.63333129882812" y="0" width="89.36666107177734" height="16.5">
+                  <frame id="487:1678" name="Container" x="0" y="2.4166665077209473" width="11.666666984558105" height="11.666666984558105">
+                    <vector id="487:1679" name="Icon" x="0" y="0" width="11.666666984558105" height="11.666666984558105" />
+                  </frame>
+                  <frame id="487:1680" name="Container" x="15.666666984558105" y="0" width="73.69999694824219" height="16.5">
+                    <text id="487:1681" name="Text" x="0" y="-1" width="73.69999694824219" height="17" />
+                  </frame>
+                </frame>
+              </frame>
+              <frame id="487:1682" name="Resumen de condición:margin" x="16" y="81" width="320" height="72.5">
+                <frame id="487:1683" name="Resumen de condición" x="0" y="2.875" width="320" height="69.625">
+                  <text id="487:1684" name="Necesidad de medicamento reportada - En el momento no tiene dicho medicamente, necesita abastecimiento." x="0" y="0" width="320" height="69" />
+                </frame>
+              </frame>
+              <frame id="487:1685" name="Separador sutil mediante color:margin" x="16" y="161.5" width="320" height="9">
+                <rounded-rectangle id="487:1686" name="Separador sutil mediante color" x="0" y="4" width="320" height="1" />
+              </frame>
+              <frame id="487:1687" name="Tags y Botón de acción" x="16" y="178.5" width="320" height="31.5">
+                <frame id="487:1688" name="Container" x="0" y="7.25" width="198" height="21">
+                  <frame id="487:1689" name="Background" x="0" y="0" width="50" height="21">
+                    <text id="487:1690" name="ALTA" x="10" y="2" width="30" height="17" />
+                  </frame>
+                  <frame id="487:1691" name="Background" x="56" y="0" width="142" height="21">
+                    <text id="487:1692" name="EMERGENCIA MÉDICA" x="8" y="2" width="126" height="17" />
+                  </frame>
+                </frame>
+                <frame id="487:1693" name="Link" x="244.3033447265625" y="4" width="75.69666290283203" height="27.5">
+                  <frame id="487:1694" name="Container" x="8" y="4" width="55.029998779296875" height="19.5">
+                    <text id="487:1695" name="Ver más" x="0" y="-1" width="52" height="20" />
+                  </frame>
+                  <frame id="487:1696" name="Container" x="65.02999877929688" y="8.416666030883789" width="10.666666984558105" height="10.666666984558105">
+                    <vector id="487:1697" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+                  </frame>
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:1698" name="Article - ALERTA 2: MEDIA PRIORIDAD" x="16" y="250" width="358" height="163.25">
+          <frame id="487:1699" name="Container" x="0" y="0" width="358" height="163.25">
+            <rounded-rectangle id="487:1700" name="Indicador vertical ámbar" x="0" y="0" width="6" height="163.25" />
+            <frame id="487:1701" name="Container" x="6" y="0" width="352" height="163.25">
+              <frame id="487:1702" name="Encabezado de alerta" x="16" y="16" width="320" height="40">
+                <frame id="487:1703" name="Container" x="0" y="0" width="146" height="40">
+                  <frame id="487:1704" name="Background" x="0" y="4" width="32" height="32">
+                    <frame id="487:1705" name="Container" x="10.75" y="9.25" width="10.5" height="13.5">
+                      <vector id="487:1706" name="Icon" x="0" y="0" width="10.5" height="13.5" />
+                    </frame>
+                  </frame>
+                  <frame id="487:1707" name="Container" x="40" y="0" width="106" height="40">
+                    <frame id="487:1708" name="Heading 2" x="0" y="0" width="106" height="24">
+                      <text id="487:1709" name="José Santana" x="0" y="0" width="106" height="24" />
+                    </frame>
+                    <frame id="487:1710" name="Container" x="0" y="23" width="106" height="17">
+                      <text id="487:1711" name="D.N Villa Mella" x="0" y="0" width="74" height="17" />
+                    </frame>
+                  </frame>
+                </frame>
+                <frame id="487:1712" name="Container" x="230.63333129882812" y="0" width="89.36666107177734" height="16.5">
+                  <frame id="487:1713" name="Container" x="0" y="2.4166665077209473" width="11.666666984558105" height="11.666666984558105">
+                    <vector id="487:1714" name="Icon" x="0" y="0" width="11.666666984558105" height="11.666666984558105" />
+                  </frame>
+                  <frame id="487:1715" name="Container" x="15.666666984558105" y="0" width="73.69999694824219" height="16.5">
+                    <text id="487:1716" name="Text" x="0" y="-1" width="73.69999694824219" height="17" />
+                  </frame>
+                </frame>
+              </frame>
+              <frame id="487:1717" name="Resumen de condición:margin" x="16" y="64" width="320" height="26.75">
+                <frame id="487:1718" name="Resumen de condición" x="0" y="3" width="320" height="23.75">
+                  <text id="487:1719" name="Ausencia de visita registrada por más de 5 días" x="0" y="0" width="313" height="23" />
+                </frame>
+              </frame>
+              <frame id="487:1720" name="Separador sutil:margin" x="16" y="98.75" width="320" height="9">
+                <rounded-rectangle id="487:1721" name="Separador sutil" x="0" y="4" width="320" height="1" />
+              </frame>
+              <frame id="487:1722" name="Tags y Botón de acción" x="16" y="115.75" width="320" height="31.5">
+                <frame id="487:1723" name="Container" x="0" y="7.25" width="162" height="21">
+                  <frame id="487:1724" name="Background" x="0" y="0" width="59" height="21">
+                    <text id="487:1725" name="MEDIA" x="10" y="2" width="39" height="17" />
+                  </frame>
+                  <frame id="487:1726" name="Background" x="65" y="0" width="97" height="21">
+                    <text id="487:1727" name="SEGUIMIENTO" x="8" y="2" width="81" height="17" />
+                  </frame>
+                </frame>
+                <frame id="487:1728" name="Link" x="244.3033447265625" y="4" width="75.69666290283203" height="27.5">
+                  <frame id="487:1729" name="Container" x="8" y="4" width="55.029998779296875" height="19.5">
+                    <text id="487:1730" name="Ver más" x="0" y="-1" width="52" height="20" />
+                  </frame>
+                  <frame id="487:1731" name="Container" x="65.02999877929688" y="8.416666030883789" width="10.666666984558105" height="10.666666984558105">
+                    <vector id="487:1732" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+                  </frame>
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:1733" name="Article - ALERTA 3: BAJA PRIORIDAD" x="16" y="429.25" width="358" height="163.25">
+          <frame id="487:1734" name="Container" x="0" y="0" width="358" height="163.25">
+            <rounded-rectangle id="487:1735" name="Indicador vertical verde / terciario" x="0" y="0" width="6" height="163.25" />
+            <frame id="487:1736" name="Container" x="6" y="0" width="352" height="163.25">
+              <frame id="487:1737" name="Encabezado de alerta" x="16" y="16" width="320" height="40">
+                <frame id="487:1738" name="Container" x="0" y="0" width="149" height="40">
+                  <frame id="487:1739" name="Background" x="0" y="4" width="32" height="32">
+                    <frame id="487:1740" name="Container" x="8.5" y="10" width="15" height="12">
+                      <vector id="487:1741" name="Icon" x="0" y="0" width="15" height="12" />
+                    </frame>
+                  </frame>
+                  <frame id="487:1742" name="Container" x="40" y="0" width="109" height="40">
+                    <frame id="487:1743" name="Heading 2" x="0" y="0" width="109" height="24">
+                      <text id="487:1744" name="Camila Torres" x="0" y="0" width="109" height="24" />
+                    </frame>
+                    <frame id="487:1745" name="Container" x="0" y="23" width="109" height="17">
+                      <text id="487:1746" name="Santo Domingo Este" x="0" y="0" width="106" height="17" />
+                    </frame>
+                  </frame>
+                </frame>
+                <frame id="487:1747" name="Container" x="228.07333374023438" y="0" width="91.92666625976562" height="16.5">
+                  <frame id="487:1748" name="Container" x="0" y="2.4166665077209473" width="11.666666984558105" height="11.666666984558105">
+                    <vector id="487:1749" name="Icon" x="0" y="0" width="11.666666984558105" height="11.666666984558105" />
+                  </frame>
+                  <frame id="487:1750" name="Container" x="15.65666675567627" y="0" width="76.2699966430664" height="16.5">
+                    <text id="487:1751" name="Text" x="0" y="-1" width="76.2699966430664" height="17" />
+                  </frame>
+                </frame>
+              </frame>
+              <frame id="487:1752" name="Resumen de condición:margin" x="16" y="64" width="320" height="26.75">
+                <frame id="487:1753" name="Resumen de condición" x="0" y="3" width="320" height="23.75">
+                  <text id="487:1754" name="Solicitud de apoyo para traslado a cita médica" x="0" y="0" width="306" height="23" />
+                </frame>
+              </frame>
+              <frame id="487:1755" name="Separador sutil:margin" x="16" y="98.75" width="320" height="9">
+                <rounded-rectangle id="487:1756" name="Separador sutil" x="0" y="4" width="320" height="1" />
+              </frame>
+              <frame id="487:1757" name="Tags y Botón de acción" x="16" y="115.75" width="320" height="31.5">
+                <frame id="487:1758" name="Container" x="0" y="7.25" width="186" height="21">
+                  <frame id="487:1759" name="Background" x="0" y="0" width="51" height="21">
+                    <text id="487:1760" name="BAJA" x="10" y="2" width="31" height="17" />
+                  </frame>
+                  <frame id="487:1761" name="Background" x="57" y="0" width="129" height="21">
+                    <text id="487:1762" name="ACOMPAÑAMIENTO" x="8" y="2" width="113" height="17" />
+                  </frame>
+                </frame>
+                <frame id="487:1763" name="Link" x="244.3033447265625" y="4" width="75.69666290283203" height="27.5">
+                  <frame id="487:1764" name="Container" x="8" y="4" width="55.029998779296875" height="19.5">
+                    <text id="487:1765" name="Ver más" x="0" y="-1" width="52" height="20" />
+                  </frame>
+                  <frame id="487:1766" name="Container" x="65.02999877929688" y="8.416666030883789" width="10.666666984558105" height="10.666666984558105">
+                    <vector id="487:1767" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+                  </frame>
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:1768" name="buscador" x="34" y="139" width="359" height="51.546875">
+        <rounded-rectangle id="487:1769" name="Rectangle 34" x="34" y="139" width="359" height="51.546875" />
+        <text id="487:1770" name="Buscar..." x="54.16867637634277" y="156" width="67" height="19" />
+        <frame id="487:1771" name="search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="349.95599365234375" y="151.8723659515381" width="26.25414276123047" height="26.25414276123047" />
+      </frame>
+      <text id="487:1773" name="Estado: Todos" x="188" y="214" width="89" height="16" />
+      <text id="487:1774" name="Prioridad: Todos" x="43" y="214" width="103" height="16" />
+      <frame id="487:1775" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:1776" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+      </frame>
+      <frame id="487:1777" name="menu" x="-8" y="821" width="447" height="106">
+        <frame id="487:1778" name="Frame 1000000945" x="33" y="30" width="384" height="45">
+          <frame id="487:1779" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="487:1780" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="487:1781" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1783" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="487:1784" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="487:1785" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="487:1786" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1794" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="487:1795" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="487:1796" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="487:1797" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:1798" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:1799" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2343" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="487:2344" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="487:2345" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2346" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="487:2347" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <text id="487:1801" name="Alertas" x="83" y="55" width="71" height="20" />
+      <frame id="487:1802" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+    </frame>
+    <frame id="487:1804" name="Pantalla detalle alerta" x="5451" y="3150" width="428" height="978">
+      <rounded-rectangle id="487:1805" name="Rectangle 43" x="36" y="247" width="356" height="387" />
+      <rounded-rectangle id="487:1806" name="Rectangle 45" x="36" y="657" width="356" height="194" />
+      <frame id="487:1807" name="Heading 7" x="57" y="677" width="187" height="31.106496810913086">
+        <text id="487:1808" name="Estado de Atención" x="0" y="0" width="152" height="28" />
+      </frame>
+      <line id="487:1809" name="Line 14" x="57" y="714" width="314.00001180171785" height="2.2188032744452357e-8" />
+      <rounded-rectangle id="487:1810" name="Rectangle 44" x="57" y="496" width="314" height="111" />
+      <rounded-rectangle id="487:1811" name="Rectangle 46" x="57" y="722" width="314" height="111" />
+      <frame id="487:1812" name="Frame" x="64" y="744" width="24" height="24" />
+      <text id="487:1814" name="Necesidad de medicamento reportada durante seguimiento. Requiere reabastecimiento en los próximos días para evitar interrupción del tratamiento domiciliario programado." x="79" y="513" width="266" height="78" />
+      <frame id="487:1815" name="Heading 5" x="57" y="462" width="95" height="28">
+        <text id="487:1816" name="Descripción" x="0" y="0" width="95" height="28" />
+      </frame>
+      <frame id="487:1817" name="Heading 6" x="57" y="263" width="187" height="31.106496810913086">
+        <text id="487:1818" name="Información de la Alerta" x="0" y="0" width="187" height="28" />
+      </frame>
+      <frame id="487:1819" name="Background+Border" x="36" y="131" width="63" height="63">
+        <frame id="487:1820" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="10" y="10" width="43" height="43" />
+      </frame>
+      <frame id="487:1822" name="Heading 3" x="116" y="129" width="188" height="28">
+        <text id="487:1823" name="Elena Rodríguez" x="0" y="0" width="188" height="28" />
+      </frame>
+      <frame id="487:1824" name="Container" x="116" y="166" width="198" height="21">
+        <frame id="487:1825" name="Background" x="0" y="0" width="50" height="21">
+          <text id="487:1826" name="ALTA" x="10" y="2" width="30" height="17" />
+        </frame>
+        <frame id="487:1827" name="Background" x="56" y="0" width="142" height="21">
+          <text id="487:1828" name="EMERGENCIA MÉDICA" x="8" y="2" width="126" height="17" />
+        </frame>
+      </frame>
+      <frame id="487:1829" name="Link" x="110" y="196" width="63.029998779296875" height="27.5">
+        <frame id="487:1830" name="Container" x="8" y="4" width="55.029998779296875" height="19.5">
+          <text id="487:1831" name="Ver perfil completo" x="0" y="-1" width="122" height="20" />
+        </frame>
+      </frame>
+      <frame id="487:1832" name="Container" x="245" y="204" width="10.666666984558105" height="10.666666984558105">
+        <vector id="487:1833" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+      </frame>
+      <frame id="487:1834" name="Fecha y hora" x="61" y="328" width="307" height="24">
+        <frame id="487:1835" name="Container" x="0" y="4" width="92.80000305175781" height="16">
+          <frame id="487:1836" name="Container" x="0" y="1.5999999046325684" width="12.800000190734863" height="12.800000190734863">
+            <vector id="487:1837" name="Icon" x="0" y="0" width="12.800000190734863" height="12.800000190734863" />
+          </frame>
+          <text id="487:1838" name="Fecha y hora" x="18.799999237060547" y="0" width="74" height="16" />
+        </frame>
+        <frame id="487:1839" name="Container" x="148" y="4" width="159" height="16">
+          <text id="487:1840" name="Hoy, 10:15 AM (24/10/2026)" x="0" y="0" width="159" height="16" />
+        </frame>
+      </frame>
+      <frame id="487:1841" name="Categoría" x="61" y="365" width="307" height="35">
+        <frame id="487:1842" name="Container" x="0" y="10" width="71.9800033569336" height="16">
+          <frame id="487:1843" name="Container" x="0" y="3.1999998092651367" width="12.399999618530273" height="9.600000381469727">
+            <vector id="487:1844" name="Icon" x="0" y="0" width="12.399999618530273" height="9.600000381469727" />
+          </frame>
+          <text id="487:1845" name="Categoría" x="18.399999618530273" y="0" width="56" height="16" />
+        </frame>
+        <frame id="487:1846" name="Background+Border" x="160.419921875" y="5" width="146.5800018310547" height="26">
+          <text id="487:1847" name="Necesidad de Insumo" x="11" y="5" width="116" height="16" />
+        </frame>
+      </frame>
+      <frame id="487:1848" name="Origen de reporte" x="60" y="412" width="307" height="24">
+        <frame id="487:1849" name="Container" x="0" y="4" width="100.80000305175781" height="16">
+          <frame id="487:1850" name="Container" x="0" y="2.566666603088379" width="12.800000190734863" height="10.866666793823242">
+            <vector id="487:1851" name="Icon" x="0" y="0" width="12.800000190734863" height="10.866666793823242" />
+          </frame>
+          <text id="487:1852" name="Reportado por" x="18.799999237060547" y="0" width="82" height="16" />
+        </frame>
+        <frame id="487:1853" name="Container" x="179" y="4" width="128" height="16">
+          <text id="487:1854" name="Carlos Ruiz (Cuidador)" x="0" y="0" width="128" height="16" />
+        </frame>
+      </frame>
+      <line id="487:1855" name="Line 10" x="57" y="300" width="314.00001180171785" height="2.2188032744452357e-8" />
+      <line id="487:1856" name="Line 11" x="61" y="360" width="306.99998170137405" height="2.886372385546565e-8" />
+      <line id="487:1857" name="Line 12" x="62" y="407" width="306.99998170137405" height="2.886372385546565e-8" />
+      <line id="487:1858" name="Line 13" x="62" y="443" width="306.99998170137405" height="2.886372385546565e-8" />
+      <frame id="487:1859" name="Container" x="295" y="680" width="84" height="21">
+        <frame id="487:1860" name="Background" x="0" y="0" width="84" height="21">
+          <text id="487:1861" name="En espera" x="10" y="2" width="64" height="17" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="487:1862" name="Background" x="301" y="688" width="6" height="6" />
+      <frame id="487:1863" name="Container" x="94" y="742" width="248" height="76">
+        <frame id="487:1864" name="Container" x="0" y="0" width="248" height="39">
+          <text id="487:1865" name="Pendiente de atención por el equipo de coordinación." x="0" y="0" width="223" height="39" />
+        </frame>
+        <frame id="487:1866" name="Container" x="0" y="42.25" width="248" height="33.75">
+          <text id="487:1867" name="La notificación fue canalizada automáticamente al coordinador zonal asignado." x="0" y="0" width="248" height="33" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="487:1868" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+      <frame id="487:1869" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="487:1871" name="Detalle Alerta" x="86" y="53" width="132" height="20" />
+      <frame id="487:1872" name="menu" x="-6" y="820" width="447" height="106">
+        <frame id="487:1873" name="Frame 1000000945" x="33" y="30" width="384" height="45">
+          <frame id="487:1874" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="487:1875" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="487:1876" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1878" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="487:1879" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="487:1880" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="487:1881" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:1889" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="487:1890" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="487:1891" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="487:1892" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:1893" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:1894" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2329" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="487:2330" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="487:2331" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2332" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="487:2333" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+    </frame>
+    <frame id="499:3182" name="Pantalla detalle alerta" x="5926" y="1363" width="428" height="978">
+      <rounded-rectangle id="499:3183" name="Rectangle 43" x="36" y="247" width="356" height="387" />
+      <rounded-rectangle id="499:3184" name="Rectangle 45" x="36" y="657" width="356" height="194" />
+      <frame id="499:3185" name="Heading 7" x="57" y="677" width="187" height="31.106496810913086">
+        <text id="499:3186" name="Estado de Atención" x="0" y="0" width="152" height="28" />
+      </frame>
+      <line id="499:3187" name="Line 14" x="57" y="714" width="314.00001180171785" height="2.2188032744452357e-8" />
+      <rounded-rectangle id="499:3188" name="Rectangle 44" x="57" y="496" width="314" height="111" />
+      <rounded-rectangle id="499:3189" name="Rectangle 46" x="57" y="722" width="314" height="111" />
+      <frame id="499:3190" name="Frame" x="64" y="744" width="24" height="24" />
+      <text id="499:3192" name="Necesidad de medicamento reportada durante seguimiento. Requiere reabastecimiento en los próximos días para evitar interrupción del tratamiento domiciliario programado." x="79" y="513" width="266" height="78" />
+      <frame id="499:3193" name="Heading 5" x="57" y="462" width="95" height="28">
+        <text id="499:3194" name="Descripción" x="0" y="0" width="95" height="28" />
+      </frame>
+      <frame id="499:3195" name="Heading 6" x="57" y="263" width="187" height="31.106496810913086">
+        <text id="499:3196" name="Información de la Alerta" x="0" y="0" width="187" height="28" />
+      </frame>
+      <frame id="499:3197" name="Background+Border" x="36" y="131" width="63" height="63">
+        <frame id="499:3198" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="10" y="10" width="43" height="43" />
+      </frame>
+      <frame id="499:3200" name="Heading 3" x="116" y="129" width="188" height="28">
+        <text id="499:3201" name="Elena Rodríguez" x="0" y="0" width="188" height="28" />
+      </frame>
+      <frame id="499:3202" name="Container" x="116" y="166" width="198" height="21">
+        <frame id="499:3203" name="Background" x="0" y="0" width="50" height="21">
+          <text id="499:3204" name="ALTA" x="10" y="2" width="30" height="17" />
+        </frame>
+        <frame id="499:3205" name="Background" x="56" y="0" width="142" height="21">
+          <text id="499:3206" name="EMERGENCIA MÉDICA" x="8" y="2" width="126" height="17" />
+        </frame>
+      </frame>
+      <frame id="499:3207" name="Link" x="110" y="196" width="63.029998779296875" height="27.5">
+        <frame id="499:3208" name="Container" x="8" y="4" width="55.029998779296875" height="19.5" />
+      </frame>
+      <text id="499:3209" name="Ver perfil completo" x="118" y="200" width="122" height="20" />
+      <frame id="499:3210" name="Container" x="245" y="205" width="10.666666984558105" height="10.666666984558105">
+        <vector id="499:3211" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+      </frame>
+      <frame id="499:3212" name="Fecha y hora" x="61" y="328" width="307" height="24">
+        <frame id="499:3213" name="Container" x="0" y="4" width="92.80000305175781" height="16">
+          <frame id="499:3214" name="Container" x="0" y="1.5999999046325684" width="12.800000190734863" height="12.800000190734863">
+            <vector id="499:3215" name="Icon" x="0" y="0" width="12.800000190734863" height="12.800000190734863" />
+          </frame>
+          <text id="499:3216" name="Fecha y hora" x="18.799999237060547" y="0" width="74" height="16" />
+        </frame>
+        <frame id="499:3217" name="Container" x="148" y="4" width="159" height="16">
+          <text id="499:3218" name="Hoy, 10:15 AM (24/10/2026)" x="0" y="0" width="159" height="16" />
+        </frame>
+      </frame>
+      <frame id="499:3219" name="Categoría" x="61" y="365" width="307" height="35">
+        <frame id="499:3220" name="Container" x="0" y="10" width="71.9800033569336" height="16">
+          <frame id="499:3221" name="Container" x="0" y="3.1999998092651367" width="12.399999618530273" height="9.600000381469727">
+            <vector id="499:3222" name="Icon" x="0" y="0" width="12.399999618530273" height="9.600000381469727" />
+          </frame>
+          <text id="499:3223" name="Categoría" x="18.399999618530273" y="0" width="56" height="16" />
+        </frame>
+        <frame id="499:3224" name="Background+Border" x="160.419921875" y="5" width="146.5800018310547" height="26">
+          <text id="499:3225" name="Necesidad de Insumo" x="11" y="5" width="116" height="16" />
+        </frame>
+      </frame>
+      <frame id="499:3226" name="Origen de reporte" x="60" y="412" width="307" height="24">
+        <frame id="499:3227" name="Container" x="0" y="4" width="100.80000305175781" height="16">
+          <frame id="499:3228" name="Container" x="0" y="2.566666603088379" width="12.800000190734863" height="10.866666793823242">
+            <vector id="499:3229" name="Icon" x="0" y="0" width="12.800000190734863" height="10.866666793823242" />
+          </frame>
+          <text id="499:3230" name="Reportado por" x="18.799999237060547" y="0" width="82" height="16" />
+        </frame>
+        <frame id="499:3231" name="Container" x="179" y="4" width="128" height="16">
+          <text id="499:3232" name="Carlos Ruiz (Cuidador)" x="0" y="0" width="128" height="16" />
+        </frame>
+      </frame>
+      <line id="499:3233" name="Line 10" x="57" y="300" width="314.00001180171785" height="2.2188032744452357e-8" />
+      <line id="499:3234" name="Line 11" x="61" y="360" width="306.99998170137405" height="2.886372385546565e-8" />
+      <line id="499:3235" name="Line 12" x="62" y="407" width="306.99998170137405" height="2.886372385546565e-8" />
+      <line id="499:3236" name="Line 13" x="62" y="443" width="306.99998170137405" height="2.886372385546565e-8" />
+      <frame id="499:3237" name="Container" x="295" y="680" width="84" height="21">
+        <frame id="499:3238" name="Background" x="0" y="0" width="84" height="21">
+          <text id="499:3239" name="En espera" x="10" y="2" width="64" height="17" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="499:3240" name="Background" x="301" y="688" width="6" height="6" />
+      <frame id="499:3241" name="Container" x="94" y="742" width="248" height="76">
+        <frame id="499:3242" name="Container" x="0" y="0" width="248" height="39">
+          <text id="499:3243" name="Pendiente de atención por el equipo de coordinación." x="0" y="0" width="223" height="39" />
+        </frame>
+        <frame id="499:3244" name="Container" x="0" y="42.25" width="248" height="33.75">
+          <text id="499:3245" name="La notificación fue canalizada automáticamente al coordinador zonal asignado." x="0" y="0" width="248" height="33" />
+        </frame>
+      </frame>
+      <rounded-rectangle id="499:3246" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+      <frame id="499:3247" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="499:3249" name="Programar visita" x="86" y="53" width="159" height="20" />
+      <frame id="499:3250" name="menu" x="-6" y="820" width="447" height="106">
+        <frame id="499:3251" name="Frame 1000000945" x="33" y="30" width="384" height="45">
+          <frame id="499:3252" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="499:3253" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="499:3254" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="499:3256" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="499:3257" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="499:3258" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="499:3259" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="499:3261" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="499:3262" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="499:3263" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="499:3264" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="499:3265" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="499:3266" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="499:3268" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="499:3269" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="499:3270" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="499:3271" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="499:3272" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+    </frame>
+    <frame id="487:2006" name="Pantalla reportes admin" x="5920" y="3150" width="428" height="1631">
+      <frame id="487:2007" name="1. Filtros Superiores (Scroll horizontal táctil)" x="22" y="117" width="536" height="56">
+        <frame id="487:2008" name="Container" x="16" y="10" width="533.1400146484375" height="36">
+          <frame id="487:2009" name="Button" x="0" y="0" width="172.5" height="36">
+            <frame id="487:2010" name="Container" x="12" y="10.5" width="13.5" height="15">
+              <vector id="487:2011" name="Icon" x="0" y="0" width="13.5" height="15" />
+            </frame>
+            <frame id="487:2012" name="Container" x="31.5" y="8" width="48" height="20">
+              <text id="487:2013" name="Rango:" x="0" y="0" width="48" height="20" />
+            </frame>
+            <frame id="487:2014" name="Container" x="85.5" y="8" width="61" height="20">
+              <text id="487:2015" name="Este mes" x="0" y="0" width="61" height="20" />
+            </frame>
+            <frame id="487:2016" name="Container" x="152.5" y="15.533332824707031" width="8" height="4.933333396911621">
+              <vector id="487:2017" name="Icon" x="0" y="0" width="8" height="4.933333396911621" />
+            </frame>
+          </frame>
+          <frame id="487:2018" name="Button" x="180.5" y="0" width="142" height="36">
+            <frame id="487:2019" name="Container" x="12" y="10.5" width="12" height="15">
+              <vector id="487:2020" name="Icon" x="0" y="0" width="12" height="15" />
+            </frame>
+            <frame id="487:2021" name="Container" x="30" y="8" width="39" height="20">
+              <text id="487:2022" name="Zona:" x="0" y="0" width="39" height="20" />
+            </frame>
+            <frame id="487:2023" name="Container" x="75" y="8" width="41" height="20">
+              <text id="487:2024" name="Todas" x="0" y="0" width="41" height="20" />
+            </frame>
+            <frame id="487:2025" name="Container" x="122" y="15.533332824707031" width="8" height="4.933333396911621">
+              <vector id="487:2026" name="Icon" x="0" y="0" width="8" height="4.933333396911621" />
+            </frame>
+          </frame>
+          <frame id="487:2027" name="Button" x="330.5" y="0" width="175.25" height="36">
+            <frame id="487:2028" name="Container" x="12" y="10.5" width="14.25" height="15">
+              <vector id="487:2029" name="Icon" x="0" y="0" width="14.25" height="15" />
+            </frame>
+            <frame id="487:2030" name="Container" x="32.25" y="8" width="71" height="20">
+              <text id="487:2031" name="Categoría:" x="0" y="0" width="71" height="20" />
+            </frame>
+            <frame id="487:2032" name="Container" x="109.25" y="8" width="40" height="20">
+              <text id="487:2033" name="Todas" x="0" y="0" width="40" height="20" />
+            </frame>
+            <frame id="487:2034" name="Container" x="155.25" y="15.533332824707031" width="8" height="4.933333396911621">
+              <vector id="487:2035" name="Icon" x="0" y="0" width="8" height="4.933333396911621" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2036" name="2. Sección de KPIs en cuadrícula 2x2" x="35" y="192" width="358" height="257">
+        <frame id="487:2037" name="Tarjeta 1: Adultos Mayores" x="0" y="0" width="173" height="119">
+          <frame id="487:2038" name="Container" x="14" y="14" width="145" height="35">
+            <frame id="487:2039" name="Container" x="0" y="0" width="121.80000305175781" height="35">
+              <text id="487:2040" name="Adultos Registrados" x="0" y="0" width="79" height="35" />
+            </frame>
+            <frame id="487:2041" name="Background" x="121.80000305175781" y="0" width="25.729999542236328" height="28">
+              <frame id="487:2042" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1.864999771118164" y="2" width="22" height="24">
+                <vector id="487:2043" name="Vector" x="4" y="1" width="14" height="22" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2044" name="Margin" x="14" y="49" width="145" height="56">
+            <frame id="487:2045" name="Container" x="0" y="12" width="145" height="44">
+              <frame id="487:2046" name="Container" x="0" y="0" width="145" height="28">
+                <text id="487:2047" name="128" x="0" y="0" width="50" height="28" />
+              </frame>
+              <frame id="487:2048" name="Container" x="0" y="32" width="145" height="12">
+                <frame id="487:2049" name="Container" x="0" y="2.5" width="11.666666984558105" height="7">
+                  <vector id="487:2050" name="Icon" x="0" y="0" width="11.666666984558105" height="7" />
+                </frame>
+                <frame id="487:2051" name="Container" x="15.666666984558105" y="0" width="78" height="12">
+                  <text id="487:2052" name="+6 este mes" x="0" y="0" width="78" height="12" />
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2053" name="Tarjeta 2: Visitas Realizadas" x="185" y="0" width="173" height="121">
+          <frame id="487:2054" name="Container" x="14" y="14" width="145" height="35">
+            <text id="487:2055" name="Visitas Realizadas" x="0" y="0" width="97" height="35" />
+            <frame id="487:2056" name="Background" x="117" y="0" width="28" height="28">
+              <frame id="487:2057" name="Container" x="8" y="7.25" width="12" height="13.5">
+                <vector id="487:2058" name="Icon" x="0" y="0" width="12" height="13.5" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2059" name="Margin" x="14" y="51" width="145" height="56">
+            <frame id="487:2060" name="Container" x="0" y="12" width="145" height="44">
+              <frame id="487:2061" name="Container" x="0" y="0" width="145" height="28">
+                <text id="487:2062" name="342" x="0" y="0" width="56" height="28" />
+              </frame>
+              <frame id="487:2063" name="Container" x="0" y="32" width="145" height="12">
+                <frame id="487:2064" name="Container" x="0" y="1.3333334922790527" width="9.333333015441895" height="9.333333015441895">
+                  <vector id="487:2065" name="Icon" x="0" y="0" width="9.333333015441895" height="9.333333015441895" />
+                </frame>
+                <frame id="487:2066" name="Container" x="11.333333015441895" y="0" width="137" height="12">
+                  <text id="487:2067" name="+14% vs mes anterior" x="0" y="0" width="137" height="12" />
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2068" name="Tarjeta 3: Necesidades Atendidas" x="0" y="133" width="173" height="124">
+          <frame id="487:2069" name="Container" x="14" y="20" width="145" height="35">
+            <frame id="487:2070" name="Container" x="0" y="0" width="122.41000366210938" height="35">
+              <text id="487:2071" name="Necesidades Atendidas" x="0" y="0" width="87" height="35" />
+            </frame>
+            <frame id="487:2072" name="Background" x="122.41000366210938" y="0" width="22.59000015258789" height="28">
+              <frame id="487:2073" name="Container" x="3.7950000762939453" y="6.5" width="15" height="15">
+                <vector id="487:2074" name="Icon" x="0" y="0" width="15" height="15" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2075" name="Margin" x="14" y="61" width="145" height="40">
+            <frame id="487:2076" name="Container" x="0" y="12" width="145" height="28">
+              <text id="487:2077" name="89" x="0" y="0" width="37" height="28" />
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2078" name="Tarjeta 4: Casos Prioritarios" x="185" y="133" width="173" height="124">
+          <frame id="487:2079" name="Container" x="14" y="14" width="145" height="35">
+            <text id="487:2080" name="Casos Prioritarios" x="0" y="0" width="99" height="35" />
+            <frame id="487:2081" name="Background" x="117" y="0" width="28" height="28">
+              <frame id="487:2082" name="Container" x="5.75" y="6.875" width="16.5" height="14.25">
+                <vector id="487:2083" name="Icon" x="0" y="0" width="16.5" height="14.25" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2084" name="Margin" x="14" y="49" width="145" height="68">
+            <frame id="487:2085" name="Container" x="0" y="12" width="145" height="56">
+              <frame id="487:2086" name="Container" x="0" y="0" width="145" height="28">
+                <text id="487:2087" name="4" x="0" y="0" width="19" height="28" />
+              </frame>
+              <frame id="487:2088" name="Container" x="0" y="28" width="137" height="24">
+                <frame id="487:2089" name="Background" x="0" y="7" width="137" height="16">
+                  <rounded-rectangle id="487:2090" name="Background" x="8" y="5" width="6" height="6" />
+                  <text id="487:2091" name="Atención Urgente" x="18" y="2" width="111" height="12" />
+                </frame>
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2092" name="3. Tarjeta de Gráfico: Visitas por Mes" x="36" y="470" width="358" height="284">
+        <frame id="487:2093" name="Margin" x="16" y="16" width="326" height="60">
+          <frame id="487:2094" name="Container" x="0" y="0" width="326" height="44">
+            <frame id="487:2095" name="Container" x="0" y="0" width="122" height="44">
+              <frame id="487:2096" name="Heading 2" x="0" y="0" width="122" height="24">
+                <text id="487:2097" name="Visitas por Mes" x="0" y="0" width="122" height="24" />
+              </frame>
+              <frame id="487:2098" name="Container" x="0" y="24" width="122" height="20">
+                <text id="487:2099" name="Semestre actual" x="0" y="0" width="107" height="20" />
+              </frame>
+            </frame>
+            <frame id="487:2100" name="Container" x="287" y="8" width="39" height="28">
+              <text id="487:2101" name="470" x="0" y="0" width="39" height="28" />
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2102" name="Gráfico de barras mensual vertical estilizado con SVG" x="16" y="76" width="326" height="176">
+          <frame id="487:2103" name="SVG" x="0" y="0" width="326" height="176">
+            <vector id="487:2104" name="Vector" x="0" y="25.142858505249023" width="326" height="0" />
+            <vector id="487:2105" name="Vector" x="0" y="88" width="326" height="0" />
+            <vector id="487:2106" name="Vector" x="0" y="150.85714721679688" width="326" height="0" />
+            <frame id="487:2107" name="Group" x="13.4873046875" y="74.5634765625" width="27.376117706298828" height="99.20307159423828">
+              <frame id="487:2108" name="Text" x="26.4873046875" y="74.5634765625" width="14.376116752624512" height="17.119977951049805">
+                <text id="487:2109" name="45" x="-7.4873046875" y="1.4365234375" width="16" height="15" />
+              </frame>
+              <vector id="487:2110" name="Vector" x="15.281249046325684" y="95.54286193847656" width="22.412498474121094" height="55.31428527832031" />
+              <frame id="487:2111" name="Text" x="13.4873046875" y="154.93359375" width="27.049442291259766" height="18.83197593688965">
+                <text id="487:2112" name="May" x="-0.4873046875" y="1.06640625" width="28" height="17" />
+              </frame>
+            </frame>
+            <frame id="487:2113" name="Group" x="68.255859375" y="45.6484375" width="31.882366180419922" height="128.11712646484375">
+              <frame id="487:2114" name="Text" x="79.46249389648438" y="45.648773193359375" width="14.376116752624512" height="17.119977951049805">
+                <text id="487:2115" name="68" x="-8.462890625" y="1.3515625" width="16" height="15" />
+              </frame>
+              <vector id="487:2116" name="Vector" x="68.2562484741211" y="66.62857055664062" width="22.412498474121094" height="84.22857666015625" />
+              <frame id="487:2117" name="Text" x="79.46249389648438" y="154.93365478515625" width="20.675334930419922" height="18.83197593688965">
+                <text id="487:2118" name="Jun" x="-11.462890625" y="1.06640625" width="24" height="17" />
+              </frame>
+            </frame>
+            <frame id="487:2119" name="Group" x="121.2314453125" y="28.048828125" width="26.891490936279297" height="145.71673583984375">
+              <frame id="487:2120" name="Text" x="132.4375" y="28.048770904541016" width="14.376116752624512" height="17.119977951049805">
+                <text id="487:2121" name="82" x="-8.4375" y="0.951171875" width="16" height="15" />
+              </frame>
+              <vector id="487:2122" name="Vector" x="121.23124694824219" y="49.02857208251953" width="22.412490844726562" height="101.82857513427734" />
+              <frame id="487:2123" name="Text" x="132.4375" y="154.93365478515625" width="15.685436248779297" height="18.83197593688965">
+                <text id="487:2124" name="Jul" x="-10.4375" y="1.06640625" width="19" height="17" />
+              </frame>
+            </frame>
+            <frame id="487:2125" name="Group" x="174.20703125" y="43.134765625" width="35.776451110839844" height="130.63079833984375">
+              <frame id="487:2126" name="Text" x="185.41249084472656" y="43.13448715209961" width="14.376116752624512" height="17.119977951049805">
+                <text id="487:2127" name="70" x="-8.412109375" y="0.865234375" width="15" height="15" />
+              </frame>
+              <vector id="487:2128" name="Vector" x="174.20623779296875" y="64.11428833007812" width="22.412506103515625" height="86.74285888671875" />
+              <frame id="487:2129" name="Text" x="185.41249084472656" y="154.93365478515625" width="24.571372985839844" height="18.83197593688965">
+                <text id="487:2130" name="Ago" x="-12.412109375" y="1.06640625" width="27" height="17" />
+              </frame>
+            </frame>
+            <frame id="487:2131" name="Group" x="227.181640625" y="11.7060546875" width="35.013450622558594" height="162.06048583984375">
+              <frame id="487:2132" name="Text" x="238.38748168945312" y="11.705916404724121" width="14.376116752624512" height="17.119977951049805">
+                <text id="487:2133" name="95" x="-8.38671875" y="1.2939453125" width="16" height="15" />
+              </frame>
+              <vector id="487:2134" name="Vector" x="227.18124389648438" y="32.68571472167969" width="22.412490844726562" height="118.17143249511719" />
+              <frame id="487:2135" name="Text" x="238.38748168945312" y="154.93365478515625" width="23.80837059020996" height="18.83197593688965">
+                <text id="487:2136" name="Sep" x="-11.38671875" y="1.06640625" width="26" height="17" />
+              </frame>
+            </frame>
+            <frame id="487:2137" name="Group" x="280.15625" y="-8.4951171875" width="35.32600402832031" height="182.26165771484375">
+              <frame id="487:2138" name="Text" x="291.36248779296875" y="-8.494921684265137" width="23.720592498779297" height="18.83197593688965">
+                <text id="487:2139" name="110" x="-10" y="1" width="23" height="17" />
+              </frame>
+              <vector id="487:2140" name="Vector" x="280.15625" y="13.828571319580078" width="22.4124755859375" height="137.02857971191406" />
+              <vector id="487:2141" name="Vector" x="289.8343505859375" y="6.914285659790039" width="3.0562744140625" height="3.7714285850524902" />
+              <frame id="487:2142" name="Text" x="291.36248779296875" y="154.93365478515625" width="24.118974685668945" height="18.83197593688965">
+                <text id="487:2143" name="Oct" x="-12" y="1" width="24" height="17" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2144" name="Margin" x="16" y="252" width="326" height="16">
+          <frame id="487:2145" name="Container" x="0" y="4" width="326" height="12">
+            <rounded-rectangle id="487:2146" name="Background" x="79.5" y="1" width="10" height="10" />
+            <frame id="487:2147" name="Container" x="95.5" y="0" width="151" height="12">
+              <text id="487:2148" name="Mes en curso (Octubre)" x="0" y="0" width="151" height="12" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2149" name="4. Tarjeta de Gráfico: Distribución de Necesidades por Categoría" x="36" y="775" width="358" height="177.18759155273438">
+        <frame id="487:2150" name="Margin" x="16" y="16" width="326" height="60">
+          <frame id="487:2151" name="Container" x="0" y="0" width="326" height="48">
+            <frame id="487:2152" name="Heading 2" x="0" y="0" width="207.010009765625" height="48">
+              <text id="487:2153" name="Distribución por Categoría" x="0" y="0" width="126" height="48" />
+            </frame>
+            <frame id="487:2154" name="Background" x="215.02000427246094" y="8" width="110.97999572753906" height="32">
+              <text id="487:2155" name="214 Solicitudes" x="8" y="4" width="71" height="24" />
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2156" name="Barra segmentada continua:margin" x="16" y="76" width="326" height="36">
+          <frame id="487:2157" name="Barra segmentada continua" x="0" y="0" width="326" height="20">
+            <rounded-rectangle id="487:2158" name="Background" x="0" y="0" width="136.91000366210938" height="20" />
+            <rounded-rectangle id="487:2159" name="Background" x="136.91000366210938" y="0" width="91.2699966430664" height="20" />
+            <rounded-rectangle id="487:2160" name="Background" x="228.17999267578125" y="0" width="58.66999816894531" height="20" />
+            <rounded-rectangle id="487:2161" name="Background" x="286.8499755859375" y="0" width="39.11000061035156" height="20" />
+          </frame>
+        </frame>
+        <frame id="487:2162" name="Leyenda 2 columnas" x="16" y="112" width="326" height="49.187599182128906">
+          <frame id="487:2163" name="Médica" x="0" y="0" width="155" height="19.59000015258789">
+            <frame id="487:2164" name="Container" x="0" y="-0.2049999237060547" width="69" height="20">
+              <rounded-rectangle id="487:2165" name="Background" x="0" y="4" width="12" height="12" />
+              <frame id="487:2166" name="Container" x="20" y="0" width="49" height="20">
+                <text id="487:2167" name="Médica" x="0" y="0" width="49" height="20" />
+              </frame>
+            </frame>
+            <frame id="487:2168" name="Paragraph" x="105.18000030517578" y="0" width="49.81999969482422" height="19.59000015258789">
+              <text id="487:2169" name="42%" x="0" y="-1" width="29" height="20" />
+              <text id="487:2170" name="Text" x="29.010000228881836" y="0.5000000596046448" width="20.809999465942383" height="17" />
+            </frame>
+          </frame>
+          <frame id="487:2171" name="Social" x="171" y="0" width="155" height="19.59000015258789">
+            <frame id="487:2172" name="Container" x="0" y="-0.2049999237060547" width="60" height="20">
+              <rounded-rectangle id="487:2173" name="Background" x="0" y="4" width="12" height="12" />
+              <frame id="487:2174" name="Container" x="20" y="0" width="40" height="20">
+                <text id="487:2175" name="Social" x="0" y="0" width="40" height="20" />
+              </frame>
+            </frame>
+            <frame id="487:2176" name="Paragraph" x="101.13999938964844" y="0" width="53.86000061035156" height="19.59000015258789">
+              <text id="487:2177" name="Text" x="0" y="-1" width="33.04999923706055" height="20" />
+              <text id="487:2178" name="Text" x="33.04999923706055" y="0.5000000596046448" width="20.809999465942383" height="17" />
+            </frame>
+          </frame>
+          <frame id="487:2179" name="Nutrición" x="0" y="29.593799591064453" width="155" height="19.59000015258789">
+            <frame id="487:2180" name="Container" x="0" y="-0.2049999237060547" width="80" height="20">
+              <rounded-rectangle id="487:2181" name="Background" x="0" y="4" width="12" height="12" />
+              <frame id="487:2182" name="Container" x="20" y="0" width="60" height="20">
+                <text id="487:2183" name="Nutrición" x="0" y="0" width="60" height="20" />
+              </frame>
+            </frame>
+            <frame id="487:2184" name="Paragraph" x="103.76000213623047" y="0" width="51.23999786376953" height="19.59000015258789">
+              <text id="487:2185" name="Text" x="0" y="-1" width="30.229999542236328" height="20" />
+              <text id="487:2186" name="(38)" x="30.239999771118164" y="0.5000000596046448" width="21" height="17" />
+            </frame>
+          </frame>
+          <frame id="487:2187" name="Transporte" x="171" y="29.593799591064453" width="155" height="19.59000015258789">
+            <frame id="487:2188" name="Container" x="0" y="-0.2049999237060547" width="93" height="20">
+              <rounded-rectangle id="487:2189" name="Background" x="0" y="4" width="12" height="12" />
+              <frame id="487:2190" name="Container" x="20" y="0" width="73" height="20">
+                <text id="487:2191" name="Transporte" x="0" y="0" width="73" height="20" />
+              </frame>
+            </frame>
+            <frame id="487:2192" name="Paragraph" x="104.66000366210938" y="0" width="50.34000015258789" height="19.59000015258789">
+              <text id="487:2193" name="Text" x="0" y="-1" width="29.530000686645508" height="20" />
+              <text id="487:2194" name="Text" x="29.530000686645508" y="0.5000000596046448" width="20.809999465942383" height="17" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2195" name="5. Tarjeta de Gráfico: Adultos Mayores por Nivel de Riesgo" x="36" y="973" width="358" height="235.77000427246094">
+        <frame id="487:2196" name="Margin" x="-16" y="16" width="319.3333435058594" height="60">
+          <frame id="487:2197" name="Container" x="0" y="0" width="319.3333435058594" height="44">
+            <frame id="487:2198" name="Container" x="34.426673889160156" y="0" width="250.47999572753906" height="44">
+              <frame id="487:2199" name="Heading 2" x="0" y="0" width="250.47999572753906" height="24">
+                <text id="487:2200" name="Adultos por Nivel de Riesgo" x="0" y="0" width="215" height="24" />
+              </frame>
+              <frame id="487:2201" name="Container" x="0" y="24" width="250.47999572753906" height="20">
+                <text id="487:2202" name="Clasificación por Nivel de Riesgo Social" x="0" y="0" width="260" height="20" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+        <frame id="487:2203" name="Container" x="16" y="76" width="326" height="143.77000427246094">
+          <frame id="487:2204" name="Alto" x="0" y="0" width="326" height="38.59000015258789">
+            <frame id="487:2205" name="Container" x="0" y="0" width="326" height="20.59000015258789">
+              <frame id="487:2206" name="Container" x="0" y="0" width="83.86000061035156" height="20">
+                <rounded-rectangle id="487:2207" name="Background" x="0" y="5" width="10" height="10" />
+                <frame id="487:2208" name="Container" x="16" y="0" width="67.86000061035156" height="20">
+                  <text id="487:2209" name="Alto (14%)" x="0" y="0" width="70" height="20" />
+                </frame>
+              </frame>
+              <text id="487:2210" name="18 adultos" x="254.02000427246094" y="0" width="68" height="20" />
+            </frame>
+            <frame id="487:2211" name="Background" x="0" y="26.59000015258789" width="326" height="12">
+              <rounded-rectangle id="487:2212" name="Background" x="0" y="0" width="45.630001068115234" height="12" />
+            </frame>
+          </frame>
+          <frame id="487:2213" name="Medio" x="0" y="52.59000015258789" width="326" height="38.59000015258789">
+            <frame id="487:2214" name="Container" x="0" y="0" width="326" height="20.59000015258789">
+              <frame id="487:2215" name="Container" x="0" y="0" width="98.75" height="20">
+                <rounded-rectangle id="487:2216" name="Background" x="0" y="5" width="10" height="10" />
+                <frame id="487:2217" name="Container" x="16" y="0" width="82.75" height="20">
+                  <text id="487:2218" name="Medio (36%)" x="0" y="0" width="87" height="20" />
+                </frame>
+              </frame>
+              <text id="487:2219" name="46 adultos" x="250.1999969482422" y="0" width="71" height="20" />
+            </frame>
+            <frame id="487:2220" name="Background" x="0" y="26.59000015258789" width="326" height="12">
+              <rounded-rectangle id="487:2221" name="Background" x="0" y="0" width="117.36000061035156" height="12" />
+            </frame>
+          </frame>
+          <frame id="487:2222" name="Bajo" x="0" y="105.18000030517578" width="326" height="38.59000015258789">
+            <frame id="487:2223" name="Container" x="0" y="0" width="326" height="20.59000015258789">
+              <frame id="487:2224" name="Container" x="0" y="0" width="86.41999816894531" height="20">
+                <rounded-rectangle id="487:2225" name="Background" x="0" y="5" width="10" height="10" />
+                <frame id="487:2226" name="Container" x="16" y="0" width="70.41999816894531" height="20">
+                  <text id="487:2227" name="Bajo (50%)" x="0" y="0" width="74" height="20" />
+                </frame>
+              </frame>
+              <text id="487:2228" name="64 adultos" x="250.1999969482422" y="0" width="71" height="20" />
+            </frame>
+            <frame id="487:2229" name="Background" x="0" y="26.59000015258789" width="326" height="12">
+              <rounded-rectangle id="487:2230" name="Background" x="0" y="0" width="163" height="12" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2231" name="6. Botón de Exportación con Selector Desplegable Integrado" x="36" y="1230" width="358" height="252">
+        <frame id="487:2232" name="Button - Botón Principal" x="14" y="14" width="330" height="48">
+          <rounded-rectangle id="487:2233" name="Button - Botón Principal:shadow" x="0" y="0" width="330" height="48" />
+          <frame id="487:2234" name="Container" x="16" y="12" width="159.6666717529297" height="24">
+            <frame id="487:2235" name="Container" x="0" y="4.666666507720947" width="14.666666984558105" height="14.666666984558105">
+              <vector id="487:2236" name="Icon" x="0" y="0" width="14.666666984558105" height="14.666666984558105" />
+            </frame>
+            <frame id="487:2237" name="Container" x="24.666667938232422" y="0" width="135" height="24">
+              <text id="487:2238" name="Exportar Reporte" x="0" y="0" width="135" height="24" />
+            </frame>
+          </frame>
+          <frame id="487:2239" name="Container" x="304" y="20.916667938232422" width="10" height="6.166666507720947">
+            <vector id="487:2240" name="Icon" x="0" y="0" width="10" height="6.166666507720947" />
+          </frame>
+        </frame>
+        <frame id="487:2241" name="Selector desplegable integrado con opciones de formato" x="14" y="74" width="330" height="164">
+          <frame id="487:2242" name="Container" x="0" y="4" width="330" height="12">
+            <text id="487:2243" name="SELECCIONAR FORMATo" x="4" y="0" width="159" height="12" />
+          </frame>
+          <frame id="487:2244" name="Button - Opción 1: PDF" x="0" y="24" width="308" height="66">
+            <frame id="487:2245" name="Container" x="12" y="12" width="260" height="42">
+              <frame id="487:2246" name="Background" x="0" y="3" width="36" height="36">
+                <frame id="487:2247" name="Container" x="8.833333015441895" y="8.833333015441895" width="18.33333396911621" height="18.33333396911621">
+                  <vector id="487:2248" name="Icon" x="0" y="0" width="18.33333396911621" height="18.33333396911621" />
+                </frame>
+              </frame>
+              <frame id="487:2249" name="Container" x="48" y="0" width="212" height="42">
+                <frame id="487:2250" name="Container" x="0" y="0" width="212" height="24">
+                  <text id="487:2251" name="Documento PDF (.pdf)" x="0" y="0" width="171" height="24" />
+                </frame>
+                <frame id="487:2252" name="Container" x="0" y="24" width="212" height="18">
+                  <text id="487:2253" name="Resumen ejecutivo listo para imprimir" x="0" y="0" width="212" height="18" />
+                </frame>
+              </frame>
+            </frame>
+            <frame id="487:2254" name="Background" x="272" y="21" width="24" height="24">
+              <frame id="487:2255" name="Container" x="6.666666507720947" y="6.666666507720947" width="10.666666984558105" height="10.666666984558105">
+                <vector id="487:2256" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2257" name="Button - Opción 2: Excel" x="0" y="98" width="291" height="66">
+            <frame id="487:2258" name="Container" x="12" y="12" width="243" height="42">
+              <frame id="487:2259" name="Background" x="0" y="3" width="36" height="36">
+                <frame id="487:2260" name="Container" x="9.75" y="9.75" width="16.5" height="16.5">
+                  <vector id="487:2261" name="Icon" x="0" y="0" width="16.5" height="16.5" />
+                </frame>
+              </frame>
+              <frame id="487:2262" name="Container" x="48" y="0" width="195" height="42">
+                <frame id="487:2263" name="Container" x="0" y="0" width="195" height="24">
+                  <text id="487:2264" name="Hoja de cálculo (.xlsx)" x="0" y="0" width="168" height="24" />
+                </frame>
+                <frame id="487:2265" name="Container" x="0" y="24" width="195" height="18">
+                  <text id="487:2266" name="Datos brutos tabulados y métricas" x="0" y="0" width="195" height="18" />
+                </frame>
+              </frame>
+            </frame>
+            <frame id="487:2267" name="Background" x="255" y="21" width="24" height="24">
+              <frame id="487:2268" name="Container" x="6.666666507720947" y="6.666666507720947" width="10.666666984558105" height="10.666666984558105">
+                <vector id="487:2269" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+              </frame>
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <frame id="487:2270" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="487:2271" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+      </frame>
+      <frame id="487:2272" name="menu" x="-17" y="818" width="447" height="106">
+        <rounded-rectangle id="487:2273" name="Rectangle 45" x="-17" y="818" width="447" height="106" />
+        <frame id="487:2274" name="Frame 1000000945" x="15" y="847" width="384" height="45">
+          <frame id="487:2275" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="487:2276" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="487:2277" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:2279" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="487:2280" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="487:2281" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="487:2282" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="487:2290" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="487:2291" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="487:2292" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="487:2293" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="487:2294" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="487:2295" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="487:2315" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="487:2316" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="487:2317" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="487:2318" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="487:2319" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+      <text id="487:2297" name="Reportes y Estadísticas" x="78" y="53" width="228" height="20" />
+      <frame id="487:2298" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+    </frame>
+    <frame id="488:2439" name="Pantalla Registrar Necesidad" x="3063" y="1360" width="428" height="927">
+      <rounded-rectangle id="488:2440" name="Rectangle 43" x="36" y="218" width="356" height="502" />
+      <rounded-rectangle id="488:2441" name="Rectangle 44" x="57" y="472" width="314" height="126" />
+      <frame id="488:2442" name="Heading 4" x="57" y="619" width="55" height="31.106496810913086">
+        <text id="488:2443" name="Estado" x="0" y="0" width="55" height="28" />
+      </frame>
+      <text id="488:2444" name="...." x="81" y="472.4609375" width="209" height="47.770694732666016" />
+      <frame id="488:2445" name="Heading 5" x="57" y="440" width="95" height="28">
+        <text id="488:2446" name="Descripción" x="0" y="0" width="95" height="28" />
+      </frame>
+      <frame id="488:2447" name="Container" x="57" y="651.00390625" width="314" height="69">
+        <frame id="488:2448" name="Button" x="0" y="0" width="100" height="40">
+          <text id="488:2449" name="Activa" x="28.489999771118164" y="13" width="43" height="14" />
+        </frame>
+        <frame id="488:2450" name="Button" x="108" y="0" width="100" height="40">
+          <text id="488:2451" name="Inactiva" x="22.98999786376953" y="13" width="54" height="14" />
+        </frame>
+      </frame>
+      <frame id="488:2452" name="Heading 6" x="57" y="241" width="146" height="31.106496810913086">
+        <text id="488:2453" name="Tipo de Necesidad" x="0" y="0" width="146" height="28" />
+      </frame>
+      <frame id="488:2454" name="Container" x="57" y="273.00390625" width="314" height="69">
+        <frame id="488:2455" name="Button" x="0" y="0" width="100" height="67.5">
+          <frame id="488:2456" name="pill_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.98999786376953" y="13" width="24" height="24" />
+          <text id="488:2458" name="Medicamentos" x="6.489999771118164" y="40.5" width="87" height="14" />
+        </frame>
+        <frame id="488:2459" name="Button" x="108" y="0" width="100" height="69">
+          <frame id="488:2460" name="dining_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.99500274658203" y="16" width="24" height="24" />
+          <text id="488:2462" name="Alimentación" x="11.495000839233398" y="43.5" width="77" height="14" />
+        </frame>
+        <frame id="488:2463" name="Button" x="216" y="0" width="100" height="67.5">
+          <frame id="488:2464" name="transportation_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.9949951171875" y="13" width="24" height="24" />
+          <text id="488:2466" name="Transporte" x="17.494998931884766" y="40.5" width="65" height="14" />
+        </frame>
+      </frame>
+      <frame id="488:2467" name="Container" x="57" y="350" width="314" height="69">
+        <frame id="488:2468" name="Button" x="0" y="0" width="100" height="67.5">
+          <frame id="488:2469" name="diversity_4_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.98999786376953" y="13" width="24" height="24" />
+          <text id="488:2471" name="Compañía" x="20.489999771118164" y="40.5" width="59" height="14" />
+        </frame>
+        <frame id="488:2472" name="Button" x="108" y="0" width="100" height="69">
+          <frame id="488:2473" name="pending_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 (1) 1" x="37.99500274658203" y="16" width="24" height="24" />
+          <text id="488:2475" name="Otros" x="33.49500274658203" y="43.5" width="33" height="14" />
+        </frame>
+      </frame>
+      <frame id="488:2476" name="Background+Border" x="36" y="124" width="63" height="63">
+        <frame id="488:2477" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="10" y="10" width="43" height="43" />
+      </frame>
+      <frame id="488:2479" name="Heading 3" x="116" y="129" width="188" height="28">
+        <text id="488:2480" name="Elena Rodríguez" x="0" y="0" width="188" height="28" />
+      </frame>
+      <frame id="488:2481" name="Background" x="116" y="162" width="60" height="19">
+        <text id="488:2482" name="MEDIO" x="8" y="2" width="44" height="15" />
+      </frame>
+      <frame id="491:2929" name="botónGuardar" x="35" y="755" width="356" height="61">
+        <rounded-rectangle id="491:2930" name="Rectangle 33" x="35" y="755" width="356" height="61" />
+        <text id="491:2931" name="Registrar necesidad" x="35" y="773" width="356" height="24" />
+      </frame>
+      <frame id="491:2932" name="botónCancelar" x="36" y="834" width="356" height="61">
+        <rounded-rectangle id="491:2933" name="Rectangle 34" x="36" y="834" width="356" height="61" />
+        <text id="491:2934" name="Cancelar" x="171" y="853" width="87" height="24" />
+      </frame>
+      <rounded-rectangle id="488:2487" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+      <frame id="488:2491" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+      <text id="488:2493" name="Registrar Necesidad" x="91" y="53" width="217" height="20" />
+    </frame>
+    <frame id="490:2769" name="Pantalla satisfactoria Necesidad" x="3531" y="1358" width="428" height="927">
+      <rounded-rectangle id="490:2910" name="Fondo" x="0" y="3" width="428" height="926" />
+    </frame>
+    <frame id="490:2920" name="Pantalla satisfactoria visita" x="4476" y="1360" width="428" height="927">
+      <rounded-rectangle id="490:2921" name="Fondo" x="0" y="3" width="428" height="926" />
+      <frame id="490:2923" name="Frame 1000000946" x="37" y="349" width="354" height="230">
+        <rounded-rectangle id="490:2924" name="Rectangle 50" x="0" y="0" width="354" height="220" />
+        <text id="490:2925" name="Visita registrada correctamente!" x="6" y="107" width="343" height="101" />
+        <frame id="490:2926" name="sentiment_excited_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="131" y="23" width="91" height="91" />
+      </frame>
+    </frame>
+    <frame id="488:2592" name="Pantalla Registrar Visita" x="3999" y="1358" width="428" height="987">
+      <frame id="488:2593" name="Background+Border" x="36" y="154" width="63" height="63">
+        <frame id="488:2594" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="10" y="10" width="43" height="43" />
+      </frame>
+      <frame id="488:2596" name="Heading 3" x="116" y="159" width="188" height="28">
+        <text id="488:2597" name="Elena Rodríguez" x="0" y="0" width="188" height="28" />
+      </frame>
+      <frame id="488:2598" name="Background" x="116" y="192" width="60" height="19">
+        <text id="488:2599" name="MEDIO" x="8" y="2" width="44" height="15" />
+      </frame>
+      <rounded-rectangle id="488:2600" name="Rectangle 44" x="34" y="498" width="358" height="191" />
+      <text id="488:2601" name="Fecha: 24/08/2026 Hora Pautada: 10:30 a.m. Hora Inicio: 10:32 a.m. Responsable: Carlos Ruiz" x="36" y="267" width="171" height="72" />
+      <frame id="488:2602" name="Heading 4" x="35" y="241" width="172" height="28">
+        <text id="488:2603" name="Visita de Seguimiento" x="0" y="0" width="172" height="28" />
+      </frame>
+      <rounded-rectangle id="488:2604" name="Rectangle 45" x="57" y="541.00390625" width="314" height="126" />
+      <text id="488:2605" name="Describe lo observado durante la visita" x="80" y="557" width="264" height="17" />
+      <frame id="488:2606" name="Heading 8" x="57" y="509.00390625" width="119" height="28">
+        <text id="488:2607" name="Observaciones" x="0" y="0" width="119" height="28" />
+      </frame>
+      <text id="488:2608" name="● Visita en Curso" x="35" y="116" width="138" height="19" />
+      <frame id="488:2609" name="Heading 9" x="37" y="354" width="144" height="31.106496810913086">
+        <text id="488:2610" name="Estado en la Visita" x="0" y="0" width="144" height="28" />
+      </frame>
+      <frame id="488:2611" name="Container" x="58" y="386" width="314" height="82">
+        <frame id="488:2612" name="Button" x="0" y="0" width="100" height="82">
+          <frame id="488:2613" name="sentiment_satisfied_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.98999786376953" y="19" width="24" height="24" />
+          <text id="488:2615" name="Estable" x="24.489999771118164" y="46.5" width="51" height="14" />
+        </frame>
+        <frame id="488:2616" name="Button" x="108" y="0" width="100" height="82">
+          <frame id="488:2617" name="sentiment_neutral_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.99500274658203" y="14" width="24" height="24" />
+          <text id="488:2619" name="Requiere Atención" x="11.995000839233398" y="41.5" width="76" height="28" />
+        </frame>
+        <frame id="488:2620" name="Button" x="216" y="0" width="100" height="81.5">
+          <frame id="488:2621" name="sentiment_dissatisfied_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="37.994998931884766" y="13" width="24" height="24" />
+          <text id="488:2623" name="Situación Crítica" x="5.994998931884766" y="40.5" width="88" height="28" />
+        </frame>
+      </frame>
+      <frame id="488:2624" name="botónCerrarSesion" x="36" y="719" width="356" height="41">
+        <rounded-rectangle id="488:2625" name="Rectangle 34" x="36" y="719" width="356" height="41" />
+        <frame id="488:2626" name="Frame 4929" x="58" y="728.76953125" width="172" height="16.131147384643555">
+          <text id="488:2627" name="Adjuntar Evidencias" x="0" y="1.23046875" width="155" height="19" />
+        </frame>
+      </frame>
+      <frame id="488:2628" name="attach_file_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="350" y="724" width="24" height="24" />
+      <frame id="491:2936" name="botónGuardar" x="35" y="801" width="356" height="61">
+        <rounded-rectangle id="491:2937" name="Rectangle 33" x="35" y="801" width="356" height="61" />
+        <text id="491:2938" name="Registrar visita" x="35" y="819" width="356" height="24" />
+      </frame>
+      <frame id="491:2939" name="botónCancelar" x="36" y="880" width="356" height="61">
+        <rounded-rectangle id="491:2940" name="Rectangle 34" x="36" y="880" width="356" height="61" />
+        <text id="491:2941" name="Cancelar" x="171" y="899" width="87" height="24" />
+      </frame>
+      <frame id="488:2634" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="488:2635" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="488:2639" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+        <text id="488:2641" name="Registrar Visita" x="91" y="53" width="149" height="20" />
+      </frame>
+    </frame>
+    <frame id="491:2943" name="Pantalla Visitas coord" x="4963" y="1361" width="428" height="927">
+      <frame id="491:2944" name="tarjetaVisita" x="36" y="395" width="356" height="145">
+        <rounded-rectangle id="491:2945" name="Rectangle 43" x="36" y="395" width="356" height="145" />
+        <rounded-rectangle id="491:2946" name="Rectangle 44" x="57" y="485" width="314" height="37" />
+        <frame id="491:2947" name="Background+Border" x="57" y="413" width="48" height="48">
+          <frame id="491:2948" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24">
+            <frame id="491:2949" name="calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="0" y="0" width="24" height="24" />
+          </frame>
+        </frame>
+        <frame id="491:2951" name="Heading 3" x="120" y="433" width="167" height="28">
+          <text id="491:2952" name="10:30 a.m. - 24/08/2026" x="0" y="0" width="167" height="28" />
+        </frame>
+        <frame id="491:2953" name="Heading 4" x="120" y="413" width="127" height="28">
+          <text id="491:2954" name="Elena Rodríguez" x="0" y="0" width="127" height="28" />
+        </frame>
+        <text id="491:2955" name="Ver más" x="157" y="497" width="114" height="14" />
+        <text id="491:2956" name="Visita de Seguimiento" x="121" y="462" width="168" height="14" />
+      </frame>
+      <frame id="491:2957" name="tarjetaVisita" x="36" y="559" width="356" height="145">
+        <rounded-rectangle id="491:2958" name="Rectangle 43" x="36" y="559" width="356" height="145" />
+        <rounded-rectangle id="491:2959" name="Rectangle 44" x="57" y="649" width="314" height="37" />
+        <frame id="491:2960" name="Background+Border" x="57" y="577" width="48" height="48">
+          <frame id="491:2961" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="12" y="12" width="24" height="24">
+            <frame id="491:2962" name="calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="0" y="0" width="24" height="24" />
+          </frame>
+        </frame>
+        <frame id="491:2964" name="Heading 3" x="120" y="597" width="161" height="28">
+          <text id="491:2965" name="3:00 p.m. - 24/08/2026" x="0" y="0" width="161" height="28" />
+        </frame>
+        <frame id="491:2966" name="Heading 4" x="120" y="577" width="106" height="28">
+          <text id="491:2967" name="José Santana" x="0" y="0" width="106" height="28" />
+        </frame>
+        <text id="491:2968" name="Ver más" x="157" y="661" width="114" height="14" />
+        <text id="491:2969" name="Visita de Seguimiento" x="121" y="626" width="168" height="14" />
+      </frame>
+      <rounded-rectangle id="491:2970" name="Rectangle 34" x="36" y="131" width="356" height="106" />
+      <text id="491:2971" name="Visitas Programadas para Hoy" x="55" y="151" width="253" height="19" />
+      <text id="491:2972" name="2" x="55" y="178" width="187" height="39" />
+      <rounded-rectangle id="491:2973" name="Rectangle 41" x="36" y="245" width="174" height="78" />
+      <text id="491:2974" name="Visitas Próximas" x="56" y="261" width="148" height="13" />
+      <rounded-rectangle id="491:2975" name="Rectangle 42" x="218" y="245" width="174" height="78" />
+      <text id="491:2976" name="Total de Visitas" x="238" y="261" width="148" height="13" />
+      <text id="491:2977" name="7" x="238" y="277" width="144" height="38" />
+      <text id="491:2978" name="3" x="56" y="276" width="144" height="41" />
+      <frame id="491:2979" name="calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="348" y="191" width="36" height="36" />
+      <frame id="491:2981" name="Filters Horizontal Scroll" x="73" y="342" width="282" height="34">
+        <frame id="491:2982" name="Button" x="0" y="0" width="68" height="34">
+          <text id="491:2983" name="Hoy" x="20.5" y="8.5" width="27" height="16" />
+        </frame>
+        <frame id="491:2984" name="Button" x="77" y="0" width="96" height="34">
+          <text id="491:2985" name="Próximas" x="16.5" y="9" width="63" height="16" />
+        </frame>
+        <frame id="491:2986" name="Button" x="182" y="0" width="100" height="34">
+          <text id="491:2987" name="Historial" x="21.5" y="9" width="57" height="16" />
+        </frame>
+      </frame>
+      <frame id="492:3151" name="botónGuardar" x="38" y="738" width="356" height="61">
+        <rounded-rectangle id="492:3152" name="Rectangle 33" x="38" y="738" width="356" height="61" />
+        <text id="492:3153" name="Programar visita" x="38" y="756" width="356" height="24" />
+      </frame>
+      <frame id="491:2988" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="491:2989" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="491:2990" name="Container" x="348" y="26" width="44" height="44">
+          <frame id="491:2991" name="Overlay+Border+Shadow" x="0" y="0" width="44" height="44">
+            <frame id="491:2992" name="AB6AXuD0dJ2BxtEf3qsSynQ6P_Vlg0dyD3I5TwL0f0bNNff1XXioBFc1dFPLlJ-2nnNbTAliAFTKz-tfGhDy0pI0CgtHndJ9NDVufhX-c8-OA1OJ1lXCqUABC47D8E5Hjol60gWZ_K-4YG1kJhhGH19EyFRPS0Dh1Ya0s_Qrpusnz_2BR0zQPvofJ6HZL0Z2jehSRulhF0FXt9Lmnw76dWY9y_E6J1Mf-R2xqHq2wFrOQoEcjMm50UxlMnoKqSFc7MV7E8MyYdPlBjePpdn5" x="4" y="4" width="36" height="36" />
+          </frame>
+        </frame>
+        <text id="491:2993" name="Mis Visitas" x="36" y="53" width="185" height="20" />
+      </frame>
+      <frame id="492:3093" name="menu" x="-8" y="822" width="447" height="106">
+        <rounded-rectangle id="492:3094" name="Rectangle 45" x="-8" y="822" width="447" height="106" />
+        <frame id="492:3095" name="Frame 1000000945" x="24" y="851" width="384" height="45">
+          <frame id="492:3096" name="botónDashboard" x="31" y="0" width="37" height="47">
+            <text id="492:3097" name="Inicio" x="31" y="30" width="37" height="17" />
+            <frame id="492:3098" name="home_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="38" y="0" width="24" height="24" />
+          </frame>
+          <frame id="492:3100" name="botónMisAdultos" x="118" y="0" width="53" height="47">
+            <frame id="492:3101" name="botónDashboard" x="118" y="30" width="53" height="17">
+              <text id="492:3102" name="Adultos" x="118" y="30" width="53" height="17" />
+            </frame>
+            <frame id="492:3103" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="133" y="0" width="24" height="24" />
+          </frame>
+          <frame id="492:3105" name="botónMisAdultos" x="320" y="0" width="29" height="47">
+            <frame id="492:3106" name="botónDashboard" x="320" y="30" width="29" height="17">
+              <text id="492:3107" name="Más" x="320" y="30" width="29" height="17" />
+            </frame>
+            <frame id="492:3108" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="323" y="0" width="24" height="24">
+              <frame id="492:3109" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24">
+                <frame id="492:3110" name="Frame" x="0" y="0" width="24" height="24" />
+              </frame>
+            </frame>
+          </frame>
+          <frame id="492:3112" name="botónMisAdultos" x="196.5" y="0" width="85" height="45">
+            <frame id="492:3113" name="botónDashboard" x="196.5" y="31" width="85" height="14">
+              <text id="492:3114" name="Visitas" x="196.5" y="31" width="85" height="14" />
+            </frame>
+            <frame id="492:3115" name="elderly_woman_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="227.5" y="0" width="24" height="24">
+              <frame id="492:3116" name="medical_services_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="1" y="-1" width="24" height="24" />
+            </frame>
+          </frame>
+        </frame>
+      </frame>
+    </frame>
+    <frame id="491:3012" name="Pantalla Detalle Visita coord" x="5449" y="1360" width="428" height="927">
+      <frame id="491:3013" name="Background+Border" x="37" y="168" width="63" height="63">
+        <frame id="491:3014" name="account_circle_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 2" x="10" y="10" width="43" height="43" />
+      </frame>
+      <frame id="491:3016" name="Heading 3" x="116" y="168" width="188" height="28">
+        <text id="491:3017" name="Elena Rodríguez" x="0" y="0" width="188" height="28" />
+      </frame>
+      <frame id="491:3018" name="Background" x="117" y="204" width="60" height="19">
+        <text id="491:3019" name="MEDIO" x="8" y="2" width="44" height="15" />
+      </frame>
+      <rounded-rectangle id="491:3020" name="Rectangle 44" x="34" y="392" width="358" height="191" />
+      <text id="491:3021" name="Fecha: 24/08/2026 Hora Pautada: 10:30 a.m." x="35" y="329" width="312" height="43" />
+      <frame id="491:3022" name="Heading 4" x="36" y="266" width="172" height="28">
+        <text id="491:3023" name="Visita de Seguimiento" x="0" y="0" width="172" height="28" />
+      </frame>
+      <rounded-rectangle id="491:3028" name="Rectangle 45" x="57" y="435.00390625" width="314" height="126" />
+      <text id="491:3029" name="Verificar estado general y confirmar si recibió los medicamentos solicitados durante la visita anterior." x="80" y="453" width="266" height="48" />
+      <frame id="491:3030" name="Heading 8" x="57" y="403.00390625" width="47" height="28">
+        <text id="491:3031" name="Notas" x="0" y="0" width="47" height="28" />
+      </frame>
+      <text id="491:3032" name="● Pendiente" x="36" y="293" width="187" height="20" />
+      <frame id="492:3147" name="botónGuardar" x="37" y="805" width="356" height="61">
+        <rounded-rectangle id="492:3148" name="Rectangle 33" x="37" y="805" width="356" height="61" />
+        <text id="492:3149" name="Iniciar visita" x="37" y="823" width="356" height="24" />
+      </frame>
+      <text id="499:3275" name="Ver perfil completo" x="200" y="204" width="122" height="20" />
+      <frame id="499:3276" name="Container" x="327" y="209" width="10.666666984558105" height="10.666666984558105">
+        <vector id="499:3277" name="Icon" x="0" y="0" width="10.666666984558105" height="10.666666984558105" />
+      </frame>
+      <frame id="491:3034" name="header" x="-9" y="-10" width="447" height="106">
+        <rounded-rectangle id="491:3035" name="Rectangle 40" x="-9" y="-10" width="447" height="106" />
+        <frame id="491:3039" name="íconoRetornar" x="22" y="48" width="30" height="30" />
+        <text id="491:3041" name="Detalle Visita" x="91" y="53" width="217" height="20" />
+      </frame>
+    </frame>
+    <frame id="490:2914" name="Frame 1000000946" x="3568" y="1707" width="354" height="230">
+      <rounded-rectangle id="490:2915" name="Rectangle 50" x="0" y="0" width="354" height="220" />
+      <text id="490:2916" name="Necesidad registrada correctamente!" x="6" y="107" width="343" height="101" />
+      <frame id="490:2917" name="sentiment_excited_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24 1" x="131" y="23" width="91" height="91" />
+    </frame>
+  </section>
