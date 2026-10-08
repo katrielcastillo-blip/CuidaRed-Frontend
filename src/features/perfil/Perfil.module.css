@@ -1,0 +1,60 @@
+/* Mi Perfil / Editar Mi Perfil */
+
+.panel { display: flex; flex-direction: column; gap: var(--sp-8); }
+@media (min-width: 768px) {
+  .panel {
+    padding: var(--sp-8) var(--sp-10);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-soft);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+/* ───── Cabecera: avatar, nombre, cédula, chip ───── */
+.cabecera { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.avatarWrap { position: relative; flex: none; margin-bottom: var(--sp-3); }
+.nombre { font-size: 1.75rem; line-height: 1.25; font-weight: 700; color: #003f9e; overflow-wrap: anywhere; }
+.cedula { font-size: var(--fs-md); font-weight: 600; color: var(--c-muted); letter-spacing: 0.02em; }
+.chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 134px; padding: 4px 22px; margin-top: 2px;
+  border-radius: var(--r-pill); background: var(--c-blue-100);
+  color: #1f6fd0; font-size: var(--fs-md); font-weight: 600;
+}
+.editarLink {
+  display: inline-grid; place-items: center; min-height: 44px; padding: 0 var(--sp-4);
+  color: var(--c-text-2); font-weight: 500;
+  text-decoration: underline; text-underline-offset: 4px;
+}
+.editarLink:hover { color: var(--c-navy); }
+.fotoBtn {
+  position: absolute; right: 4px; bottom: 6px;
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--c-navy); color: #fff;
+  border: 3px solid var(--c-bg); box-shadow: var(--shadow-2);
+  transition: background 0.15s;
+}
+.fotoBtn:hover { background: var(--c-navy-700); }
+.quitarFoto { align-self: center; }
+
+/* ───── Secciones ───── */
+.seccion { display: flex; flex-direction: column; gap: var(--sp-5); }
+.infoGrid { display: grid; gap: var(--sp-5); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) {
+  .infoGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-6) var(--sp-8); }
+}
+.campos { display: grid; gap: var(--sp-5); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) {
+  .campos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5) var(--sp-6); }
+}
+.span2 { grid-column: 1 / -1; }
+
+/* ───── Acciones ───── */
+.acciones { display: flex; flex-direction: column; gap: var(--sp-4); }
+.demo { align-self: center; color: var(--c-muted); }
+.error { padding: 12px 14px; border-radius: var(--r-sm); border: 1px solid var(--c-danger); background: var(--c-danger-100); color: var(--c-danger); font-size: var(--fs-sm); font-weight: 600; }
+
+/* ───── Confirmación de eliminación ───── */
+.confirma { display: flex; flex-direction: column; gap: var(--sp-3); line-height: 1.5; color: var(--c-text-2); }
+.confirma strong { color: var(--c-text); overflow-wrap: anywhere; }

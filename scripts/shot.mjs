@@ -6,7 +6,9 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
-const [ruta = '/', rol = 'anon', nombre = 'shot', ...flags] = process.argv.slice(2)
+const [rutaArg = '/', rol = 'anon', nombre = 'shot', ...flags] = process.argv.slice(2)
+// Git Bash convierte "/cuidador" en "C:/Program Files/Git/cuidador": se normaliza. También acepta "cuidador/visitas" sin barra.
+const ruta = '/' + rutaArg.replace(/^[A-Za-z]:\/.*?\/Git\//, '').replace(/^\/+/, '')
 const port = flags.includes('--port') ? flags[flags.indexOf('--port') + 1] : '5173'
 const full = flags.includes('--full')
 const base = `http://localhost:${port}`

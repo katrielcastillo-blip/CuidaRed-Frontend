@@ -1,0 +1,3 @@
+.nota { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-md); background: #dbe9fb; color: var(--c-text-2); }
+.nota p { flex: 1; min-width: 0; font-size: var(--fs-sm); line-height: 1.45; }
+.icono { flex: none; margin-top: 1px; color: var(--c-blue); }

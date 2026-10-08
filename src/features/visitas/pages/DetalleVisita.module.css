@@ -1,0 +1,4 @@
+.resultado { display: inline-flex; align-items: center; gap: var(--sp-2); width: fit-content; min-height: 40px; padding: 0 var(--sp-4); border-radius: var(--r-pill); font-weight: 700; }
+.success { background: var(--c-success-100); color: var(--c-teal); }
+.warning { background: var(--c-warning-100); color: var(--c-warning); }
+.danger { background: var(--c-danger-100); color: var(--c-danger); }

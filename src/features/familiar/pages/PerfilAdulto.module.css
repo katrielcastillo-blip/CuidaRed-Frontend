@@ -1,0 +1,29 @@
+/* Azul de los nombres en el Figma (#003f9e), local porque no existe como token. */
+.layout { --fam-blue: #003f9e; display: flex; flex-direction: column; gap: var(--sp-8); }
+.datos, .actividad { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+
+@media (min-width: 768px) {
+  .layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--sp-8); align-items: start; }
+}
+
+.hero { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.foto { color: var(--c-blue-bright); margin-bottom: var(--sp-3); }
+.nombre { font-size: var(--fs-2xl); font-weight: 700; color: var(--fam-blue); overflow-wrap: anywhere; }
+.cedula { font-size: var(--fs-md); color: var(--c-muted); }
+.pill { display: inline-flex; align-items: center; justify-content: center; min-width: 97px; margin-top: var(--sp-2); padding: 4px var(--sp-5); border-radius: var(--r-pill); font-size: var(--fs-md); font-weight: 600; }
+.pillMedio { background: var(--c-warning-100); color: var(--c-warning); }
+.pillAlto { background: var(--c-danger-100); color: var(--c-danger); }
+.pillBajo { background: var(--c-success-100); color: var(--c-success); }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.mini {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 78px; padding: var(--sp-3) var(--sp-2); text-align: center;
+  background: var(--c-blue-100); border: 1px solid var(--c-blue); border-radius: var(--r-sm);
+}
+.miniEtiqueta { font-size: 13px; font-weight: 600; color: var(--c-text); }
+.miniFecha { font-size: var(--fs-xl); font-weight: 700; color: var(--c-text); }
+.miniNumero { font-size: var(--fs-3xl); font-weight: 700; line-height: 1; color: var(--c-text); }
+
+/* Pestañas Necesidades | Visitas: compactas y centradas como en el Figma. */
+.tabs { width: min(100%, 300px); margin: 0 auto; }

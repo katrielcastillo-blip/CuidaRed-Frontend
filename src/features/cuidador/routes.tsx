@@ -1,10 +1,13 @@
 import type { RouteObject } from 'react-router-dom'
 import { BriefcaseMedical, House, PersonStanding } from 'lucide-react'
 import { RequireRole } from '@/app/guards'
-import { Placeholder } from '@/app/Placeholder'
 import { AppShell, type NavItem } from '@/layouts/AppShell'
 import { perfilRoutes } from '@/features/perfil/routes'
 import { visitasRoutes } from '@/features/visitas/routes'
+import { Dashboard, InvitacionRuta } from './pages/Dashboard'
+import { MisAdultos } from './pages/MisAdultos'
+import { MisVisitas } from './pages/MisVisitas'
+import { PerfilEnvejeciente } from './pages/PerfilEnvejeciente'
 
 const BASE = '/cuidador'
 const nav: NavItem[] = [
@@ -22,11 +25,11 @@ export const cuidadorRoutes: RouteObject = {
     </RequireRole>
   ),
   children: [
-    { index: true, element: <Placeholder name="Dashboard cuidador" /> },
-    { path: 'invitacion', element: <Placeholder name="Invitación" /> },
-    { path: 'adultos', element: <Placeholder name="Mis Adultos Mayores" /> },
-    { path: 'adultos/:adultoId', element: <Placeholder name="Perfil Envejeciente" /> },
-    { path: 'visitas', element: <Placeholder name="Mis Visitas" /> },
+    { index: true, element: <Dashboard /> },
+    { path: 'invitacion', element: <InvitacionRuta /> },
+    { path: 'adultos', element: <MisAdultos /> },
+    { path: 'adultos/:adultoId', element: <PerfilEnvejeciente /> },
+    { path: 'visitas', element: <MisVisitas /> },
     ...visitasRoutes(),
     ...perfilRoutes(),
   ],

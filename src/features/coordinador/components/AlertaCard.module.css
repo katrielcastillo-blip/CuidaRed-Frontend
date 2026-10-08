@@ -1,0 +1,32 @@
+/* Colores muestreados del Figma (Dashboard coordinador → Alertas Recientes). */
+.card {
+  --borde: #0060a8;
+  --sev-bg: #fddba4; --sev-fg: #5d4000;
+  --cat-bg: #cee2fe; --cat-fg: #0060a8;
+  position: relative;
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--c-surface);
+  border-radius: 12px;
+  box-shadow: inset 4px 0 0 var(--borde), var(--shadow-1);
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.card:hover { box-shadow: inset 4px 0 0 var(--borde), 0 4px 12px rgba(100, 116, 139, 0.35); }
+.card:active { transform: translateY(1px); }
+
+.alta { --borde: #bb1919; --sev-bg: #ffdbd7; --sev-fg: #bb1919; --cat-bg: #ced8f7; --cat-fg: #002a70; }
+.media { --borde: #0060a8; --sev-bg: #fddba4; --sev-fg: #5d4000; --cat-bg: #cee2fe; --cat-fg: #0060a8; }
+.baja { --borde: #00362a; --sev-bg: #80f5d6; --sev-fg: #00362b; --cat-bg: #66dabe; --cat-fg: #00362b; }
+
+.head { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.persona { display: flex; flex-direction: column; flex: 1; min-width: 0; padding-top: 2px; }
+.nombre { font-size: var(--fs-md); font-weight: 700; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rol { font-size: var(--fs-sm); color: var(--c-muted); }
+.tiempo { flex: none; font-size: var(--fs-xs); font-weight: 500; color: var(--c-muted); }
+
+.texto { font-size: var(--fs-md); line-height: 1.5; color: var(--c-text-2); display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; line-height: 14px; }
+.sev { background: var(--sev-bg); color: var(--sev-fg); }
+.cat { background: var(--cat-bg); color: var(--cat-fg); }

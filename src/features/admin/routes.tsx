@@ -1,10 +1,15 @@
 import type { RouteObject } from 'react-router-dom'
 import { Ellipsis, House, PersonStanding, Users } from 'lucide-react'
 import { RequireRole } from '@/app/guards'
-import { Placeholder } from '@/app/Placeholder'
 import { AppShell, type NavItem } from '@/layouts/AppShell'
 import { perfilRoutes } from '@/features/perfil/routes'
 import { gestionRoutes } from '@/features/gestion/routes'
+import AgregarMiembro from './pages/AgregarMiembro'
+import Configuracion from './pages/Configuracion'
+import Dashboard from './pages/Dashboard'
+import Mas from './pages/Mas'
+import Miembros from './pages/Miembros'
+import PerfilMiembro from './pages/PerfilMiembro'
 
 const BASE = '/admin'
 const nav: NavItem[] = [
@@ -23,9 +28,12 @@ export const adminRoutes: RouteObject = {
     </RequireRole>
   ),
   children: [
-    { index: true, element: <Placeholder name="Dashboard admin" /> },
-    { path: 'miembros', element: <Placeholder name="Miembros" /> },
-    { path: 'mas', element: <Placeholder name="Más" /> },
+    { index: true, element: <Dashboard /> },
+    { path: 'miembros', element: <Miembros /> },
+    { path: 'miembros/nuevo', element: <AgregarMiembro /> },
+    { path: 'miembros/:usuarioId', element: <PerfilMiembro /> },
+    { path: 'mas', element: <Mas /> },
+    { path: 'configuracion', element: <Configuracion /> },
     ...gestionRoutes(),
     ...perfilRoutes(),
   ],

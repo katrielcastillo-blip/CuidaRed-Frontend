@@ -1,0 +1,23 @@
+.chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; line-height: 15px; white-space: nowrap;
+}
+.rolCoord { background: var(--c-blue-bright); color: #fff; }
+.rolCuid { background: var(--c-navy); color: var(--c-blue-100); }
+.rolOff { background: #b9bfc9; color: #f2f4f7; }
+.estOn { background: var(--c-green); color: var(--c-success-100); }
+.estInv { background: var(--c-warning); color: var(--c-warning-100); }
+/* Versión del perfil: más grande y sin mayúsculas forzadas */
+.grande { min-width: 97px; min-height: 29px; padding: 4px 16px; border-radius: var(--r-pill); font-size: var(--fs-sm); letter-spacing: 0; text-transform: none; }
+
+.tile {
+  display: inline-grid; place-items: center; flex: none; overflow: hidden;
+  border-radius: var(--r-md); background: var(--c-blue-100); border: 1px solid var(--c-blue); color: var(--c-blue);
+}
+.tile img { width: 100%; height: 100%; object-fit: cover; }
+.tileOff { background: #d9dce1; border-color: #d9dce1; color: #8b929c; }
+
+.siluetaGrande { color: var(--c-blue-bright); flex: none; }
+.fotoGrande { display: block; flex: none; overflow: hidden; border-radius: 50%; border: 3px solid var(--c-blue-bright); }
+.fotoGrande img { width: 100%; height: 100%; object-fit: cover; }

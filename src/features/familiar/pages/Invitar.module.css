@@ -1,0 +1,12 @@
+/* Nombre / apellido en dos columnas desde tablet. */
+.dos { display: grid; gap: var(--sp-4); }
+@media (min-width: 768px) { .dos { grid-template-columns: 1fr 1fr; } }
+
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--c-surface); }
+.filaTexto { display: flex; flex-direction: column; flex: 1 1 210px; min-width: 0; }
+.filaTexto strong { font-size: var(--fs-md); overflow-wrap: break-word; }
+.filaTexto small, .correo { font-size: var(--fs-xs); color: var(--c-muted); overflow-wrap: anywhere; }
+.filaAcciones { display: flex; align-items: center; gap: var(--sp-2); flex: none; margin-left: auto; }
+.cancelar { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--c-muted); }
+.cancelar:hover { background: var(--c-danger-100); color: var(--c-danger); }

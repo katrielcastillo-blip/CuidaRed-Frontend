@@ -1,0 +1,11 @@
+/* "Adjuntar Evidencias": barra gris con clip (Figma 358:2596) */
+.adjuntar {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  min-height: 48px; padding: 0 var(--sp-4);
+  border: 1px solid var(--c-border); border-radius: var(--r-sm);
+  background: var(--c-surface-2); color: var(--c-muted);
+  font-size: var(--fs-md); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.adjuntar:hover { border-color: var(--c-navy); color: var(--c-navy); }
+.adjuntar:focus-within { outline: 3px solid var(--c-blue); outline-offset: 2px; }

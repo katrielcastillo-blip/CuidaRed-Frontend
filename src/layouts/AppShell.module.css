@@ -5,7 +5,7 @@
 @media (min-width: 768px) {
   .shell { display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
   .sidebar {
-    position: sticky; top: 0; height: 100dvh;
+    position: sticky; top: 0; height: 100dvh; align-self: start;
     display: flex; flex-direction: column; gap: var(--sp-6);
     padding: var(--sp-6) var(--sp-4);
     background: var(--c-navy); color: var(--c-blue-100);

@@ -1,8 +1,52 @@
 import { isoAt, toISODate, addDays } from './dates'
-import type { DB } from './types'
+import type { DB, EstadoAdultoVisita, Visita } from './types'
 
-export const DB_VERSION = 1
+export const DB_VERSION = 2
 export const DEMO_PASSWORD = 'Demo1234'
+
+/**
+ * Visitas completadas de los ~5 meses anteriores (deterministas) para que los gráficos
+ * "Visitas por mes" y los historiales tengan datos realistas.
+ */
+function historialVisitas(): Visita[] {
+  const adultos = ['a-elena', 'a-jose', 'a-camila', 'a-maria', 'a-estefan', 'a-alicia']
+  const cuidadores = ['u-cuid', 'u-giselle', 'u-cuid', 'u-giselle', 'u-eduardo']
+  const estados: EstadoAdultoVisita[] = ['estable', 'estable', 'requiere_atencion', 'estable', 'estable', 'situacion_critica', 'estable']
+  const observaciones = [
+    'Sin novedades; buen estado de ánimo.',
+    'Se revisó la toma de medicamentos.',
+    'Refiere molestias leves, se recomienda control médico.',
+    'Acompañamiento y conversación por la tarde.',
+    'Se verificó la alimentación de la semana.',
+  ]
+  // visitas por cada mes hacia atrás (de 5 meses atrás al mes pasado)
+  const porMes = [6, 9, 7, 11, 13]
+  const out: Visita[] = []
+  let n = 0
+  porMes.forEach((cantidad, i) => {
+    const mesesAtras = porMes.length - i // 5…1
+    for (let k = 0; k < cantidad; k++) {
+      const dias = -(mesesAtras * 30) + Math.round((k * 27) / cantidad) - 13
+      const hh = String(9 + (k % 7)).padStart(2, '0')
+      out.push({
+        id: `vh-${n}`,
+        adultoId: adultos[n % adultos.length],
+        cuidadorId: cuidadores[n % cuidadores.length],
+        tipo: 'Visita de Seguimiento',
+        fecha: toISODate(addDays(new Date(), dias)),
+        horaPautada: `${hh}:00`,
+        inicio: isoAt(dias, `${hh}:05`),
+        fin: isoAt(dias, `${hh}:45`),
+        estado: 'completada',
+        estadoAdulto: estados[n % estados.length],
+        observaciones: observaciones[n % observaciones.length],
+        evidencias: [],
+      })
+      n++
+    }
+  })
+  return out
+}
 
 /** Datos de demostración. Las fechas son relativas a "hoy" para que el prototipo siempre se vea vivo. */
 export function buildSeed(): DB {
@@ -63,12 +107,17 @@ export function buildSeed(): DB {
       { id: 'v-6', adultoId: 'a-camila', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(-6), horaPautada: '11:00', inicio: isoAt(-6, '11:05'), fin: isoAt(-6, '11:45'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Sin novedades.', evidencias: [] },
       { id: 'v-7', adultoId: 'a-maria', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', fecha: f(-3), horaPautada: '10:00', inicio: isoAt(-3, '10:10'), fin: isoAt(-3, '10:55'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Visita sin novedades.', evidencias: [] },
       { id: 'v-8', adultoId: 'a-elena', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', fecha: f(-9), horaPautada: '10:00', inicio: isoAt(-9, '10:00'), fin: isoAt(-9, '10:40'), estado: 'completada', estadoAdulto: 'estable', evidencias: [] },
+      ...historialVisitas(),
     ],
     necesidades: [
       { id: 'n-1', adultoId: 'a-elena', registradaPor: 'u-cuid', tipo: 'compania', descripcion: 'Le gustaría recibir más compañía por las tardes; se siente sola.', estado: 'activa', creadaEn: isoAt(-1, '12:30') },
       { id: 'n-2', adultoId: 'a-jose', registradaPor: 'u-cuid', tipo: 'medicamentos', descripcion: 'Necesita reposición de losartán 50 mg (quedan 3 días).', estado: 'activa', creadaEn: isoAt(0, '12:40') },
       { id: 'n-3', adultoId: 'a-maria', registradaPor: 'u-giselle', tipo: 'transporte', descripcion: 'Requiere transporte a su cita de cardiología el viernes.', estado: 'activa', creadaEn: isoAt(-2, '10:30') },
       { id: 'n-4', adultoId: 'a-elena', registradaPor: 'u-giselle', tipo: 'alimentacion', descripcion: 'Canasta de alimentos del mes.', estado: 'satisfecha', creadaEn: isoAt(-12, '09:00'), satisfechaEn: isoAt(-10, '15:00'), satisfechaPor: 'u-coord' },
+      { id: 'n-5', adultoId: 'a-camila', registradaPor: 'u-cuid', tipo: 'medicamentos', descripcion: 'Reposición de metformina 850 mg.', estado: 'satisfecha', creadaEn: isoAt(-20, '10:00'), satisfechaEn: isoAt(-18, '11:30'), satisfechaPor: 'u-coord' },
+      { id: 'n-6', adultoId: 'a-estefan', registradaPor: 'u-giselle', tipo: 'compania', descripcion: 'Acompañamiento a misa dominical.', estado: 'satisfecha', creadaEn: isoAt(-35, '08:00'), satisfechaEn: isoAt(-33, '12:00'), satisfechaPor: 'u-ctorres' },
+      { id: 'n-7', adultoId: 'a-josem', registradaPor: 'u-cuid', tipo: 'otros', descripcion: 'Reparación de la rampa de acceso a la vivienda.', estado: 'activa', creadaEn: isoAt(-4, '16:00') },
+      { id: 'n-8', adultoId: 'a-alicia', registradaPor: 'u-coord', tipo: 'alimentacion', descripcion: 'Suplemento nutricional recomendado por su médico.', estado: 'inactiva', creadaEn: isoAt(-15, '09:30') },
     ],
     alertas: [
       { id: 'al-1', adultoId: 'a-elena', severidad: 'alta', categoria: 'EMERGENCIA MÉDICA', titulo: 'Necesidad reportada de medicamento urgente', descripcion: 'Necesidad reportada de medicamento para presión arterial. Se requiere atención inmediata.', creadaEn: isoAt(0, '09:15'), estado: 'pendiente' },

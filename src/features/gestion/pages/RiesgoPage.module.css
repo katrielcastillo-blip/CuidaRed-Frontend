@@ -1,0 +1,29 @@
+.nombre { font-size: var(--fs-2xl); font-weight: 700; color: var(--c-text); }
+
+.secciones { display: flex; flex-direction: column; gap: var(--sp-5); }
+.seccion { padding: var(--sp-3) var(--sp-4) var(--sp-5); border-radius: 16px; background: color-mix(in srgb, var(--c-surface-2) 45%, #fff); }
+.seccionTitulo { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0 var(--sp-3); border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-xl); font-weight: 700; color: var(--c-text); }
+.seccionTitulo svg { color: var(--c-navy); flex: none; }
+.preguntas { display: flex; flex-direction: column; gap: var(--sp-4); padding-top: var(--sp-4); }
+
+/* Pregunta con interruptor: texto · Sí/No · switch */
+.fila { display: flex; align-items: center; gap: var(--sp-3); min-height: 44px; }
+.pregunta { flex: 1; min-width: 0; font-size: var(--fs-md); font-weight: 600; color: var(--c-text); line-height: 1.3; }
+.sino { min-width: 22px; text-align: right; font-size: var(--fs-sm); color: var(--c-muted); }
+.fila button[role='switch'][aria-checked='true'] { background: var(--c-navy); }
+
+.pie { display: flex; flex-direction: column; gap: var(--sp-3); }
+.nota { text-align: center; font-size: var(--fs-sm); color: var(--c-text-2); }
+
+/* Resultado */
+.resultado { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); text-align: center; padding: var(--sp-2) 0; }
+.resultado > span { font-size: var(--fs-lg); padding: 6px 28px; }
+.puntaje { font-size: 48px; line-height: 1; font-weight: 700; color: var(--c-navy); }
+.puntaje small { font-size: var(--fs-md); font-weight: 500; color: var(--c-muted); }
+.mensaje { font-size: var(--fs-sm); color: var(--c-text-2); max-width: 36ch; }
+.desglose { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.desgloseTop { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-sm); margin-bottom: 4px; }
+.barra { height: 8px; border-radius: 4px; background: var(--c-surface-2); overflow: hidden; }
+.barra span { display: block; height: 100%; border-radius: 4px; background: var(--c-navy); }
+.criterio { font-size: var(--fs-xs); color: var(--c-muted); }
+.criterio a { color: var(--c-navy); font-weight: 600; text-decoration: underline; }

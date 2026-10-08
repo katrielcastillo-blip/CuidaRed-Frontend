@@ -1,5 +1,8 @@
 import type { RouteObject } from 'react-router-dom'
-import { Placeholder } from '@/app/Placeholder'
+import { DetalleNecesidad } from './pages/DetalleNecesidad'
+import { DetalleVisita } from './pages/DetalleVisita'
+import { RegistrarNecesidad } from './pages/RegistrarNecesidad'
+import { RegistrarVisita } from './pages/RegistrarVisita'
 
 /**
  * Flujo de visitas y necesidades — compartido por CUIDADOR y COORDINADOR (cada uno lo monta en su área).
@@ -8,13 +11,14 @@ import { Placeholder } from '@/app/Placeholder'
  *   visitas/:visitaId                Detalle Visita (iniciar visita si está pendiente)
  *   necesidades/nueva?adulto=:id     Registrar Necesidad (+ overlay "Necesidad registrada correctamente!")
  *   necesidades/:necesidadId         Detalle Necesidad
+ * El comportamiento y los enlaces se adaptan al rol (useSession) y a la base del área (useShell).
  * Dueño: agente CUIDADOR.
  */
 export function visitasRoutes(): RouteObject[] {
   return [
-    { path: 'visitas/nueva', element: <Placeholder name="Registrar Visita" /> },
-    { path: 'visitas/:visitaId', element: <Placeholder name="Detalle Visita" /> },
-    { path: 'necesidades/nueva', element: <Placeholder name="Registrar Necesidad" /> },
-    { path: 'necesidades/:necesidadId', element: <Placeholder name="Detalle Necesidad" /> },
+    { path: 'visitas/nueva', element: <RegistrarVisita /> },
+    { path: 'visitas/:visitaId', element: <DetalleVisita /> },
+    { path: 'necesidades/nueva', element: <RegistrarNecesidad /> },
+    { path: 'necesidades/:necesidadId', element: <DetalleNecesidad /> },
   ]
 }

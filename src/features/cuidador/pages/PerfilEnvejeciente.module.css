@@ -1,0 +1,31 @@
+/* Móvil: una columna (datos → actividad). ≥768px: datos | actividad lado a lado. */
+.layout { display: flex; flex-direction: column; gap: var(--sp-6); }
+.datos, .actividad { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+@media (min-width: 768px) {
+  .layout { display: grid; grid-template-columns: clamp(240px, 32%, 380px) minmax(0, 1fr); gap: var(--sp-8); align-items: start; }
+}
+
+.hero { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.avatar { color: var(--c-blue); margin-bottom: var(--sp-2); }
+.nombre { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.2; color: var(--c-navy); overflow-wrap: anywhere; }
+.cedula { font-size: var(--fs-sm); font-weight: 600; color: var(--c-muted); }
+.riesgo { margin-top: var(--sp-2); padding: 4px 18px; border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 600; }
+.alto { background: var(--c-danger-100); color: var(--c-danger); }
+.medio { background: var(--c-warning-100); color: var(--c-warning); }
+.bajo { background: var(--c-success-100); color: var(--c-teal); }
+
+/* Los valores de InfoRow que son enlaces (teléfonos) conservan el color gris del Figma */
+.datos a { color: inherit; text-decoration: none; }
+.datos a:hover { text-decoration: underline; }
+
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.kpi { display: flex; flex-direction: column; justify-content: space-between; gap: var(--sp-2); min-height: 78px; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--c-blue); border-radius: var(--r-sm); background: var(--c-blue-100); }
+.etiqueta { font-size: var(--fs-xs); font-weight: 600; color: var(--c-text); }
+.valor { align-self: flex-end; font-size: var(--fs-2xl); font-weight: 700; line-height: 1.1; color: var(--c-text); text-align: right; overflow-wrap: anywhere; }
+
+.acciones { display: flex; flex-direction: column; gap: var(--sp-3); }
+@media (min-width: 1100px) { .acciones { flex-direction: row; } .acciones > * { flex: 1; } }
+
+.pestanas { width: 100%; max-width: 360px; }
+@media (max-width: 767px) { .pestanas { max-width: none; } }
+.lista { display: flex; flex-direction: column; gap: var(--sp-3); }

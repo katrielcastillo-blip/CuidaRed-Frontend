@@ -1,0 +1,22 @@
+/* Velo azul del Figma (≈ #9fc6ee sobre el fondo claro) + tarjeta blanca centrada. */
+.fondo {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: var(--sp-6);
+  background: rgba(55, 138, 221, 0.45);
+  animation: fade 0.2s ease-out;
+}
+.tarjeta {
+  width: min(100%, 380px);
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-6) var(--sp-6);
+  background: var(--c-bg); border-radius: var(--r-md);
+  color: var(--c-navy); text-align: center;
+  box-shadow: var(--shadow-2);
+  outline: none; animation: pop 0.25s ease-out;
+}
+.mensaje { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+.familia { font-size: var(--fs-md); font-weight: 600; color: var(--c-muted); }
+.acciones { width: 100%; display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { transform: scale(0.94); opacity: 0; } }

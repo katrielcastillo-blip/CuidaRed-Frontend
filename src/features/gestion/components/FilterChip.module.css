@@ -1,0 +1,38 @@
+.fila { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.chip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; max-width: 100%;
+  padding: 0 10px 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-text-2);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip svg { flex: none; color: var(--c-navy); }
+.texto { overflow: hidden; text-overflow: ellipsis; }
+.texto b { font-weight: 700; }
+.chip:focus-within { outline: 3px solid var(--c-blue); outline-offset: 2px; }
+.activo { background: var(--c-blue-100); border-color: var(--c-navy); color: var(--c-navy); }
+
+/* El select cubre todo el chip: invisible, pero recibe el clic/teclado. */
+.nativo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: pointer;
+  font-size: 16px; /* evita el zoom en iOS */
+  appearance: none; border: 0; background: transparent;
+}
+
+/* Móvil estrecho: chips más compactos (sin icono) para que quepan dos por fila. */
+@media (max-width: 479px) {
+  .chip { padding: 0 8px 0 12px; gap: 4px; }
+  .chip > svg:first-child:not(:last-of-type) { display: none; }
+}
+
+/* Objetivo táctil de 44px en pantallas táctiles. */
+@media (pointer: coarse) { .chip { min-height: 44px; } }

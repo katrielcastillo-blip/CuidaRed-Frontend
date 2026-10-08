@@ -1,0 +1,49 @@
+.logo {
+  display: block;
+  align-self: center;
+  width: min(279px, 100%);
+  height: auto;
+  margin-bottom: 30px; /* Figma: logo a y=263..367, "Correo electrónico" a y=408 */
+}
+
+/* "Iniciar sesión" + "¿Olvidaste tu contraseña?" van juntos (Figma: 646 y 714) */
+.accionPrincipal { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.accionPrincipal > button { font-size: clamp(16px, 4.67vw, 20px); }
+
+/* Enlaces discretos bajo "Regístrate" */
+.secundarios { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 0 6px; font-size: 13px; }
+.discreto {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 4px;
+  color: var(--c-muted); font-size: 13px; cursor: pointer; list-style-position: inside;
+}
+.discreto:hover { color: var(--c-navy); text-decoration: underline; text-underline-offset: 3px; }
+.punto { display: inline-flex; align-items: center; min-height: 40px; color: var(--c-muted); }
+
+.demo { min-width: 0; }
+.demo[open] { flex-basis: 100%; display: flex; flex-direction: column; align-items: center; }
+.demo > summary { list-style: none; }
+.demo > summary::-webkit-details-marker { display: none; }
+.demo > summary::after { content: '▾'; margin-left: 6px; font-size: 11px; transition: transform 0.15s; }
+.demo[open] > summary::after { transform: rotate(180deg); }
+.demoLista {
+  display: flex; flex-direction: column; gap: 6px;
+  width: min(100%, 340px); margin-top: 4px; padding: 12px;
+  border: 1px solid var(--c-border-soft); border-radius: var(--r-md); background: var(--c-surface);
+  box-shadow: var(--shadow-1);
+}
+.demoNota { color: var(--c-muted); font-size: var(--fs-xs); line-height: 1.4; }
+.demoItem {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  min-height: 44px; padding: 6px 10px; border-radius: var(--r-sm); text-align: left;
+  background: var(--c-bg); border: 1px solid var(--c-border-soft); font-size: var(--fs-sm);
+}
+.demoItem strong { color: var(--c-navy); }
+.demoItem span { color: var(--c-text-2); overflow-wrap: anywhere; }
+.demoItem:hover { border-color: var(--c-blue); background: var(--c-blue-100); }
+
+/* Móvil alto (≈ el lienzo de 428 × 926 del Figma): espaciados originales */
+@media (max-width: 767px) and (min-height: 900px) {
+  .logo { margin-bottom: 41px; }
+  .form { gap: 30px; }
+  .accionPrincipal { margin-top: 17px; gap: 4px; }
+}

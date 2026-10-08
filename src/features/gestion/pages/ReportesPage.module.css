@@ -1,0 +1,134 @@
+/* ───── KPIs: 2×2 en móvil, una fila en ≥768px ───── */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+@media (min-width: 768px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); } }
+.kpi { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: var(--sp-4); border-radius: 12px; background: var(--c-surface); box-shadow: var(--shadow-1); }
+.kpiTop { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); }
+.kpiTop h3 { font-size: var(--fs-sm); font-weight: 400; line-height: 1.25; color: var(--c-text-2); }
+.kpiIcono { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 8px; background: #e8ebf7; color: var(--c-navy); }
+.kpiPeligro { background: #fbdcd6; color: var(--c-danger); }
+.kpiValor { font-size: 28px; line-height: 1.15; font-weight: 700; color: var(--c-text); }
+.valorPeligro { color: var(--c-danger); }
+.kpiSub { min-height: 18px; font-size: 11px; font-weight: 600; }
+.subSube, .subBaja, .subNeutro { display: inline-flex; align-items: center; gap: 4px; }
+.subSube { color: #0b6b55; }
+.subBaja { color: var(--c-danger); }
+.subNeutro { color: var(--c-muted); font-weight: 500; }
+.urgente { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 4px; background: var(--c-danger); color: #fff; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+@media (min-width: 768px) and (max-width: 1099px) { .kpi { padding: var(--sp-3); } }
+.urgente i { width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+
+/* ───── Rejilla de gráficos ─────
+ * Móvil: una columna con el orden del Figma (Visitas · Categoría · Riesgo · Exportar), usando `display: contents`
+ * en las columnas y `order`. ≥768px: dos columnas independientes (sin huecos). */
+.graficos { display: flex; flex-direction: column; gap: var(--sp-4); }
+.colA, .colB { display: contents; }
+.colA > :nth-child(1) { order: 1; }
+.colB > :nth-child(1) { order: 2; }
+.colA > :nth-child(2) { order: 3; }
+.colB > :nth-child(2) { order: 4; }
+@media (min-width: 768px) {
+  .graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); align-items: start; }
+  .colA, .colB { display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; }
+}
+
+.panel { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-4); border-radius: 12px; background: var(--c-surface); box-shadow: var(--shadow-1); }
+.panelAzul { background: var(--c-blue-100); box-shadow: none; }
+.panelTop { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.panelTitulo { font-size: var(--fs-lg); font-weight: 700; line-height: 1.25; }
+.panelSub { font-size: var(--fs-sm); color: var(--c-muted); }
+.total { font-size: var(--fs-2xl); font-weight: 700; color: var(--c-navy); line-height: 1.1; }
+
+/* Visitas por mes (barras CSS) */
+.grafico { --alto: 176px; display: flex; flex-direction: column; gap: 6px; }
+@media (min-width: 1100px) { .grafico { --alto: 208px; } }
+.plot {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2);
+  height: var(--alto);
+  border-bottom: 1px solid var(--c-border-soft);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(25% - 1px), #e3e8f0 calc(25% - 1px), #e3e8f0 25%);
+  background-size: 100% 100%;
+}
+.col { position: relative; display: flex; align-items: flex-end; justify-content: center; height: 100%; }
+.barra { display: block; width: min(34px, 72%); border-radius: 5px 5px 0 0; transition: height 0.25s; }
+.barBase { background: #86bbf7; }
+.barPrevio { background: #2a62b3; }
+.barActual { background: var(--c-navy); }
+.valorBarra { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--c-text-2); }
+.valorActual { font-weight: 700; color: var(--c-navy); }
+.meses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); text-align: center; font-size: var(--fs-xs); color: var(--c-muted); }
+.mesActual { font-weight: 700; color: var(--c-navy); }
+.leyenda { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--c-text-2); }
+.leyenda i { width: 10px; height: 10px; border-radius: 2px; background: var(--c-navy); }
+
+/* Distribución por categoría */
+.solicitudes { flex: none; padding: 4px 10px; border-radius: 6px; background: #fff; font-size: 11px; line-height: 1.2; text-align: center; color: var(--c-text-2); }
+.solicitudes b { display: block; font-size: var(--fs-md); color: var(--c-text); }
+.apilada { display: flex; gap: 2px; height: 16px; border-radius: 8px; overflow: hidden; background: #fff; }
+.apilada span { display: block; min-width: 4px; }
+.vacia { flex: 1; background: var(--c-surface-2); }
+.cat_medicamentos { background: #08306b; }
+.cat_compania { background: #0b5d4b; }
+.cat_alimentacion { background: #6ab0ff; }
+.cat_transporte { background: #757a86; }
+.cat_otros { background: #c4a24a; }
+.categorias { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--sp-2) var(--sp-4); }
+.categorias li { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); min-width: 0; }
+.categorias i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.catNombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.catPct { color: #1a66c2; font-weight: 600; }
+.catN { color: var(--c-muted); font-size: var(--fs-xs); }
+
+/* Adultos por nivel de riesgo */
+.riesgos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
+.riesgoTop { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: 6px; font-size: var(--fs-sm); }
+.riesgoNombre { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.riesgoNombre i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.n_alto { color: #b3261e; }
+.n_medio { color: #c47d00; }
+.n_bajo { color: #0b5d4b; }
+.riesgoN { color: var(--c-text-2); }
+.pista { height: 10px; border-radius: 5px; background: #ececf3; overflow: hidden; }
+.pista span { display: block; height: 100%; border-radius: 5px; min-width: 0; transition: width 0.25s; }
+.b_alto { background: #b3261e; }
+.b_medio { background: #d9930d; }
+.b_bajo { background: #0b5d4b; }
+
+/* Exportar */
+.exportar { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: 12px; background: var(--c-blue-100); }
+.exportarBtn { display: flex; align-items: center; justify-content: center; gap: var(--sp-3); min-height: 48px; padding: 0 var(--sp-4); border-radius: 10px; background: #0a3d9a; color: #fff; font-size: var(--fs-md); font-weight: 700; }
+.exportarBtn span { flex: 1; text-align: left; }
+.exportarBtn:hover { background: #083282; }
+.exportarBtn svg:last-child { transition: transform 0.15s; }
+.girado { transform: rotate(180deg); }
+.formatos { display: flex; flex-direction: column; gap: var(--sp-2); }
+.formatoTitulo { padding: var(--sp-1) var(--sp-1) 0; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--c-muted); }
+.formato { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 56px; padding: var(--sp-2) var(--sp-3); border-radius: 10px; background: #fff; text-align: left; transition: box-shadow 0.15s; }
+.formato:hover { box-shadow: var(--shadow-1); }
+.formato > svg { flex: none; color: var(--c-navy); }
+.formatoIcono { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 8px; }
+.pdf { background: #fbdcd6; color: var(--c-danger); }
+.hoja { background: #c8f2e3; color: #0b5d4b; }
+.formatoTexto { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.3; }
+.formatoTexto strong { font-size: var(--fs-md); }
+.formatoTexto small { font-size: var(--fs-xs); color: var(--c-muted); }
+
+/* ───── Impresión: resumen ejecutivo ─────
+ * En pantalla el resumen no existe visualmente; al imprimir se oculta toda la app (#root: menú, cabecera,
+ * navegación, avisos) y solo se muestra el resumen. Solo aplica mientras se está en Reportes (atributo en <html>). */
+.imprimir { display: none; }
+@media print {
+  @page { margin: 14mm; }
+  :global(html[data-imprimir-reporte]) body > :not(.imprimir) { display: none !important; }
+  :global(html[data-imprimir-reporte]) body { background: #fff; }
+  .imprimir { display: block !important; color: #000; font-size: 11pt; line-height: 1.35; }
+  .imprimir h1 { font-size: 20pt; margin-bottom: 4pt; color: #0c3b6e; }
+  .imprimir h2 { font-size: 13pt; margin: 14pt 0 6pt; color: #0c3b6e; }
+  .imprimir p { margin-bottom: 2pt; }
+  .imprimirFiltros { color: #444; font-size: 10pt; }
+  .imprimir table { width: 100%; border-collapse: collapse; }
+  .imprimir th, .imprimir td { border: 1px solid #999; padding: 4pt 6pt; text-align: left; font-size: 10pt; }
+  .imprimir th { background: #eef3f9; font-weight: 600; }
+  .imprimirColumnas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12pt; break-inside: avoid; }
+  .imprimirDetalle thead { display: table-header-group; }
+  .imprimirDetalle tr { break-inside: avoid; }
+}

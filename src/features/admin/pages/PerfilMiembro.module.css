@@ -1,0 +1,45 @@
+/* Perfil de miembro (Figma 441:637). Móvil: una columna con el orden del Figma. ≥768: dos columnas. */
+.grid { display: flex; flex-direction: column; gap: var(--sp-6); }
+/* En móvil las columnas "desaparecen" y el orden lo marca `order` (identidad → info → tile → acciones) */
+.colIzq, .colDer { display: contents; }
+.identidad { order: 1; }
+.info { order: 2; }
+.aCargo { order: 3; }
+.acciones { order: 4; }
+.lista { order: 5; }
+
+@media (min-width: 768px) {
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--sp-8); align-items: start; }
+  .colIzq, .colDer { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+}
+
+.identidad { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center; }
+@media (min-width: 768px) {
+  .identidad { padding: var(--sp-8) var(--sp-5); border-radius: var(--r-md); background: var(--c-surface); box-shadow: var(--shadow-1); }
+}
+.nombres { display: flex; flex-direction: column; gap: 2px; max-width: 100%; }
+.nombre { font-size: 28px; font-weight: 700; line-height: 1.2; color: #0a3fa0; overflow-wrap: anywhere; }
+.cedula { font-size: var(--fs-md); color: var(--c-muted); letter-spacing: 0.02em; }
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); }
+
+.info { display: flex; flex-direction: column; gap: var(--sp-4); }
+.filas { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.aCargo {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  align-self: center; width: min(100%, 260px); min-height: 84px; padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md); border: 1px solid var(--c-blue); background: var(--c-blue-100); text-align: center;
+}
+@media (min-width: 768px) { .aCargo { align-self: stretch; width: auto; } }
+.aCargoLabel { font-size: var(--fs-xs); font-weight: 700; color: var(--c-text); }
+.aCargoValor { font-size: var(--fs-3xl); font-weight: 700; line-height: 1.1; color: var(--c-text); }
+
+.lista { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); border-radius: var(--r-md); background: var(--c-surface); box-shadow: var(--shadow-1); }
+.listaTitulo { font-size: var(--fs-md); font-weight: 700; }
+.lista ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.listaItem { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: 44px; border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-sm); font-weight: 600; }
+.lista li:last-child .listaItem { border-bottom: 0; }
+.listaItem:hover span { text-decoration: underline; }
+
+.acciones { display: flex; flex-direction: column; gap: var(--sp-4); }
+.botones { display: flex; flex-direction: column; gap: var(--sp-3); }

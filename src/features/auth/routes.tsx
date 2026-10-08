@@ -1,16 +1,24 @@
 import type { RouteObject } from 'react-router-dom'
-import { Placeholder } from '@/app/Placeholder'
 import { RedirectIfAuthed } from '@/app/guards'
+import Inicio from './pages/Inicio'
+import { Privacidad, Terminos } from './pages/Legal'
+import Recuperar from './pages/Recuperar'
+import Registro from './pages/Registro'
+import RegistroCuenta from './pages/RegistroCuenta'
+import RegistroOrganizacion from './pages/RegistroOrganizacion'
+import Restablecer from './pages/Restablecer'
+import Splash from './pages/Splash'
 
 /** Rutas públicas (sección Figma "Prototipo Funcional (Login)" + Registrar organización). Dueño: agente AUTH. */
 export const authRoutes: RouteObject[] = [
-  { path: '/', element: <Placeholder name="Pantalla Logo (splash)" inShell={false} /> },
-  { path: '/inicio', element: <RedirectIfAuthed><Placeholder name="Pantalla Home (login)" inShell={false} /></RedirectIfAuthed> },
-  { path: '/registro', element: <Placeholder name="Registrarse (paso 1)" inShell={false} /> },
-  { path: '/registro/cuenta', element: <Placeholder name="Registrarse (paso 2)" inShell={false} /> },
-  { path: '/recuperar', element: <Placeholder name="Olvidaste contraseña" inShell={false} /> },
-  { path: '/restablecer', element: <Placeholder name="Restablecer contraseña" inShell={false} /> },
-  { path: '/terminos', element: <Placeholder name="Términos y condiciones" inShell={false} /> },
-  { path: '/privacidad', element: <Placeholder name="Política de privacidad" inShell={false} /> },
-  { path: '/registro-organizacion', element: <Placeholder name="Registrar organización" inShell={false} /> },
+  { path: '/', element: <Splash /> },
+  // /inicio resuelve la sesión por sí mismo (respeta location.state.from del mismo rol)
+  { path: '/inicio', element: <Inicio /> },
+  { path: '/registro', element: <RedirectIfAuthed><Registro /></RedirectIfAuthed> },
+  { path: '/registro/cuenta', element: <RedirectIfAuthed><RegistroCuenta /></RedirectIfAuthed> },
+  { path: '/recuperar', element: <RedirectIfAuthed><Recuperar /></RedirectIfAuthed> },
+  { path: '/restablecer', element: <RedirectIfAuthed><Restablecer /></RedirectIfAuthed> },
+  { path: '/terminos', element: <Terminos /> },
+  { path: '/privacidad', element: <Privacidad /> },
+  { path: '/registro-organizacion', element: <RedirectIfAuthed><RegistroOrganizacion /></RedirectIfAuthed> },
 ]

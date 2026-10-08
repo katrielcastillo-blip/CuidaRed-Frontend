@@ -1,0 +1,9 @@
+.trigger { display: inline-flex; align-items: center; gap: var(--sp-3); min-height: 44px; max-width: 100%; padding: 0 var(--sp-2); border-radius: var(--r-md); color: var(--c-blue-100); font-size: var(--fs-xl); font-weight: 600; transition: background 0.15s; }
+.trigger:hover { background: rgba(255, 255, 255, 0.1); }
+.triangulo { flex: none; }
+.nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lista { display: flex; flex-direction: column; gap: var(--sp-2); }
+.opcion { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: 52px; padding: 0 var(--sp-4); border: 1px solid var(--c-border-soft); border-radius: var(--r-sm); background: var(--c-surface); font-size: var(--fs-md); font-weight: 600; color: var(--c-text); text-align: left; }
+.opcion:hover { border-color: var(--c-navy); }
+.on { border-color: var(--c-navy); background: var(--c-blue-100); color: var(--c-navy); }

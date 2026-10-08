@@ -1,0 +1,11 @@
+.barra { display: flex; align-items: center; gap: var(--sp-4); }
+.buscador { flex: 1 1 auto; min-width: 0; }
+@media (min-width: 768px) { .buscador { max-width: 520px; } .barra { justify-content: space-between; } }
+
+.conteo { margin-top: calc(var(--sp-2) * -1); font-size: var(--fs-sm); color: var(--c-muted); }
+.limpiar { color: var(--c-navy); font-weight: 600; text-decoration: underline; min-height: 24px; }
+
+.cabecera { display: flex; align-items: center; gap: var(--sp-4); }
+.nombre { flex: 1; min-width: 0; font-size: var(--fs-xl); font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.datos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); margin-top: var(--sp-4); }

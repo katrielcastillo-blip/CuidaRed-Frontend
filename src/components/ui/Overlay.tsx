@@ -72,7 +72,9 @@ export function SuccessOverlay({
   icon?: ReactNode
 }) {
   const done = useRef(onDone)
-  done.current = onDone
+  useEffect(() => {
+    done.current = onDone
+  }, [onDone])
   useEffect(() => {
     if (!open) return
     const t = setTimeout(() => done.current(), duration)
