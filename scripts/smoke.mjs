@@ -1,3 +1,5 @@
+// smoke.mjs — Prueba de humo de todas las rutas × roles × anchos.
+// © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
 // Prueba de humo de integración: recorre todas las rutas de todos los roles en 3 anchos y reporta
 // errores de consola, scroll horizontal, elementos fuera del viewport, pantallas sin implementar y redirecciones.
 // Uso: node scripts/smoke.mjs [--port 5173] [--escenario normal|huerfanos|familiar-sin-familia]
@@ -7,28 +9,27 @@ const args = process.argv.slice(2)
 const port = args.includes('--port') ? args[args.indexOf('--port') + 1] : '5173'
 const escenario = args.includes('--escenario') ? args[args.indexOf('--escenario') + 1] : 'normal'
 const BASE = `http://localhost:${port}`
-const IDS = { cuidador: 'u-cuid', familiar: 'u-fam', admin: 'u-admin', coordinador: 'u-coord' }
+const IDS = { voluntario: 'u-cuid', familiar: 'u-fam', admin: 'u-admin', coordinador: 'u-coord' }
 
 const RUTAS = {
-  anon: ['/inicio', '/registro', '/recuperar', '/restablecer?email=familiar@cuidared.do', '/terminos', '/privacidad', '/registro-organizacion'],
-  cuidador: ['/cuidador', '/cuidador/adultos', '/cuidador/adultos/a-elena', '/cuidador/visitas', '/cuidador/visitas/v-3', '/cuidador/visitas/v-1', '/cuidador/visitas/nueva', '/cuidador/visitas/nueva?adulto=a-jose', '/cuidador/necesidades/nueva', '/cuidador/necesidades/n-1', '/cuidador/perfil', '/cuidador/perfil/editar'],
-  familiar: ['/familiar', '/familiar/invitar', '/familiar/adultos/a-elena', '/familiar/adultos/a-elena?tab=visitas', '/familiar/visitas/v-1', '/familiar/necesidades/n-1', '/familiar/perfil', '/familiar/perfil/editar'],
-  admin: ['/admin', '/admin/miembros', '/admin/miembros/nuevo', '/admin/miembros/u-giselle', '/admin/mas', '/admin/configuracion', '/admin/adultos', '/admin/adultos/nuevo', '/admin/adultos/a-elena', '/admin/adultos/a-elena/editar', '/admin/adultos/a-elena/riesgo', '/admin/alertas', '/admin/alertas/al-1', '/admin/alertas/al-3', '/admin/reportes', '/admin/perfil', '/admin/perfil/editar'],
-  coordinador: ['/coordinador', '/coordinador/visitas', '/coordinador/visitas/programar', '/coordinador/mas', '/coordinador/visitas/v-3', '/coordinador/visitas/v-1', '/coordinador/visitas/nueva', '/coordinador/necesidades/nueva', '/coordinador/necesidades/n-1', '/coordinador/adultos', '/coordinador/adultos/a-elena', '/coordinador/adultos/a-jose/riesgo', '/coordinador/alertas', '/coordinador/alertas/al-1', '/coordinador/reportes', '/coordinador/perfil'],
+  anon: ['/inicio', '/registro', '/recuperar', '/restablecer', '/terminos', '/privacidad', '/registro-organizacion'],
+  voluntario: ['/voluntario', '/voluntario/adultos', '/voluntario/adultos/a-elena', '/voluntario/adultos/a-maria', '/voluntario/visitas', '/voluntario/visitas/v-3', '/voluntario/visitas/v-1', '/voluntario/visitas/nueva', '/voluntario/visitas/nueva?adulto=a-jose', '/voluntario/necesidades/nueva', '/voluntario/necesidades/n-1', '/voluntario/perfil', '/voluntario/perfil/editar', '/voluntario/sincronizacion', '/voluntario/ayuda', '/voluntario/acerca', '/voluntario/reportes', '/admin', '/voluntario/agenda', '/voluntario/agenda/ta-1', '/voluntario/visitas/v-8'],
+  familiar: ['/familiar', '/familiar/adultos/a-elena', '/familiar/adultos/a-elena?tab=visitas', '/familiar/adultos/a-jose', '/familiar/visitas/v-1', '/familiar/necesidades/n-1', '/familiar/perfil', '/familiar/perfil/editar', '/familiar/ayuda', '/familiar/acerca', '/familiar/sincronizacion'],
+  admin: ['/admin', '/admin/miembros', '/admin/miembros/nuevo', '/admin/miembros/u-giselle', '/admin/roles', '/admin/mas', '/admin/configuracion', '/admin/auditoria', '/admin/adultos', '/admin/adultos/nuevo', '/admin/adultos/a-elena', '/admin/adultos/a-elena/editar', '/admin/adultos/a-elena/riesgo', '/admin/alertas', '/admin/alertas/al-1', '/admin/alertas/al-3', '/admin/resumen', '/admin/reportes', '/admin/visitas/v-1', '/admin/necesidades/n-1', '/admin/visitas/nueva', '/admin/perfil', '/admin/perfil/editar', '/admin/sincronizacion', '/admin/acerca', '/admin/ayuda', '/admin/suscripcion', '/admin/catalogos', '/admin/agenda', '/admin/agenda/nueva', '/admin/adultos/a-jose'],
+  coordinador: ['/coordinador', '/coordinador/visitas', '/coordinador/visitas/programar', '/coordinador/mas', '/coordinador/visitas/v-3', '/coordinador/visitas/v-1', '/coordinador/visitas/nueva', '/coordinador/necesidades/nueva', '/coordinador/necesidades/n-1', '/coordinador/adultos', '/coordinador/adultos/nuevo', '/coordinador/adultos/a-elena', '/coordinador/adultos/a-jose/riesgo', '/coordinador/alertas', '/coordinador/alertas/al-1', '/coordinador/resumen', '/coordinador/reportes', '/coordinador/perfil', '/coordinador/sincronizacion', '/coordinador/auditoria', '/coordinador/miembros', '/coordinador/agenda', '/coordinador/agenda/nueva', '/coordinador/agenda/ta-4', '/coordinador/suscripcion'],
 }
 const ANCHOS = [360, 768, 1280]
 
 /** Modifica la base local antes de navegar, según el escenario. */
 function prepararDB(db, uid, esc) {
-  db.sessionUserId = uid
   if (esc === 'huerfanos') {
-    // Elimina a los cuidadores con actividad: visitas/necesidades/alertas quedan apuntando a ids inexistentes.
+    // Elimina a usuarios con actividad: visitas, necesidades, alertas, vínculos, membresías, perfiles de cuidador,
+    // tareas y evidencias quedan apuntando a ids inexistentes (integridad referencial en la interfaz).
     db.usuarios = db.usuarios.filter((u) => u.id !== 'u-giselle' && (uid === 'u-cuid' || u.id !== 'u-cuid'))
-    db.adultos.forEach((a) => (a.cuidadorIds = a.cuidadorIds.filter((c) => c !== 'u-giselle')))
   }
   if (esc === 'familiar-sin-familia') {
-    const f = db.usuarios.find((u) => u.id === 'u-fam')
-    if (f) f.familiaIds = []
+    // Familiar sin ningún adulto a cargo (sin vínculos familiar_responsable).
+    db.vinculos = db.vinculos.filter((v) => v.usuarioId !== 'u-fam')
   }
   return db
 }
@@ -48,6 +49,7 @@ for (const rol of roles) {
     await page.goto(`${BASE}/inicio`, { waitUntil: 'domcontentloaded' })
     await page.evaluate(() => {
       localStorage.removeItem('cuidared:db')
+      localStorage.removeItem('cuidared:sesion')
       sessionStorage.clear()
     })
     // Recarga para que la app genere la semilla limpia y luego aplica el escenario.
@@ -57,6 +59,8 @@ for (const rol of roles) {
         const fn = new Function('db', 'uid', 'esc', `return (${prep})(db, uid, esc)`)
         const db = JSON.parse(localStorage.getItem('cuidared:db'))
         localStorage.setItem('cuidared:db', JSON.stringify(fn(db, uid, esc)))
+        const ahora = new Date().toISOString()
+        if (uid) localStorage.setItem('cuidared:sesion', JSON.stringify({ usuarioId: uid, inicio: ahora, ultimaActividad: ahora }))
       },
       { uid: IDS[rol] ?? null, esc: escenario, prep: prepararDB.toString() },
     )

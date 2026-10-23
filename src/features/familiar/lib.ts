@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState, type ComponentProps } from 'react'
+/*
+ * lib.ts — Helpers y hooks del módulo de consulta restringida del FAMILIAR RESPONSABLE (solo lectura).
+ * El alcance se decide SIEMPRE con domain/permisos (adultosVisibles · alcanzaAdulto · puede): el familiar
+ * solo ve los adultos con los que tiene vínculo "familiar_responsable" (tabla Vinculo · SRS §8.2.2.3.4 c · RF-09).
+ * Las visitas incluyen aquellas en las que el adulto aparece como adulto adicional del hogar (DetalleVisita).
+ * Módulo: familiar.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useMemo } from 'react'
 import { Car, ClipboardList, HeartHandshake, Pill, Utensils, type LucideIcon } from 'lucide-react'
-import { useUser } from '@/domain/auth'
+import { useSession, useUser } from '@/domain/auth'
 import { addDays, fechaCorta, toISODate, todayISO } from '@/domain/dates'
+import { adultosVisibles, alcanzaAdulto, puede } from '@/domain/permisos'
+import { configOrg, visitaIncluye } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
-import type { Badge } from '@/components/ui'
-import type { Adulto, EstadoNecesidad, EstadoVisita, Riesgo, TipoNecesidad, Visita } from '@/domain/types'
-
-/** Helpers y hooks del área FAMILIAR (solo lectura sobre el dominio). */
-
-type Tono = NonNullable<ComponentProps<typeof Badge>['tone']>
+import type { Tone } from '@/components/ui'
+import type { Adulto, EstadoNecesidad, EstadoVisita, Prioridad, TipoNecesidad, Visita } from '@/domain/types'
 
 /* ───────────── Etiquetas ───────────── */
 export const TIPO_NECESIDAD: Record<TipoNecesidad, { label: string; icon: LucideIcon }> = {
@@ -16,27 +22,37 @@ export const TIPO_NECESIDAD: Record<TipoNecesidad, { label: string; icon: Lucide
   alimentacion: { label: 'Alimentación', icon: Utensils },
   transporte: { label: 'Transporte', icon: Car },
   compania: { label: 'Compañía', icon: HeartHandshake },
-  otros: { label: 'Otros', icon: ClipboardList },
+  otros: { label: 'Otros apoyos', icon: ClipboardList },
 }
 
-export const ESTADO_NECESIDAD: Record<EstadoNecesidad, { label: string; texto: string; tono: Tono; punto: string }> = {
-  activa: { label: 'ACTIVA', texto: 'Activa', tono: 'danger', punto: 'var(--c-green)' },
-  satisfecha: { label: 'SATISFECHA', texto: 'Satisfecha', tono: 'success', punto: 'var(--c-blue)' },
-  inactiva: { label: 'INACTIVA', texto: 'Inactiva', tono: 'neutral', punto: 'var(--c-muted)' },
+/** Estados de necesidad (RF-03) con texto claro para la familia. */
+export const ESTADO_NECESIDAD: Record<EstadoNecesidad, { label: string; tono: Tone; explicacion: string; punto: string }> = {
+  pendiente: { label: 'Pendiente', tono: 'danger', explicacion: 'Registrada; aún no se ha empezado a atender.', punto: 'bg-danger' },
+  en_proceso: { label: 'En proceso', tono: 'warning', explicacion: 'La organización ya la está atendiendo.', punto: 'bg-warning' },
+  satisfecha: { label: 'Satisfecha', tono: 'success', explicacion: 'La necesidad fue cubierta.', punto: 'bg-success' },
+  inactiva: { label: 'Inactiva', tono: 'neutral', explicacion: 'Ya no requiere seguimiento.', punto: 'bg-muted' },
 }
 
-export const ESTADO_VISITA: Record<EstadoVisita, { label: string; tono: Tono }> = {
-  completada: { label: 'REALIZADA', tono: 'success' },
-  pendiente: { label: 'PENDIENTE', tono: 'warning' },
-  en_curso: { label: 'EN CURSO', tono: 'info' },
-  cancelada: { label: 'CANCELADA', tono: 'neutral' },
+/** Prioridad de una necesidad (Prioridad_Id). */
+export const PRIORIDAD: Record<Prioridad, { label: string; tono: Tone }> = {
+  alta: { label: 'Prioridad alta', tono: 'danger' },
+  media: { label: 'Prioridad media', tono: 'warning' },
+  baja: { label: 'Prioridad baja', tono: 'success' },
 }
 
-/** El Figma del dashboard escribe el riesgo en femenino ("MEDIA", "ALTA"), el de los detalles en masculino. */
-export const RIESGO_FEM: Record<Riesgo, string> = { alto: 'ALTA', medio: 'MEDIA', bajo: 'BAJA' }
-export const RIESGO_MASC: Record<Riesgo, string> = { alto: 'ALTO', medio: 'MEDIO', bajo: 'BAJO' }
-export const RIESGO_TONO: Record<Riesgo, Tono> = { alto: 'danger', medio: 'warning', bajo: 'success' }
-export const RIESGO_ORDEN: Record<Riesgo, number> = { alto: 0, medio: 1, bajo: 2 }
+/** "30 tabletas" (Cantidad + Unidad_Medida), o undefined si no se registró cantidad. */
+export const cantidadTexto = (n: { cantidad?: number; unidad?: string }) =>
+  n.cantidad != null ? `${n.cantidad.toLocaleString('es-DO')} ${n.unidad ?? ''}`.trim() : undefined
+
+/** Necesidades que siguen abiertas (pendientes o en proceso). */
+export const necesidadAbierta = (e: EstadoNecesidad) => e === 'pendiente' || e === 'en_proceso'
+
+export const ESTADO_VISITA: Record<EstadoVisita, { label: string; tono: Tone }> = {
+  completada: { label: 'Realizada', tono: 'success' },
+  pendiente: { label: 'Programada', tono: 'info' },
+  en_curso: { label: 'En curso', tono: 'warning' },
+  cancelada: { label: 'Cancelada', tono: 'neutral' },
+}
 
 /* ───────────── Fechas de visitas ───────────── */
 /** Fecha+hora pautada de la visita como ISO local ("2026-10-08T15:00:00"). */
@@ -45,9 +61,12 @@ export const isoPautado = (v: Visita) => `${v.fecha}T${v.horaPautada}:00`
 /** Ordena visitas de más reciente a más antigua (por fecha y hora pautada). */
 export const masRecientesPrimero = (a: Visita, b: Visita) => isoPautado(b).localeCompare(isoPautado(a))
 
-/** Última visita completada de un adulto. */
-export function ultimaVisitaCompletada(visitas: Visita[], adultoId: string): Visita | undefined {
-  return visitas.filter((v) => v.adultoId === adultoId && v.estado === 'completada').sort(masRecientesPrimero)[0]
+/** Próximas visitas (programadas o en curso, de hoy en adelante) que incluyen al adulto, de la más cercana a la más lejana. */
+export function proximasVisitas(visitas: Visita[], adultoId: string): Visita[] {
+  const hoy = todayISO()
+  return visitas
+    .filter((v) => visitaIncluye(v, adultoId) && (v.estado === 'pendiente' || v.estado === 'en_curso') && v.fecha >= hoy)
+    .sort((a, b) => isoPautado(a).localeCompare(isoPautado(b)))
 }
 
 /** "Hoy" · "Mañana" · "Ayer" · "24/08/2026" para una fecha YYYY-MM-DD. */
@@ -58,36 +77,53 @@ export function etiquetaDia(fecha: string) {
   return fechaCorta(fecha)
 }
 
+/** "hoy" · "hace 1 día" · "hace 12 días". */
+export const haceDias = (dias: number) => (dias <= 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : `hace ${dias} días`)
+
 /* ───────────── Texto ───────────── */
 /** Minúsculas y sin tildes para buscar. */
 export const normaliza = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
-/* ───────────── Hooks ───────────── */
-/** Adultos de las familias del familiar en sesión. */
+/* ───────────── Configuración y vínculo ───────────── */
+/** Días sin visita tras los que se considera atrasado el seguimiento (parámetro de Configuracion_Cuenta). */
+export function useUmbralSinVisita(): number {
+  const { org } = useSession()
+  const user = useUser()
+  const catalogos = useDB((s) => s.catalogos)
+  const configuracion = useDB((s) => s.configuracion)
+  return useMemo(() => configOrg({ catalogos, configuracion }, org?.id ?? user.orgId).diasSinVisitaAlerta, [catalogos, configuracion, org, user])
+}
+
+/** Nombre del tipo de vínculo del usuario con el adulto (Tipo_vinculo), p. ej. "Familiar responsable". */
+export function useVinculo(adultoId: string | undefined): string | undefined {
+  const user = useUser()
+  const vinculos = useDB((s) => s.vinculos)
+  const tipos = useDB((s) => s.catalogos.tiposVinculo)
+  return useMemo(() => {
+    const v = vinculos.find((x) => x.adultoId === adultoId && x.usuarioId === user.id)
+    return v ? (tipos.find((t) => t.id === v.tipoVinculoId)?.nombre ?? 'Familiar responsable') : undefined
+  }, [vinculos, tipos, adultoId, user])
+}
+
+/* ───────────── Hooks de alcance ───────────── */
+/** Adultos del grupo familiar del usuario en sesión (adultosVisibles). */
 export function useAdultosFamilia(): Adulto[] {
   const user = useUser()
   const adultos = useDB((s) => s.adultos)
-  return useMemo(() => adultos.filter((a) => user.familiaIds.includes(a.familiaId)), [adultos, user.familiaIds])
+  const vinculos = useDB((s) => s.vinculos)
+  return useMemo(() => adultosVisibles(user, adultos, vinculos), [adultos, user, vinculos])
 }
 
-/** El adulto solo se devuelve si pertenece a una familia del usuario (evita ver datos ajenos por URL). */
+/**
+ * Devuelve el adulto solo si el usuario puede consultarlo (alcanzaAdulto). Un id de otro grupo familiar
+ * (por ejemplo escrito en la URL) devuelve undefined → "No encontrado o sin permiso".
+ */
 export function useAdultoPropio(adultoId: string | undefined): Adulto | undefined {
-  const adultos = useAdultosFamilia()
-  return useMemo(() => adultos.find((a) => a.id === adultoId), [adultos, adultoId])
-}
-
-/** Estado de conexión del navegador ("● En línea"). */
-export function useEnLinea() {
-  const [enLinea, setEnLinea] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
-  useEffect(() => {
-    const on = () => setEnLinea(true)
-    const off = () => setEnLinea(false)
-    window.addEventListener('online', on)
-    window.addEventListener('offline', off)
-    return () => {
-      window.removeEventListener('online', on)
-      window.removeEventListener('offline', off)
-    }
-  }, [])
-  return enLinea
+  const user = useUser()
+  const adultos = useDB((s) => s.adultos)
+  const vinculos = useDB((s) => s.vinculos)
+  return useMemo(() => {
+    const a = adultos.find((x) => x.id === adultoId)
+    return a && puede(user, 'adultos:ver') && alcanzaAdulto(user, a, vinculos) ? a : undefined
+  }, [adultos, adultoId, user, vinculos])
 }

@@ -1,9 +1,0 @@
-/* Agregar miembro (Figma 384:825). Formulario centrado (~680px) que hereda <Page>. */
-.form { display: flex; flex-direction: column; gap: var(--sp-5); }
-.titulo { font-size: var(--fs-2xl); font-weight: 700; }
-.dos { display: grid; gap: var(--sp-5); grid-template-columns: minmax(0, 1fr); }
-.acciones { display: flex; flex-direction: column; gap: var(--sp-3); }
-@media (min-width: 768px) {
-  .dos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
-}

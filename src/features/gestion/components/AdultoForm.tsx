@@ -1,210 +1,413 @@
-import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Pencil } from 'lucide-react'
-import { Button, ChoicePills, SelectField, TextField } from '@/components/ui'
+/*
+ * AdultoForm.tsx — Formulario de perfil del adulto mayor en tres pasos (Registrar CU-02 · Editar CU-03).
+ *   Paso 1 · Identificación: nombres, apellidos, cédula, teléfono, fecha de nacimiento y sexo (Envejeciente).
+ *   Paso 2 · Ubicación y contacto: provincia → municipio (Municipio_Cod), sector o barrio y dirección
+ *            (Env_Direccion), y el contacto de emergencia principal (Contacto_emergencia: nombres, apellidos,
+ *            parentesco, teléfono). Los demás contactos se gestionan en el perfil.
+ *   Paso 3 · Condición y riesgo: autonomía, condición general, nivel de riesgo social + motivo (Env_Riesgo)
+ *            y consentimiento informado.
+ * RF-01 · RF-06 (≤ 5 campos de texto libre por pantalla, listas, casillas y píldoras, objetivos de 48 px,
+ * un solo desplazamiento por paso a 360×640). Valida por paso y al guardar, muestra el mensaje junto a cada
+ * campo y conserva lo escrito (useBorrador).
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { WifiOff } from 'lucide-react'
+import { Button, Checkbox, CheckboxGroup, ChoicePills, HelpTip, SelectField, StepBar, TextField, useToast } from '@/components/ui'
+import { DATOS_ADULTO_VACIOS, PARENTESCOS, validarAdulto, type DatosAdulto, type Resultado } from '@/domain/api'
+import { useUser } from '@/domain/auth'
+import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'
+import { useEnLinea } from '@/domain/conectividad'
 import { todayISO } from '@/domain/dates'
 import { useDB } from '@/domain/store'
-import { FORM_VACIO, type AdultoFormValues } from '../lib/adultos'
-import { cedulaValida, maskCedula, maskTelefono, telefonoValido } from '../lib/formato'
-import { zonasDisponibles } from '../lib/zonas'
+import type { Adulto } from '@/domain/types'
+import { useBorrador } from '@/lib/useBorrador'
+import { maskCedula, maskTelefono, opcionesParentesco } from '../lib/formato'
+import { sectoresEnUso } from '../lib/ubicacion'
 import { NotaInfo } from './Piezas'
-import styles from './AdultoForm.module.css'
+import { RiesgoSelector } from './RiesgoSelector'
 
-type Errores = Partial<Record<keyof AdultoFormValues, string>>
+type Campo = keyof DatosAdulto
+type Errores = Partial<Record<string, string | undefined>>
+type Paso = 1 | 2 | 3
 
-function validar(v: AdultoFormValues, cedulasUsadas: Set<string>): Errores {
-  const e: Errores = {}
-  if (v.nombre.trim().length < 2) e.nombre = 'Ingresa el nombre.'
-  if (v.apellido.trim().length < 2) e.apellido = 'Ingresa el apellido.'
-  if (!cedulaValida(v.cedula)) e.cedula = 'Ingresa una cédula válida (000-0000000-0).'
-  else if (cedulasUsadas.has(v.cedula)) e.cedula = 'Ya hay un adulto registrado con esta cédula.'
-  if (!v.fechaNacimiento) e.fechaNacimiento = 'Selecciona la fecha de nacimiento.'
-  else {
-    const n = new Date(`${v.fechaNacimiento}T00:00:00`)
-    if (Number.isNaN(n.getTime()) || n.getFullYear() < 1900) e.fechaNacimiento = 'Revisa la fecha de nacimiento.'
-    else if (v.fechaNacimiento > todayISO()) e.fechaNacimiento = 'La fecha de nacimiento no puede ser futura.'
-  }
-  if (!telefonoValido(v.telefono)) e.telefono = 'Ingresa un teléfono de 10 dígitos.'
-  if (!v.sexo) e.sexo = 'Selecciona el sexo.'
-  if (!v.zona) e.zona = 'Selecciona la zona o municipio.'
-  if (v.contactoNombre.trim().length < 2) e.contactoNombre = 'Ingresa el nombre del contacto.'
-  if (!telefonoValido(v.contactoTelefono)) e.contactoTelefono = 'Ingresa un teléfono de 10 dígitos.'
-  return e
+const PASOS: Record<Paso, Campo[]> = {
+  1: ['nombre', 'apellido', 'cedula', 'telefono', 'fechaNacimiento', 'sexo'],
+  2: ['provinciaCod', 'municipioCod', 'zona', 'direccion', 'contactoNombres', 'contactoApellidos', 'contactoParentesco', 'contactoTelefono'],
+  3: ['autonomia', 'condiciones', 'notaCondicion', 'riesgo', 'motivoRiesgo', 'consentimiento'],
 }
+const TITULOS: Record<Paso, string> = { 1: 'Identificación', 2: 'Ubicación y contacto', 3: 'Condición y riesgo' }
+const TOTAL = 3
+const pasoDe = (c: string): Paso => (PASOS[1].includes(c as Campo) ? 1 : PASOS[2].includes(c as Campo) ? 2 : 3)
 
-/** Campo con el lápiz de edición del Figma («Editar Adulto Mayor»). */
-function ConLapiz({ activo, children }: { activo?: boolean; children: ReactNode }) {
-  if (!activo) return <>{children}</>
-  return (
-    <div className={styles.lapiz}>
-      {children}
-      <Pencil size={18} className={styles.lapizIcono} aria-hidden />
-    </div>
-  )
-}
+const AYUDA_RIESGO = (
+  <>
+    <b>Bajo:</b> situación estable y con red de apoyo. <b>Medio:</b> vulnerabilidad moderada (vive solo/a, ingresos inestables o salud que
+    requiere seguimiento). <b>Alto:</b> vulnerabilidad alta (dependencia, sin apoyo familiar, vivienda precaria); genera automáticamente una
+    alerta de caso prioritario. Puedes recalcularlo después con la <b>Evaluación de riesgo</b> del perfil.
+  </>
+)
 
-/**
- * Formulario compartido de «Agregar Adulto Mayor» y «Editar Adulto Mayor».
- * Valida (cédula con máscara, teléfonos de 10 dígitos, fecha, requeridos) antes de llamar a `onSubmit`.
- */
+const AYUDA_CONSENTIMIENTO =
+  'Ley 172-13 de protección de datos personales: antes de registrar a una persona hay que informarle para qué se usarán sus datos y obtener su autorización (o la de su representante si no puede darla). Solo se guardan los datos necesarios para el seguimiento.'
+
 export function AdultoForm({
+  claveBorrador,
+  inicial = DATOS_ADULTO_VACIOS,
+  idActual,
   titulo,
   intro,
-  inicial = FORM_VACIO,
-  editando,
-  idActual,
   enviarTexto,
-  onSubmit,
+  onGuardar,
+  onExito,
   onCancel,
-  extra,
 }: {
-  titulo: string
-  intro?: string
-  inicial?: AdultoFormValues
-  editando?: boolean
+  claveBorrador: string
+  inicial?: DatosAdulto
   /** Adulto que se edita (se excluye de la comprobación de cédula duplicada). */
   idActual?: string
+  titulo: string
+  intro?: string
   enviarTexto: string
-  onSubmit: (v: AdultoFormValues) => void
+  onGuardar: (d: DatosAdulto) => Resultado<Adulto>
+  onExito: (a: Adulto, offline?: boolean) => void
   onCancel: () => void
-  extra?: ReactNode
 }) {
+  const user = useUser()
+  const toast = useToast()
+  const enLinea = useEnLinea()
   const adultos = useDB((s) => s.adultos)
-  const [v, setV] = useState<AdultoFormValues>(inicial)
-  const [intentado, setIntentado] = useState(false)
+  const catalogos = useDB((s) => s.catalogos)
+  const [d, setD, descartar] = useBorrador<DatosAdulto>(claveBorrador, inicial)
+  const [paso, setPaso] = useState<Paso>(1)
+  const [intentado, setIntentado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false })
+  const [servidor, setServidor] = useState<Errores>({})
+  const [guardando, setGuardando] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const listaSectores = useId()
 
-  const cedulasUsadas = useMemo(() => new Set(adultos.filter((a) => a.id !== idActual).map((a) => a.cedula)), [adultos, idActual])
-  const zonas = useMemo(() => {
-    const actual = inicial.zona ? { zona: inicial.zona, municipio: '' } : undefined
-    return zonasDisponibles(adultos, actual)
-  }, [adultos, inicial.zona])
-  const errores = useMemo(() => validar(v, cedulasUsadas), [v, cedulasUsadas])
-  const ver = (campo: keyof AdultoFormValues) => (intentado ? errores[campo] : undefined)
+  const municipios = useMemo(() => catalogos.municipios.filter((m) => m.provinciaCod === d.provinciaCod), [catalogos.municipios, d.provinciaCod])
+  // Sugerencias de sector: los ya registrados en el municipio elegido (o en toda la organización).
+  const sectores = useMemo(() => {
+    const propios = adultos.filter((a) => a.orgId === user.orgId)
+    const delMunicipio = sectoresEnUso(propios, d.municipioCod || undefined)
+    return delMunicipio.length > 0 ? delMunicipio : sectoresEnUso(propios)
+  }, [adultos, user.orgId, d.municipioCod])
+  const locales = useMemo(() => validarAdulto(d, adultos, idActual, user.orgId, catalogos.municipios) as Errores, [d, adultos, idActual, user.orgId, catalogos.municipios])
 
-  const set = <K extends keyof AdultoFormValues>(campo: K, valor: AdultoFormValues[K]) => setV((x) => ({ ...x, [campo]: valor }))
+  const err = (c: Campo) => servidor[c] ?? (intentado[pasoDe(c)] ? locales[c] : undefined)
+  const hayErrorEn = (p: Paso) => PASOS[p].some((c) => locales[c])
 
-  const enviar = (ev: FormEvent) => {
-    ev.preventDefault()
-    setIntentado(true)
-    if (Object.keys(errores).length > 0) {
-      // Lleva el foco al primer campo con error.
-      requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-error="true"] [role="radio"]')?.focus())
-      return
-    }
-    onSubmit({ ...v, nombre: v.nombre.trim(), apellido: v.apellido.trim() })
+  const set = <K extends Campo>(campo: K, valor: DatosAdulto[K]) => {
+    setD((x) => ({ ...x, [campo]: valor }))
+    if (servidor[campo]) setServidor((s) => ({ ...s, [campo]: undefined }))
   }
 
-  const tel = (campo: 'telefono' | 'contactoTelefono', label: string) => (
-    <ConLapiz activo={editando}>
-      <TextField
-        label={label}
-        aria-required="true"
-        type="tel"
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="000 000 0000"
-        value={v[campo]}
-        onChange={(e) => set(campo, maskTelefono(e.target.value))}
-        error={ver(campo)}
-      />
-    </ConLapiz>
+  const cambiarProvincia = (provinciaCod: string) => {
+    const deProvincia = catalogos.municipios.filter((m) => m.provinciaCod === provinciaCod)
+    setD((x) => ({
+      ...x,
+      provinciaCod,
+      // Si la provincia tiene un solo municipio (p. ej. Distrito Nacional) se selecciona solo.
+      municipioCod: deProvincia.some((m) => m.cod === x.municipioCod) ? x.municipioCod : deProvincia.length === 1 ? deProvincia[0]!.cod : '',
+    }))
+    setServidor((s) => ({ ...s, provinciaCod: undefined, municipioCod: undefined }))
+  }
+
+  const enfocarError = () =>
+    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus({ preventScroll: false }))
+
+  const irA = (p: Paso) => {
+    setPaso(p)
+    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
+  }
+
+  const avanzar = () => {
+    setIntentado((x) => ({ ...x, [paso]: true }))
+    if (hayErrorEn(paso)) {
+      enfocarError()
+      return
+    }
+    irA((paso + 1) as Paso)
+  }
+
+  const guardar = (ev: FormEvent) => {
+    ev.preventDefault()
+    if (paso < TOTAL) {
+      avanzar()
+      return
+    }
+    setIntentado({ 1: true, 2: true, 3: true })
+    const conError = ([1, 2, 3] as Paso[]).find((p) => hayErrorEn(p))
+    if (conError) {
+      if (conError !== paso) setPaso(conError)
+      enfocarError()
+      return
+    }
+    setGuardando(true)
+    const r = onGuardar(d)
+    setGuardando(false)
+    if (!r.ok) {
+      setServidor(r.errores ?? {})
+      toast(r.error, 'error')
+      const primero = Object.keys(r.errores ?? {}).find((c) => r.errores?.[c])
+      if (primero) setPaso(pasoDe(primero))
+      enfocarError()
+      return
+    }
+    descartar()
+    onExito(r.valor, r.offline)
+  }
+
+  const cancelar = () => {
+    descartar()
+    onCancel()
+  }
+
+  const tel = (campo: 'telefono' | 'contactoTelefono', label: string, opcional = false) => (
+    <TextField
+      label={label}
+      required={!opcional}
+      type="tel"
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder="809 000 0000"
+      value={d[campo]}
+      onChange={(e) => set(campo, maskTelefono(e.target.value))}
+      error={err(campo)}
+      hint={opcional ? 'Opcional' : undefined}
+    />
   )
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={enviar} noValidate>
-      <div className={styles.intro}>
-        <h2>{titulo}</h2>
-        {intro && <p>{intro}</p>}
+    <form ref={formRef} className="flex flex-col gap-4 w-full max-w-form mx-auto" onSubmit={guardar} noValidate>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl font-bold text-ink">{titulo}</h2>
+        {intro && paso === 1 && <p className="text-sm text-ink-2">{intro}</p>}
+        <p className="flex items-center justify-between gap-3 text-sm font-semibold text-navy" aria-live="polite">
+          <span>
+            Paso {paso} de {TOTAL} · {TITULOS[paso]}
+          </span>
+          <span className="text-muted font-normal">* Obligatorio</span>
+        </p>
+        <StepBar step={paso} total={TOTAL} />
       </div>
 
-      <div className={styles.grid2}>
-        <ConLapiz activo={editando}>
-          <TextField label="Nombre" aria-required="true" placeholder="Nombre" autoComplete="off" value={v.nombre} onChange={(e) => set('nombre', e.target.value)} error={ver('nombre')} />
-        </ConLapiz>
-        <ConLapiz activo={editando}>
-          <TextField label="Apellido" aria-required="true" placeholder="Apellido" autoComplete="off" value={v.apellido} onChange={(e) => set('apellido', e.target.value)} error={ver('apellido')} />
-        </ConLapiz>
-        <ConLapiz activo={editando}>
+      {paso === 1 && (
+        <fieldset className="grid grid-cols-2 gap-x-3 gap-y-4 border-0 p-0 m-0 min-w-0">
+          <legend className="sr-only">Identificación</legend>
+          <TextField label="Nombres" required autoComplete="off" value={d.nombre} onChange={(e) => set('nombre', e.target.value)} error={err('nombre')} maxLength={60} />
+          <TextField label="Apellidos" required autoComplete="off" value={d.apellido} onChange={(e) => set('apellido', e.target.value)} error={err('apellido')} maxLength={60} />
           <TextField
             label="Cédula"
-            aria-required="true"
+            required
             inputMode="numeric"
             autoComplete="off"
             placeholder="000-0000000-0"
-            value={v.cedula}
+            value={d.cedula}
             onChange={(e) => set('cedula', maskCedula(e.target.value))}
-            error={ver('cedula')}
+            error={err('cedula')}
           />
-        </ConLapiz>
-        <TextField
-          label="Fecha de Nacimiento"
-          aria-required="true"
-          type="date"
-          max={todayISO()}
-          value={v.fechaNacimiento}
-          onChange={(e) => set('fechaNacimiento', e.target.value)}
-          error={ver('fechaNacimiento')}
-        />
-        {tel('telefono', 'Teléfono')}
-        <div data-error={ver('sexo') ? 'true' : undefined} className={styles.sexo}>
-          <ChoicePills
-            label="Sexo"
-            value={v.sexo}
-            onChange={(s) => set('sexo', s)}
-            options={[
-              { value: 'Femenino', label: 'Femenino' },
-              { value: 'Masculino', label: 'Masculino' },
-            ]}
-          />
-          {ver('sexo') && (
-            <p className={styles.error} role="alert">
-              {ver('sexo')}
-            </p>
-          )}
-        </div>
-        <div className={styles.completo}>
+          {tel('telefono', 'Teléfono', true)}
+          <div className="col-span-2 sm:col-span-1">
+            <TextField
+              label="Fecha de nacimiento"
+              required
+              type="date"
+              max={todayISO()}
+              min="1900-01-01"
+              value={d.fechaNacimiento}
+              onChange={(e) => set('fechaNacimiento', e.target.value)}
+              error={err('fechaNacimiento')}
+              help="CuidaRed acompaña a personas de 60 años o más (Ley 352-98). Toca el campo para abrir el calendario."
+            />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <ChoicePills
+              label="Sexo *"
+              value={d.sexo}
+              onChange={(s) => set('sexo', s)}
+              error={err('sexo')}
+              options={[
+                { value: 'Femenino', label: 'Femenino' },
+                { value: 'Masculino', label: 'Masculino' },
+              ]}
+            />
+          </div>
+        </fieldset>
+      )}
+
+      {paso === 2 && (
+        <>
+          <fieldset className="grid grid-cols-2 gap-x-3 gap-y-3 border-0 p-0 m-0 min-w-0">
+            <legend className="text-base font-bold text-navy mb-2">Ubicación</legend>
+            <SelectField
+              label="Provincia"
+              required
+              placeholder="Seleccionar"
+              value={d.provinciaCod}
+              onChange={(e) => cambiarProvincia(e.target.value)}
+              error={err('provinciaCod')}
+              options={catalogos.provincias.map((p) => ({ value: p.cod, label: p.nombre }))}
+            />
+            <SelectField
+              label="Municipio"
+              required
+              placeholder={d.provinciaCod ? 'Seleccionar' : 'Elige la provincia'}
+              disabled={!d.provinciaCod}
+              value={d.municipioCod}
+              onChange={(e) => set('municipioCod', e.target.value)}
+              error={err('municipioCod')}
+              options={municipios.map((m) => ({ value: m.cod, label: m.nombre }))}
+            />
+            <div className="col-span-2">
+              <TextField
+                label="Sector o barrio"
+                required
+                autoComplete="off"
+                list={listaSectores}
+                placeholder="Ej.: Renacimiento"
+                value={d.zona}
+                onChange={(e) => set('zona', e.target.value)}
+                error={err('zona')}
+                maxLength={60}
+                help="Se usa para organizar las visitas y filtrar los reportes por sector. Al escribir verás los sectores ya registrados: elige uno para no duplicarlos con otra escritura."
+              />
+              <datalist id={listaSectores}>
+                {sectores.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+            <div className="col-span-2">
+              <TextField
+                label="Dirección"
+                autoComplete="off"
+                placeholder="Calle, número y referencias"
+                value={d.direccion}
+                onChange={(e) => set('direccion', e.target.value)}
+                error={err('direccion')}
+                hint="Opcional · ayuda al voluntario a llegar"
+                maxLength={150}
+              />
+            </div>
+          </fieldset>
+          <fieldset className="grid grid-cols-2 gap-x-3 gap-y-3 border-0 p-0 m-0 min-w-0">
+            <legend className="flex items-center gap-1 text-base font-bold text-navy mb-2">
+              Contacto de emergencia principal
+              <HelpTip label="Ayuda: contacto de emergencia">
+                Persona a quien llamar si el adulto mayor necesita ayuda. Desde el perfil puedes agregar más contactos y elegir cuál es el principal.
+              </HelpTip>
+            </legend>
+            <TextField label="Nombres" required autoComplete="off" value={d.contactoNombres} onChange={(e) => set('contactoNombres', e.target.value)} error={err('contactoNombres')} maxLength={60} />
+            <TextField label="Apellidos" required autoComplete="off" value={d.contactoApellidos} onChange={(e) => set('contactoApellidos', e.target.value)} error={err('contactoApellidos')} maxLength={60} />
+            <SelectField
+              label="Parentesco"
+              required
+              placeholder="Seleccionar"
+              value={d.contactoParentesco}
+              onChange={(e) => set('contactoParentesco', e.target.value)}
+              error={err('contactoParentesco')}
+              options={opcionesParentesco(PARENTESCOS, d.contactoParentesco)}
+            />
+            {tel('contactoTelefono', 'Teléfono')}
+          </fieldset>
+        </>
+      )}
+
+      {paso === 3 && (
+        <fieldset className="flex flex-col gap-3 border-0 p-0 m-0 min-w-0">
+          <legend className="sr-only">Condición y riesgo</legend>
           <SelectField
-            label="Zona/Municipio"
-            aria-required="true"
+            label="Grado de autonomía"
+            required
             placeholder="Seleccionar"
-            value={v.zona}
-            onChange={(e) => set('zona', e.target.value)}
-            error={ver('zona')}
-            options={zonas.map((z) => ({ value: z.zona, label: z.municipio ? `${z.zona} · ${z.municipio}` : z.zona }))}
+            value={d.autonomia}
+            onChange={(e) => set('autonomia', e.target.value as DatosAdulto['autonomia'])}
+            error={err('autonomia')}
+            options={AUTONOMIAS}
+            help="Capacidad para realizar solo/a las actividades de la vida diaria: comer, asearse, vestirse y desplazarse."
           />
-        </div>
-      </div>
-
-      <h3 className={styles.subtitulo}>Contacto de Emergencia</h3>
-      <div className={styles.grid2}>
-        <ConLapiz activo={editando}>
+          <div className="[&_fieldset>div.grid]:grid-cols-2">
+            <CheckboxGroup
+              label="Condición general"
+              options={CONDICIONES}
+              value={d.condiciones}
+              onChange={(v) => set('condiciones', v)}
+              error={err('condiciones')}
+              help="Marca solo las situaciones que apliquen. Son categorías generales, no diagnósticos: no registres información clínica detallada (Ley 42-01)."
+            />
+          </div>
+          <RiesgoSelector value={d.riesgo} onChange={(r) => set('riesgo', r)} error={err('riesgo')} help={AYUDA_RIESGO} />
           <TextField
-            label="Nombre del Contacto"
-            aria-required="true"
-            placeholder="Nombre"
+            label="Motivo del nivel de riesgo"
             autoComplete="off"
-            value={v.contactoNombre}
-            onChange={(e) => set('contactoNombre', e.target.value)}
-            error={ver('contactoNombre')}
+            placeholder="Ej.: Vive sola y no tiene ingresos fijos"
+            value={d.motivoRiesgo}
+            onChange={(e) => set('motivoRiesgo', e.target.value)}
+            error={err('motivoRiesgo')}
+            maxLength={200}
+            hint={idActual ? 'Opcional · se guarda en el historial solo si cambias el nivel' : 'Opcional'}
+            help="Queda en el historial de riesgos del perfil, con la fecha y tu nombre. Explica en pocas palabras por qué asignas este nivel."
           />
-        </ConLapiz>
-        {tel('contactoTelefono', 'Teléfono de Emergencia')}
-      </div>
+          <fieldset className="flex flex-col gap-1 border-0 p-0 m-0 min-w-0" aria-describedby={err('consentimiento') ? 'consent-err' : undefined}>
+            <legend className="flex items-center gap-1 text-base font-semibold text-ink">
+              Consentimiento informado<span aria-hidden> *</span>
+              <span className="sr-only"> (obligatorio)</span>
+              <HelpTip label="Ayuda: consentimiento informado">{AYUDA_CONSENTIMIENTO}</HelpTip>
+            </legend>
+            <Checkbox
+              label="Se informó y se obtuvo la autorización para registrar y usar estos datos."
+              checked={d.consentimiento}
+              aria-invalid={err('consentimiento') ? true : undefined}
+              onChange={(e) => set('consentimiento', e.target.checked)}
+            />
+            {err('consentimiento') && (
+              <p className="text-danger text-sm" role="alert" id="consent-err">
+                {err('consentimiento')}
+              </p>
+            )}
+            <ChoicePills
+              label="Otorgado por"
+              value={d.consentimientoPor}
+              onChange={(v) => set('consentimientoPor', v)}
+              options={[
+                { value: 'adulto', label: 'Adulto mayor' },
+                { value: 'representante', label: 'Representante' },
+              ]}
+            />
+          </fieldset>
+        </fieldset>
+      )}
 
-      <NotaInfo>El nivel de riesgo se calculará automáticamente después de completar la evaluación inicial.</NotaInfo>
+      {!enLinea && (
+        <NotaInfo tono="aviso">
+          <span className="inline-flex items-center gap-1 font-semibold">
+            <WifiOff size={16} aria-hidden /> Sin conexión.
+          </span>{' '}
+          Registrar o editar perfiles necesita internet. Lo que escribiste se conserva en este dispositivo: podrás guardarlo al recuperar la conexión.
+        </NotaInfo>
+      )}
 
-      <div className={styles.acciones}>
-        <Button type="submit" fullWidth>
-          {enviarTexto}
-        </Button>
-        <div className={styles.cancelar}>
-          <Button variant="light" fullWidth onClick={onCancel}>
+      <div className="grid grid-cols-2 gap-3">
+        {paso === 1 ? (
+          <Button variant="light" onClick={cancelar}>
             Cancelar
           </Button>
-        </div>
-        {extra}
+        ) : (
+          <Button variant="light" onClick={() => irA((paso - 1) as Paso)}>
+            Atrás
+          </Button>
+        )}
+        {paso < TOTAL ? (
+          <Button type="submit">Siguiente</Button>
+        ) : (
+          <Button type="submit" disabled={!enLinea} loading={guardando} title={enLinea ? undefined : 'Necesitas conexión a internet para guardar'}>
+            {enviarTexto}
+          </Button>
+        )}
       </div>
     </form>
   )
 }
-

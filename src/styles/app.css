@@ -1,0 +1,67 @@
+/*
+ * app.css — Hoja de estilos global: Tailwind CSS + capa base de CuidaRed.
+ * Módulo: estilos globales.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ *
+ * La paleta, tipografía y breakpoints viven en tailwind.config.ts (SRS §18.1).
+ * tokens.css conserva las variables CSS (layout y colores) para estilos en línea.
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+@config '../../tailwind.config.ts';
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  html, body, #root { min-height: 100%; }
+  body {
+    font-family: var(--font);
+    font-size: var(--fs-md);
+    line-height: 1.4;
+    color: var(--c-text);
+    background: var(--c-bg);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  h1 { font-size: var(--fs-2xl); font-weight: 700; }
+  h2 { font-size: var(--fs-xl); font-weight: 700; }
+  h3 { font-size: var(--fs-lg); font-weight: 600; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--c-blue); outline-offset: 2px; }
+  ::placeholder { color: var(--c-muted); opacity: 1; }
+  [hidden] { display: none !important; }
+}
+
+/* Componentes repetidos que no tienen equivalente directo en una sola utilidad de Tailwind. */
+@layer components {
+  .section-title { font-size: var(--fs-xl); font-weight: 700; color: var(--c-text); }
+  /* Rejilla que pasa de 1 columna (móvil) a N columnas (tablet/escritorio) */
+  .grid-auto { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+  /* Flecha del <select> nativo */
+  .select-arrow {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 44px;
+  }
+}
+
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+@utility pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+@keyframes cr-fade { from { opacity: 0; } }
+@keyframes cr-up { from { transform: translateY(24px); opacity: 0; } }
+@keyframes cr-pop { from { transform: scale(0.94); opacity: 0; } }
+@utility animate-fade { animation: cr-fade 0.18s ease-out; }
+@utility animate-up { animation: cr-up 0.2s ease-out; }
+@utility animate-pop { animation: cr-pop 0.22s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+}

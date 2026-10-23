@@ -1,211 +1,254 @@
-import { useId, useState } from 'react'
+/*
+ * AlertaDetallePage.tsx — Detalle y gestión de una alerta (CU-09 paso 4 · CU-10), tabla AlertaEnvejeciente:
+ * tipo (Alert_Id → catálogo Alertas), prioridad (Prioridad_Id → catálogo Prioridad), Descripcion, Alert_Fecha,
+ * Estado, Fecha_Atencion, Accion_tomada y Atentida_por_user_Id; además, adulto, condiciones que la originaron,
+ * quién la generó, necesidad relacionada (alertas "NECESIDAD ATRASADA"), historial de acciones y registro de la
+ * acción tomada con cambio de estado (gestionarAlerta; nota obligatoria al marcarla atendida). Al abrirla se
+ * marca como leída para el usuario (marcarLeidas).
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CalendarClock, Clock, MessageSquareText, Tag, UserRound, UsersRound } from 'lucide-react'
-import { Button, ButtonLink, IconTile, Switch, TextareaField, useToast } from '@/components/ui'
-import { nombreCompleto, useUser } from '@/domain/auth'
-import { fechaCorta, hora12, relativo } from '@/domain/dates'
-import { getDB, useDB } from '@/domain/store'
-import type { Adulto, Alerta } from '@/domain/types'
+import { CalendarCheck2, CalendarPlus, Clock, Cpu, HandHelping, ListChecks, MapPin, MessageSquareText, Tag, UserCheck, UserRound, UsersRound } from 'lucide-react'
+import { Badge, Button, ButtonLink, ChoicePills, IconTile, RiesgoBadge, TextareaField, useToast } from '@/components/ui'
+import { alertasVisibles, gestionarAlerta, marcarLeidas } from '@/domain/api'
+import { useUser } from '@/domain/auth'
+import { ESTADOS_ALERTA } from '@/domain/catalogos'
+import { useEnLinea } from '@/domain/conectividad'
+import { fechaHora } from '@/domain/dates'
+import { puede } from '@/domain/permisos'
+import { useDB } from '@/domain/store'
+import type { Adulto, Alerta, EstadoAlerta } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
-import { CategoriaPill, SeveridadPill } from '../components/Piezas'
-import { actualizarAlerta } from '../lib/adultos'
-import { reportadoPor } from '../lib/datos'
-import { ESTADO_ALERTA_TEXTO, nombreAdulto } from '../lib/formato'
+import { cn } from '@/lib/cn'
+import { EstadoAlertaBadge, NoEncontrado, NotaInfo, UrgenciaBadge, URGENCIA_VISUAL } from '../components/Piezas'
+import { autorAlerta, necesidadDeAlerta, nombreCatalogo, nombreUsuario } from '../lib/datos'
+import { cantidadTexto, ESTADO_ALERTA_TEXTO, ESTADO_NECESIDAD_TEXTO, nombreAdulto, TIPO_NECESIDAD_TEXTO, TONO_NECESIDAD } from '../lib/formato'
+import { ubicacionCorta } from '../lib/ubicacion'
 import { useVolver } from '../lib/navegacion'
-import styles from './AlertaDetallePage.module.css'
 
-const cuando = (iso: string) => {
-  const r = relativo(iso)
-  return /^(Hoy|Ayer)/.test(r) ? `${r} (${fechaCorta(iso)})` : `${fechaCorta(iso)}, ${hora12(iso)}`
-}
-
-const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
-
-/** Detalle Alerta (Figma 479:1412 admin · 487:1804 / 499:3182 coordinador). */
 export default function AlertaDetallePage() {
   const { alertaId } = useParams()
   const { base } = useShell()
   const user = useUser()
-  const { back } = useVolver(`${base}/alertas`)
-  const alerta = useDB((s) => s.alertas.find((a) => a.id === alertaId))
-  const adulto = useDB((s) => s.adultos.find((a) => a.id === alerta?.adultoId && a.orgId === user.orgId))
+  const alertas = useDB((s) => s.alertas)
+  const adultos = useDB((s) => s.adultos)
+  // Alcance (RF-09): solo alertas de adultos que el usuario puede consultar.
+  const alerta = useMemo(() => alertasVisibles({ alertas, adultos }, user).find((a) => a.id === alertaId), [alertas, adultos, user, alertaId])
+  const adulto = useMemo(() => adultos.find((a) => a.id === alerta?.adultoId), [adultos, alerta?.adultoId])
 
   if (!alerta || !adulto) {
     return (
-      <Page title="Detalle Alerta" back={`${base}/alertas`} hideAvatar>
-        <div className={styles.vacio}>
-          <p className={styles.vacioTitulo}>No encontramos esta alerta</p>
-          <ButtonLink to={`${base}/alertas`}>Volver a Alertas</ButtonLink>
-        </div>
+      <Page title="Detalle de alerta" back={`${base}/alertas`} hideAvatar>
+        <NoEncontrado volverA={`${base}/alertas`} que="esta alerta" textoVolver="Volver a Alertas" />
       </Page>
     )
   }
-  return <Detalle key={alerta.id} alerta={alerta} adulto={adulto} back={back} />
+  return <Detalle key={alerta.id} alerta={alerta} adulto={adulto} />
 }
 
-function Detalle({ alerta, adulto, back }: { alerta: Alerta; adulto: Adulto; back: boolean | string }) {
+const PUNTO: Record<EstadoAlerta, string> = { pendiente: 'bg-danger', en_atencion: 'bg-warning', atendida: 'bg-success-700' }
+
+function Fila({ icono, etiqueta, children }: { icono: ReactNode; etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 py-3 border-b border-line-soft last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <dt className="inline-flex items-center gap-2 text-sm text-muted flex-none">
+        {icono} {etiqueta}
+      </dt>
+      <dd className="text-sm font-semibold text-ink sm:text-right min-w-0 wrap-anywhere">{children}</dd>
+    </div>
+  )
+}
+
+function Detalle({ alerta, adulto }: { alerta: Alerta; adulto: Adulto }) {
   const { base } = useShell()
   const user = useUser()
   const toast = useToast()
-  const idSwitch = useId()
+  const enLinea = useEnLinea()
+  const { back } = useVolver(`${base}/alertas`)
   const usuarios = useDB((s) => s.usuarios)
-  const [atendida, setAtendida] = useState(alerta.estado === 'atendida')
-  const [nota, setNota] = useState(alerta.notaAtencion ?? '')
-  const [error, setError] = useState<string>()
+  const necesidades = useDB((s) => s.necesidades)
+  const catalogos = useDB((s) => s.catalogos)
+  const necesidad = useMemo(() => necesidadDeAlerta(alerta, necesidades), [alerta, necesidades])
+  const tipoCat = catalogos.alertas.find((t) => t.id === alerta.tipo)
+  const [estado, setEstado] = useState<EstadoAlerta>(alerta.estado)
+  const [nota, setNota] = useState('')
+  const [errores, setErrores] = useState<Record<string, string | undefined>>({})
 
-  const reporta = reportadoPor(getDB(), alerta, adulto)
-  const quienAtendio = usuarios.find((u) => u.id === alerta.atendidaPor)
-  const esCoordinador = user.rol === 'coordinador'
+  const gestiona = puede(user, 'alertas:gestionar', adulto)
+  const programa = puede(user, 'visitas:programar', adulto)
+  const v = URGENCIA_VISUAL[alerta.severidad]
 
-  // La nota es obligatoria al cerrar la alerta (al pasar a «atendida»); si ya lo estaba no se exige de nuevo.
-  const cierraAhora = atendida && alerta.estado !== 'atendida'
+  // Al abrir el detalle la notificación queda leída para este usuario.
+  useEffect(() => {
+    marcarLeidas(user, [alerta.id])
+  }, [user, alerta.id])
 
-  const guardar = () => {
-    if (cierraAhora && nota.trim().length < 3) {
-      setError('Escribe una nota de atención para marcar la alerta como atendida.')
+  const historial = useMemo(
+    () => [
+      { id: 'creada', fecha: alerta.creadaEn, usuarioId: alerta.generadaPor, estado: 'pendiente' as EstadoAlerta, nota: alerta.generadaPor === 'sistema' ? 'Alerta generada automáticamente al cumplirse las condiciones.' : 'Alerta registrada.' },
+      ...[...alerta.acciones].sort((a, b) => a.fecha.localeCompare(b.fecha)),
+    ],
+    [alerta],
+  )
+
+  const cierra = estado === 'atendida'
+  const guardar = (ev: FormEvent) => {
+    ev.preventDefault()
+    const r = gestionarAlerta(user, alerta.id, estado, nota)
+    if (!r.ok) {
+      setErrores(r.errores ?? {})
+      toast(r.error, 'error')
       return
     }
-    setError(undefined)
-    const estado: Alerta['estado'] = atendida ? 'atendida' : alerta.estado === 'atendida' ? 'pendiente' : alerta.estado
-    actualizarAlerta(alerta.id, {
-      estado,
-      atendidaPor: atendida ? (alerta.estado === 'atendida' ? (alerta.atendidaPor ?? user.id) : user.id) : undefined,
-      notaAtencion: nota,
-    })
-    toast(atendida ? 'Alerta marcada como atendida' : alerta.estado === 'atendida' ? 'Alerta reabierta' : 'Cambios guardados')
+    setErrores({})
+    setNota('')
+    toast(estado === alerta.estado ? 'Acción registrada' : `Alerta marcada como "${ESTADO_ALERTA_TEXTO[estado]}"`)
   }
-
-  const ponerEnAtencion = () => {
-    setError(undefined)
-    actualizarAlerta(alerta.id, { estado: 'en_atencion', notaAtencion: nota })
-    toast('La alerta quedó en atención')
-  }
-
-  const estadoClase = { pendiente: styles.espera, en_atencion: styles.enAtencion, atendida: styles.ok }[alerta.estado]
-  const estadoTexto = alerta.estado === 'pendiente' ? 'En espera' : ESTADO_ALERTA_TEXTO[alerta.estado]
 
   return (
-    <Page title="Detalle Alerta" back={back} hideAvatar>
-      <div className={styles.layout}>
-        <header className={styles.quien}>
-          <IconTile size={63}>
-            <UserRound size={32} aria-hidden />
-          </IconTile>
-          <div className={styles.quienTexto}>
-            <h2>{nombreAdulto(adulto)}</h2>
-            <div className={styles.etiquetas}>
-              <SeveridadPill severidad={alerta.severidad} />
-              <CategoriaPill>{alerta.categoria}</CategoriaPill>
-            </div>
-            <Link to={`${base}/adultos/${adulto.id}`} className={styles.perfil}>
-              Ver perfil completo →
-            </Link>
+    <Page title="Detalle de alerta" back={back} hideAvatar wide>
+      <header className="flex items-start gap-4">
+        <IconTile size={60}>
+          <UserRound size={30} aria-hidden />
+        </IconTile>
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <h2 className="text-2xl font-bold text-ink wrap-anywhere">{nombreAdulto(adulto)}</h2>
+          <p className="inline-flex items-center gap-1 text-sm text-muted">
+            <MapPin size={14} aria-hidden /> {ubicacionCorta(catalogos, adulto)}
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <UrgenciaBadge severidad={alerta.severidad} />
+            <EstadoAlertaBadge estado={alerta.estado} />
+            <RiesgoBadge riesgo={adulto.riesgo} />
           </div>
-        </header>
+          <Link to={`${base}/adultos/${adulto.id}`} className="inline-flex items-center min-h-12 -my-2 text-sm font-semibold text-blue underline-offset-2 hover:underline">
+            Ver perfil completo →
+          </Link>
+        </div>
+      </header>
 
-        <section className={styles.tarjeta} aria-labelledby="info-alerta">
-          <h3 id="info-alerta" className={styles.titulo}>
-            Información de la Alerta
-          </h3>
-          <dl className={styles.filas}>
-            <div className={styles.fila}>
-              <dt>
-                <Clock size={16} aria-hidden /> Fecha y hora
-              </dt>
-              <dd>{cuando(alerta.creadaEn)}</dd>
-            </div>
-            <div className={styles.fila}>
-              <dt>
-                <Tag size={16} aria-hidden /> Categoría
-              </dt>
-              <dd>
-                <span className={styles.chipValor}>{capitalizar(alerta.categoria)}</span>
-              </dd>
-            </div>
-            <div className={styles.fila}>
-              <dt>
-                <UsersRound size={16} aria-hidden /> Reportado por
-              </dt>
-              <dd>{reporta}</dd>
-            </div>
-          </dl>
-          <h3 className={styles.subtitulo}>Descripción</h3>
-          <div className={styles.caja}>
-            <strong className={styles.asunto}>{alerta.titulo}</strong>
-            <p>{alerta.descripcion}</p>
-          </div>
-        </section>
-
-        <section className={styles.tarjeta} aria-labelledby="estado-alerta">
-          <div className={styles.estadoTop}>
-            <h3 id="estado-alerta" className={styles.titulo}>
-              Estado de Atención
+      <div className="flex flex-col gap-6 md:grid md:grid-cols-2 md:items-start md:gap-8">
+        <div className="flex flex-col gap-6 min-w-0">
+          <section className={cn('flex flex-col gap-3 p-4 rounded-md bg-surface shadow-1 border-l-4', v.borde)} aria-labelledby="info-alerta">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{alerta.categoria}</p>
+            <h3 id="info-alerta" className="text-lg font-bold">
+              {alerta.titulo}
             </h3>
-            <span className={`${styles.estado} ${estadoClase}`}>
-              <i aria-hidden />
-              {estadoTexto}
-            </span>
-          </div>
-
-          <div className={`${styles.caja} ${styles.mensaje}`}>
-            <MessageSquareText size={20} aria-hidden />
-            <div>
-              {alerta.estado === 'pendiente' && (
-                <>
-                  <p>Pendiente de atención por el equipo de coordinación.</p>
-                  <small>La notificación fue canalizada automáticamente al coordinador zonal asignado.</small>
-                </>
-              )}
-              {alerta.estado === 'en_atencion' && (
-                <>
-                  <p>Un miembro del equipo está atendiendo este caso.</p>
-                  <small>Marca la alerta como atendida cuando se resuelva.</small>
-                </>
-              )}
-              {alerta.estado === 'atendida' && (
-                <>
-                  <p>
-                    Atendida{quienAtendio ? ` por ${nombreCompleto(quienAtendio)}` : ''}.
-                  </p>
-                  {alerta.notaAtencion && <small>{alerta.notaAtencion}</small>}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.form}>
-            <div className={styles.switchFila}>
-              <label htmlFor={idSwitch} className={styles.switchLabel}>
-                Marcar como atendida
-              </label>
-              <Switch id={idSwitch} checked={atendida} onChange={setAtendida} />
-            </div>
-            <TextareaField
-              label="Nota de atención"
-              placeholder="Describe la acción realizada o el seguimiento acordado…"
-              value={nota}
-              onChange={(e) => setNota(e.target.value)}
-              error={error}
-              maxLength={500}
-              required={cierraAhora}
-            />
-            <div className={styles.acciones}>
-              <Button fullWidth onClick={guardar}>
-                {cierraAhora ? 'Guardar y marcar atendida' : 'Guardar cambios'}
-              </Button>
-              {alerta.estado === 'pendiente' && !atendida && (
-                <Button fullWidth variant="outline" onClick={ponerEnAtencion}>
-                  Marcar en atención
-                </Button>
-              )}
-              {esCoordinador && (
-                <ButtonLink fullWidth variant="soft" to={`${base}/visitas/programar?adulto=${adulto.id}`} icon={<CalendarClock size={22} aria-hidden />}>
-                  Programar visita
+            <p className="text-sm leading-normal text-ink-2">{alerta.descripcion}</p>
+            <dl className="flex flex-col">
+              <Fila icono={<Tag size={16} aria-hidden />} etiqueta="Tipo">
+                {tipoCat?.nombre ?? alerta.tipo}
+                {tipoCat?.descripcion && <span className="block text-xs font-normal text-muted">{tipoCat.descripcion}</span>}
+              </Fila>
+              <Fila icono={<v.Icono size={16} aria-hidden />} etiqueta="Prioridad">
+                {nombreCatalogo(catalogos.prioridades, alerta.severidad)}
+              </Fila>
+              <Fila icono={<Clock size={16} aria-hidden />} etiqueta="Generada">
+                {fechaHora(alerta.creadaEn)}
+              </Fila>
+              <Fila icono={alerta.generadaPor === 'sistema' ? <Cpu size={16} aria-hidden /> : <UsersRound size={16} aria-hidden />} etiqueta="Generada por">
+                {autorAlerta(usuarios, alerta)}
+              </Fila>
+              <Fila icono={<CalendarCheck2 size={16} aria-hidden />} etiqueta="Fecha de atención">
+                {alerta.atendidaEn ? fechaHora(alerta.atendidaEn) : <span className="font-normal text-muted">Sin atender aún</span>}
+              </Fila>
+              <Fila icono={<UserCheck size={16} aria-hidden />} etiqueta="Atendida por">
+                {alerta.atendidaPor ? (nombreUsuario(usuarios, alerta.atendidaPor) ?? 'Usuario no disponible') : <span className="font-normal text-muted">—</span>}
+              </Fila>
+              <Fila icono={<MessageSquareText size={16} aria-hidden />} etiqueta="Acción tomada">
+                {alerta.notaAtencion || <span className="font-normal text-muted">—</span>}
+              </Fila>
+            </dl>
+            {necesidad && (
+              <div className="flex flex-col gap-2 p-3 rounded-sm border border-blue bg-blue-100">
+                <h4 className="inline-flex items-center gap-2 text-sm font-bold text-navy">
+                  <HandHelping size={16} aria-hidden /> Necesidad relacionada
+                </h4>
+                <p className="text-sm font-semibold text-ink">
+                  {necesidad.catalogoId ? nombreCatalogo(catalogos.necesidades, necesidad.catalogoId) : TIPO_NECESIDAD_TEXTO[necesidad.tipo]}
+                  {cantidadTexto(necesidad) ? ` · ${cantidadTexto(necesidad)}` : ''}
+                </p>
+                <p className="text-sm text-ink-2">{necesidad.descripcion}</p>
+                <div className="flex flex-wrap items-center gap-1">
+                  <Badge tone={TONO_NECESIDAD[necesidad.estado]}>{ESTADO_NECESIDAD_TEXTO[necesidad.estado]}</Badge>
+                  <Badge tone="neutral">Registrada {fechaHora(necesidad.creadaEn)}</Badge>
+                </div>
+                <ButtonLink size="sm" variant="outline" to={`${base}/necesidades/${necesidad.id}`} icon={<HandHelping size={18} aria-hidden />}>
+                  Ver la necesidad
                 </ButtonLink>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 p-3 rounded-sm bg-bg">
+              <h4 className="inline-flex items-center gap-2 text-sm font-bold text-ink">
+                <ListChecks size={16} aria-hidden /> Condiciones que la originaron
+              </h4>
+              {alerta.condiciones.length === 0 ? (
+                <p className="text-sm text-muted">No se registraron condiciones específicas.</p>
+              ) : (
+                <ul className="flex flex-col gap-1 list-disc pl-5 text-sm text-ink-2">
+                  {alerta.condiciones.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
               )}
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="flex flex-col gap-3" aria-labelledby="historial">
+            <h3 id="historial" className="text-lg font-bold">
+              Historial de acciones
+            </h3>
+            <ol className="relative flex flex-col gap-4 pl-6 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-line-soft">
+              {historial.map((h) => (
+                <li key={h.id} className="relative flex flex-col gap-1">
+                  <span className={cn('absolute -left-6 top-1 size-4 rounded-full border-2 border-bg', PUNTO[h.estado])} aria-hidden />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <EstadoAlertaBadge estado={h.estado} />
+                    <span className="text-xs text-muted">{fechaHora(h.fecha)}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-ink">{nombreUsuario(usuarios, h.usuarioId) ?? 'Usuario no disponible'}</span>
+                  <p className="text-sm text-ink-2 leading-normal">{h.nota}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-4 min-w-0">
+          {gestiona ? (
+            <form className="flex flex-col gap-4 p-4 rounded-md bg-blue-100 border border-blue" onSubmit={guardar} noValidate>
+              <h3 className="text-lg font-bold text-navy">Registrar acción tomada</h3>
+              <ChoicePills<EstadoAlerta> label="Estado de la alerta" value={estado} onChange={setEstado} options={ESTADOS_ALERTA} error={errores.estado} />
+              <TextareaField
+                label={cierra ? 'Acción tomada (obligatoria)' : 'Acción tomada'}
+                required={cierra}
+                placeholder="Ej.: Se llamó a la familia y se programó una visita para el jueves."
+                value={nota}
+                onChange={(e) => {
+                  setNota(e.target.value)
+                  if (errores.nota) setErrores((x) => ({ ...x, nota: undefined }))
+                }}
+                maxLength={500}
+                error={errores.nota}
+                hint={cierra ? 'Describe cómo se resolvió (mínimo 5 caracteres).' : `${nota.length}/500`}
+                help="Queda en el historial con tu nombre, la fecha y el estado. Para marcar la alerta como atendida es obligatorio describir la acción tomada."
+              />
+              {!enLinea && <NotaInfo tono="aviso">Sin conexión: gestionar alertas necesita internet. Lo escrito se conserva en esta pantalla.</NotaInfo>}
+              <Button type="submit" fullWidth disabled={!enLinea}>
+                {estado === alerta.estado ? 'Registrar acción' : cierra ? 'Guardar y marcar atendida' : `Guardar como "${ESTADO_ALERTA_TEXTO[estado]}"`}
+              </Button>
+            </form>
+          ) : (
+            <NotaInfo>Tu rol puede consultar esta alerta, pero no gestionarla.</NotaInfo>
+          )}
+          {programa && adulto.estado === 'activo' && (
+            <ButtonLink fullWidth variant="soft" to={`${base}/visitas/programar?adulto=${adulto.id}`} icon={<CalendarPlus size={22} aria-hidden />}>
+              Programar visita
+            </ButtonLink>
+          )}
+        </div>
       </div>
     </Page>
   )

@@ -1,7 +1,0 @@
-.fila { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-.fecha { font-size: var(--fs-xs); color: var(--c-muted); }
-.titulo { margin-top: 2px; font-size: var(--fs-md); font-weight: 700; color: var(--c-text); }
-.detalle {
-  margin-top: 2px; font-size: var(--fs-sm); color: var(--c-muted);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
-}

@@ -1,3 +1,8 @@
+/*
+ * navegacion.ts — «Volver» robusto para las pantallas de gestión (historial de la app o ruta de respaldo).
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 

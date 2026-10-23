@@ -1,9 +1,15 @@
+/*
+ * evidencias.ts — Evidencias adjuntas a una visita (fotos reducidas o nombres de archivo).
+ * Módulo: visitas.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+
 /**
  * Evidencias de una visita. El store guarda strings: una miniatura (dataURL JPEG) para las imágenes
  * o simplemente el nombre del archivo para el resto. Las imágenes se reducen para no agotar localStorage.
  */
 const MAX_LADO = 480
-export const MAX_EVIDENCIAS = 6
+export const MAX_EVIDENCIAS = 4
 
 export const esMiniatura = (ev: string) => ev.startsWith('data:image/')
 

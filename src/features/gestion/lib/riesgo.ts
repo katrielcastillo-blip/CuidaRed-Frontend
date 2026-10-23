@@ -1,3 +1,9 @@
+/*
+ * riesgo.ts — Evaluación de riesgo social: preguntas, ponderación y cálculo del nivel (bajo/medio/alto).
+ * El resultado se guarda como registro de Env_Riesgo (factor "Evaluación de riesgo") desde RiesgoPage.
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import type { Adulto, Riesgo } from '@/domain/types'
 
 /**
@@ -137,8 +143,11 @@ export function calcularRiesgo(respuestas: Respuestas): ResultadoRiesgo {
   return { puntaje, nivel: nivelDesdePuntaje(puntaje), desglose }
 }
 
-/** Respuestas iniciales del formulario: la evaluación previa, o valores por defecto del Figma. */
-export function respuestasIniciales(adulto: Adulto): Respuestas {
+/**
+ * Respuestas iniciales del formulario: la evaluación previa, o valores por defecto del Figma.
+ * `tieneVoluntario` (vínculo «voluntario_asignado») precarga la pregunta «¿Cuenta con cuidador asignado?».
+ */
+export function respuestasIniciales(adulto: Adulto, tieneVoluntario: boolean): Respuestas {
   const previas = adulto.evaluacion?.respuestas
   if (previas) return { ...previas }
   return {
@@ -150,12 +159,12 @@ export function respuestasIniciales(adulto: Adulto): Respuestas {
     medicamentos: true,
     familiares: true,
     frecuencia: '',
-    cuidador: adulto.cuidadorIds.length > 0,
+    cuidador: tieneVoluntario,
   }
 }
 
 export const MENSAJE_NIVEL: Record<Riesgo, string> = {
   bajo: 'Situación estable. Mantener el seguimiento habitual.',
   medio: 'Vulnerabilidad moderada. Conviene reforzar las visitas y la red de apoyo.',
-  alto: 'Vulnerabilidad alta. Se generó una alerta de riesgo alto para atención prioritaria.',
+  alto: 'Vulnerabilidad alta. El sistema genera automáticamente una alerta de caso prioritario (urgencia Alta) para que el equipo de coordinación la atienda.',
 }

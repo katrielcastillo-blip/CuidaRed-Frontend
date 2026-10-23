@@ -1,8 +1,18 @@
+/*
+ * resumen.ts — Cifras del panel del administrador: visión general de la organización calculada del store.
+ * Incluye el uso del plan (Plan.Limite_Envejecientes / Limite_Usuarios) y las tareas de agenda pendientes (Tarea_agenda).
+ * Módulo: admin (SRS §13.1 "Panel de gestión y supervisión" · §8.2.2.1.18 Operabilidad · RF-04 · RF-05).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useMemo } from 'react'
+import { alertasVisibles, tareasVisibles } from '@/domain/api'
 import { useSession } from '@/domain/auth'
 import { useDB } from '@/domain/store'
-import { addDays, toISODate } from '@/domain/dates'
-import type { Adulto, Alerta, TipoNecesidad } from '@/domain/types'
+import { diasSinVisita } from '@/domain/reglas'
+import { adultosVisibles } from '@/domain/permisos'
+import { configOrg, usoDelPlan } from '@/domain/relaciones'
+import { todayISO } from '@/domain/dates'
+import type { Adulto, Alerta, Rol, SeveridadAlerta, Tarea, TipoNecesidad } from '@/domain/types'
 import { mesCorto, pad2 } from './datos'
 
 export interface MesVisitas {
@@ -21,26 +31,47 @@ export interface AlertaReciente {
   alerta: Alerta
   adulto: Adulto
 }
+export interface SinVisita {
+  adulto: Adulto
+  dias: number
+}
 export interface Resumen {
-  alertasActivas: number
-  adultos: number
-  /** Crecimiento (%) de adultos mayores registrados en los últimos 30 días; null si no hubo altas. */
+  adultosActivos: number
+  /** Crecimiento (%) de altas en los últimos 30 días; null si no hubo altas. */
   tendenciaAdultos: number | null
-  cuidadores: number
-  solicitudesPendientes: number
-  prioritarios: number
+  /** Alertas de caso prioritario (RF-04) abiertas. */
+  prioritariosAbiertos: number
+  alertasSinAtender: number
+  porUrgencia: Record<SeveridadAlerta, number>
+  umbralDias: number
+  /** Adultos activos que superan el umbral de días sin visita (RF-05), de más a menos días. */
+  sinVisita: SinVisita[]
+  usuariosPorRol: Record<Rol, number>
+  usuariosActivos: number
+  invitados: number
+  necesidadesPendientes: number
+  necesidadesEnProceso: number
   visitasPorMes: MesVisitas[]
   tiposNecesidad: TipoNecesidadStat[]
+  /** Alertas sin atender más urgentes y recientes. */
   alertasRecientes: AlertaReciente[]
+  /** Uso de los límites del plan contratado. */
+  uso: ReturnType<typeof usoDelPlan>
+  /** Tareas de agenda pendientes o en curso (las más próximas primero). */
+  tareasPendientes: Array<{ tarea: Tarea; adulto?: Adulto }>
+  /** Tareas pendientes con fecha anterior a hoy. */
+  tareasAtrasadas: number
 }
 
 const TIPOS: Record<TipoNecesidad, { etiqueta: string; color: string }> = {
-  medicamentos: { etiqueta: 'Médica', color: '#0c3b6e' },
-  compania: { etiqueta: 'Social', color: '#b4bbd0' },
-  alimentacion: { etiqueta: 'Nutrición', color: '#0b4a3a' },
+  medicamentos: { etiqueta: 'Medicamentos', color: '#0c3b6e' },
+  compania: { etiqueta: 'Compañía', color: '#b4bbd0' },
+  alimentacion: { etiqueta: 'Alimentación', color: '#0b4a3a' },
   transporte: { etiqueta: 'Transporte', color: '#378add' },
-  otros: { etiqueta: 'Otros', color: '#d4880a' },
+  otros: { etiqueta: 'Otros apoyos', color: '#d4880a' },
 }
+
+const PESO_SEVERIDAD: Record<SeveridadAlerta, number> = { alta: 0, media: 1, baja: 2 }
 
 /** Reparte 100 entre los valores (método del mayor resto) para que la suma siempre sea 100. */
 function porcentajes(valores: number[]): number[] {
@@ -58,39 +89,55 @@ function porcentajes(valores: number[]): number[] {
   return base
 }
 
-/** Todas las cifras del dashboard del administrador, calculadas del store (nada hardcodeado). */
 export function useResumen(): Resumen {
-  const { org } = useSession()
+  const { user, org } = useSession()
   const adultos = useDB((s) => s.adultos)
   const usuarios = useDB((s) => s.usuarios)
   const visitas = useDB((s) => s.visitas)
   const alertas = useDB((s) => s.alertas)
   const necesidades = useDB((s) => s.necesidades)
+  const catalogos = useDB((s) => s.catalogos)
+  const configuracion = useDB((s) => s.configuracion)
+  const tareas = useDB((s) => s.tareas)
+  const cuidadores = useDB((s) => s.cuidadores)
 
   return useMemo(() => {
-    const orgId = org?.id
-    const adultosOrg = adultos.filter((a) => a.orgId === orgId)
+    const adultosOrg = adultosVisibles(user, adultos)
     const activos = adultosOrg.filter((a) => a.estado === 'activo')
     const porId = new Map(adultosOrg.map((a) => [a.id, a]))
 
-    // Alertas no atendidas (pendientes + en atención)
-    const alertasOrg = alertas.filter((a) => porId.has(a.adultoId))
-    const alertasActivas = alertasOrg.filter((a) => a.estado !== 'atendida').length
+    // Alertas sin atender (pendientes + en atención), por urgencia
+    const abiertas = alertasVisibles({ alertas, adultos }, user).filter((a) => a.estado !== 'atendida')
+    const porUrgencia: Record<SeveridadAlerta, number> = { alta: 0, media: 0, baja: 0 }
+    for (const a of abiertas) porUrgencia[a.severidad]++
+    const prioritariosAbiertos = abiertas.filter((a) => a.tipo === 'prioritaria').length
 
     // Tendencia de altas en los últimos 30 días
-    const desde = toISODate(addDays(new Date(), -30))
+    const desde = new Date(Date.now() - 30 * 86400000).toISOString()
     const nuevos = activos.filter((a) => a.creadoEn >= desde).length
     const previos = activos.length - nuevos
     const tendenciaAdultos = nuevos > 0 && previos > 0 ? Math.round((nuevos / previos) * 100) : null
 
-    // Cuidadores activos y solicitudes (invitaciones sin aceptar)
-    const miembrosOrg = usuarios.filter((u) => u.orgId === orgId)
-    const cuidadores = miembrosOrg.filter((u) => u.rol === 'cuidador' && u.estado === 'activo').length
-    const solicitudesPendientes = miembrosOrg.filter((u) => u.estado === 'invitado').length
+    // RF-05: días sin visita frente al umbral de la organización
+    const umbralDias = configOrg({ catalogos, configuracion }, org?.id).diasSinVisitaAlerta
+    const sinVisita = activos
+      .map((adulto) => ({ adulto, dias: diasSinVisita({ visitas }, adulto).dias }))
+      .filter((x) => x.dias > umbralDias)
+      .sort((a, b) => b.dias - a.dias)
 
-    const prioritarios = activos.filter((a) => a.riesgo === 'alto').length
+    // Usuarios de la organización por rol
+    const usuariosOrg = usuarios.filter((u) => u.orgId === org?.id)
+    const usuariosPorRol: Record<Rol, number> = { admin: 0, coordinador: 0, voluntario: 0, familiar: 0 }
+    for (const u of usuariosOrg) if (u.estado === 'activo') usuariosPorRol[u.rol]++
+    const usuariosActivos = usuariosOrg.filter((u) => u.estado === 'activo').length
+    const invitados = usuariosOrg.filter((u) => u.estado === 'invitado').length
 
-    // Visitas por mes (últimos 6 meses, sin contar las canceladas)
+    // Necesidades
+    const necOrg = necesidades.filter((n) => porId.has(n.adultoId))
+    const necesidadesPendientes = necOrg.filter((n) => n.estado === 'pendiente').length
+    const necesidadesEnProceso = necOrg.filter((n) => n.estado === 'en_proceso').length
+
+    // Visitas por mes (últimos 6 meses, sin canceladas)
     const hoy = new Date()
     const visitasPorMes: MesVisitas[] = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(hoy.getFullYear(), hoy.getMonth() - (5 - i), 1)
@@ -104,38 +151,47 @@ export function useResumen(): Resumen {
 
     // Distribución de necesidades por tipo
     const conteo = new Map<TipoNecesidad, number>()
-    for (const n of necesidades) {
-      if (!porId.has(n.adultoId)) continue
-      conteo.set(n.tipo, (conteo.get(n.tipo) ?? 0) + 1)
-    }
-    const tipos = (Object.keys(TIPOS) as TipoNecesidad[])
-      .filter((t) => (conteo.get(t) ?? 0) > 0)
-      .sort((a, b) => conteo.get(b)! - conteo.get(a)!)
+    for (const n of necOrg) conteo.set(n.tipo, (conteo.get(n.tipo) ?? 0) + 1)
+    const tipos = (Object.keys(TIPOS) as TipoNecesidad[]).filter((t) => (conteo.get(t) ?? 0) > 0).sort((a, b) => conteo.get(b)! - conteo.get(a)!)
     const pcts = porcentajes(tipos.map((t) => conteo.get(t)!))
-    const tiposNecesidad: TipoNecesidadStat[] = tipos.map((t, i) => ({
-      tipo: t,
-      etiqueta: TIPOS[t].etiqueta,
-      color: TIPOS[t].color,
-      total: conteo.get(t)!,
-      pct: pcts[i]!,
-    }))
+    const tiposNecesidad: TipoNecesidadStat[] = tipos.map((t, i) => ({ tipo: t, etiqueta: TIPOS[t].etiqueta, color: TIPOS[t].color, total: conteo.get(t)!, pct: pcts[i]! }))
 
-    // Alertas más recientes (todas, atendidas o no)
-    const alertasRecientes: AlertaReciente[] = [...alertasOrg]
-      .sort((a, b) => b.creadaEn.localeCompare(a.creadaEn))
+    // Alertas sin atender: primero las más urgentes, luego las más recientes
+    const alertasRecientes: AlertaReciente[] = [...abiertas]
+      .sort((a, b) => PESO_SEVERIDAD[a.severidad] - PESO_SEVERIDAD[b.severidad] || b.creadaEn.localeCompare(a.creadaEn))
       .slice(0, 4)
-      .map((alerta) => ({ alerta, adulto: porId.get(alerta.adultoId)! }))
+      .flatMap((alerta) => {
+        const adulto = porId.get(alerta.adultoId)
+        return adulto ? [{ alerta, adulto }] : []
+      })
+
+    // Agenda: tareas abiertas por fecha y hora programada
+    const hoyISO = todayISO()
+    const abiertasAgenda = tareasVisibles({ tareas, adultos, cuidadores }, user)
+      .filter((t) => t.estado === 'pendiente' || t.estado === 'en_curso')
+      .sort((a, b) => `${a.fechaProgramada} ${a.horaProgramada}`.localeCompare(`${b.fechaProgramada} ${b.horaProgramada}`))
+    const tareasPendientes = abiertasAgenda.map((tarea) => ({ tarea, adulto: porId.get(tarea.adultoId) }))
+    const tareasAtrasadas = abiertasAgenda.filter((t) => t.fechaProgramada < hoyISO).length
 
     return {
-      alertasActivas,
-      adultos: activos.length,
+      uso: usoDelPlan({ adultos, usuarios, catalogos }, org),
+      tareasPendientes,
+      tareasAtrasadas,
+      adultosActivos: activos.length,
       tendenciaAdultos,
-      cuidadores,
-      solicitudesPendientes,
-      prioritarios,
+      prioritariosAbiertos,
+      alertasSinAtender: abiertas.length,
+      porUrgencia,
+      umbralDias,
+      sinVisita,
+      usuariosPorRol,
+      usuariosActivos,
+      invitados,
+      necesidadesPendientes,
+      necesidadesEnProceso,
       visitasPorMes,
       tiposNecesidad,
       alertasRecientes,
     }
-  }, [org, adultos, usuarios, visitas, alertas, necesidades])
+  }, [user, org, adultos, usuarios, visitas, alertas, necesidades, catalogos, configuracion, tareas, cuidadores])
 }

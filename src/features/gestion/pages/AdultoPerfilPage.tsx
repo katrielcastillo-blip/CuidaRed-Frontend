@@ -1,398 +1,291 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+/*
+ * AdultoPerfilPage.tsx — Consultar perfil de adulto mayor (CU-04 · RF-01) con TODAS sus relaciones del modelo V3.0:
+ *   Envejeciente          identificación, ubicación (Municipio_Cod + Env_Direccion), quién lo registró y cuándo.
+ *   Contacto_emergencia   contactos con el principal destacado (agregar, editar, marcar principal, eliminar).
+ *   Vinculo               voluntarios asignados y familiares responsables (tipo del catálogo Tipo_vinculo).
+ *   Env_Riesgo            nivel vigente + historial de factores (registrar, marcar superado) y evaluación.
+ *   Indicacion_Medica     indicaciones transcritas (permiso indicaciones:*).
+ *   Tarea_agenda          próximas tareas (permiso agenda:*).
+ *   Visita / DetalleVisita, Env_Necesidad, AlertaEnvejeciente   historial en pestañas.
+ * Además: días sin visita (RF-05), alertas abiertas (RF-04), condición general (dato sensible, SRS §8.2.2.3.4 d)
+ * y consentimiento. Las acciones se muestran según los permisos del rol (RF-09). En escritorio, dos columnas.
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Cake, CircleUserRound, MapPin, Phone, UsersRound, VenusAndMars, X } from 'lucide-react'
-import { Avatar, Badge, Button, ButtonLink, Checkbox, Datum, EmptyState, InfoRow, Segmented, Sheet, useToast } from '@/components/ui'
-import { nombreCompleto, useUser } from '@/domain/auth'
-import { edad, fechaCorta, hhmmA12, hora12 } from '@/domain/dates'
+import { ArrowRight, Cake, CalendarPlus, CircleUserRound, ClipboardList, FileCheck2, HandHelping, History, Home, MapPin, Pencil, Phone, ShieldCheck, UserRoundPen, VenusAndMars } from 'lucide-react'
+import { Badge, ButtonLink, InfoRow, RiesgoBadge } from '@/components/ui'
+import { useUser } from '@/domain/auth'
+import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'
+import { edad, fechaCorta, fechaHora } from '@/domain/dates'
+import { alcanzaAdulto, puede } from '@/domain/permisos'
+import { diasSinVisita } from '@/domain/reglas'
+import { configOrg, direccionCompleta, voluntariosDe } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
-import type { Adulto, Alerta, Necesidad, Visita } from '@/domain/types'
+import type { Adulto } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
-import { AdultoNoEncontrado, RiesgoPill } from '../components/Piezas'
-import { asignarCuidadores } from '../lib/adultos'
-import { cuidadoresActivos, nombreUsuario, necesidadesActivas, ultimaVisitaCompletada } from '../lib/datos'
-import {
-  ESTADO_ALERTA_TEXTO,
-  ESTADO_NECESIDAD_TEXTO,
-  ESTADO_VISITA_TEXTO,
-  nombreAdulto,
-  PESO_SEVERIDAD,
-  TIPO_NECESIDAD_TEXTO,
-} from '../lib/formato'
+import { cn } from '@/lib/cn'
+import { NoEncontrado, NotaInfo, Seccion, EstadoAlertaBadge, UrgenciaBadge, URGENCIA_VISUAL } from '../components/Piezas'
+import { AgendaSeccion } from '../components/perfil/AgendaSeccion'
+import { ContactosSeccion } from '../components/perfil/ContactosSeccion'
+import { HistorialSeccion } from '../components/perfil/HistorialSeccion'
+import { IndicacionesSeccion } from '../components/perfil/IndicacionesSeccion'
+import { RiesgosSeccion } from '../components/perfil/RiesgosSeccion'
+import { VinculosSeccion } from '../components/perfil/VinculosSeccion'
+import { necesidadDeAlerta, nombreCatalogo, nombreUsuario } from '../lib/datos'
+import { necesidadAbierta, nombreAdulto, PESO_SEVERIDAD } from '../lib/formato'
+import { municipioYProvincia } from '../lib/ubicacion'
 import { useVolver } from '../lib/navegacion'
-import styles from './AdultoPerfilPage.module.css'
 
-type Pestana = 'necesidades' | 'visitas' | 'alertas'
-type Detalle = { tipo: 'necesidad'; id: string } | { tipo: 'visita'; id: string } | null
-
-const fechaHora = (iso: string) => `${fechaCorta(iso)} - ${hora12(iso)}`
-
-/** Tarjeta de actividad: enlaza a su detalle (coordinador) o abre un Sheet (admin, que no tiene esas rutas). */
-function ItemCard({
-  fecha,
-  badge,
-  titulo,
-  texto,
-  to,
-  onOpen,
-}: {
-  fecha: string
-  badge: ReactNode
-  titulo: string
-  texto?: string
-  to?: string
-  onOpen?: () => void
-}) {
-  const contenido = (
-    <>
-      <div className={styles.itemCuerpo}>
-        <div className={styles.itemTop}>
-          <span className={styles.itemFecha}>{fecha}</span>
-          {badge}
-        </div>
-        <strong className={styles.itemTitulo}>{titulo}</strong>
-        {texto && <span className={styles.itemTexto}>{texto}</span>}
-      </div>
-      <div className={styles.itemPie}>
-        <span>Ver más</span>
-        <ArrowRight size={18} aria-hidden />
-      </div>
-    </>
-  )
-  return to ? (
-    <Link to={to} className={styles.item}>
-      {contenido}
-    </Link>
-  ) : (
-    <button type="button" className={styles.item} onClick={onOpen}>
-      {contenido}
-    </button>
+function Tile({ label, valor, alerta, children }: { label: string; valor: ReactNode; alerta?: boolean; children?: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-1 min-h-[84px] p-3 text-center rounded-sm border',
+        alerta ? 'border-danger bg-danger-100 text-danger' : 'border-blue bg-blue-100 text-ink',
+      )}
+    >
+      <span className="text-xs font-medium">{label}</span>
+      <strong className="text-2xl leading-tight font-bold">{valor}</strong>
+      {children}
+    </div>
   )
 }
 
-const tonoNecesidad = { activa: 'danger', satisfecha: 'success', inactiva: 'neutral' } as const
-const tonoVisita = { completada: 'success', pendiente: 'warning', en_curso: 'info', cancelada: 'neutral' } as const
-const tonoAlerta = { pendiente: 'danger', en_atencion: 'warning', atendida: 'success' } as const
-
-/** Perfil Envejeciente (Figma 408:1743 admin · 487:1315 coordinador). */
 export default function AdultoPerfilPage() {
   const { adultoId } = useParams()
   const { base } = useShell()
   const user = useUser()
-  const { back } = useVolver(`${base}/adultos`)
-  const adulto = useDB((s) => s.adultos.find((a) => a.id === adultoId && a.orgId === user.orgId))
+  const adultos = useDB((s) => s.adultos)
+  // Alcance (RF-09): solo adultos de la organización o con vínculo del usuario.
+  const adulto = useMemo(() => adultos.find((a) => a.id === adultoId && alcanzaAdulto(user, a)), [adultos, adultoId, user])
 
   if (!adulto) {
     return (
-      <Page title="Perfil Envejeciente" back={`${base}/adultos`} hideAvatar>
-        <AdultoNoEncontrado volverA={`${base}/adultos`} />
+      <Page title="Perfil del adulto mayor" back={`${base}/adultos`} hideAvatar>
+        <NoEncontrado volverA={`${base}/adultos`} que="este perfil" />
       </Page>
     )
   }
-  return <Perfil adulto={adulto} back={back} />
+  return <Perfil key={adulto.id} adulto={adulto} />
 }
 
-function Perfil({ adulto, back }: { adulto: Adulto; back: boolean | string }) {
+function Perfil({ adulto }: { adulto: Adulto }) {
   const { base } = useShell()
   const user = useUser()
-  const toast = useToast()
+  const { back } = useVolver(`${base}/adultos`)
   const visitas = useDB((s) => s.visitas)
   const necesidades = useDB((s) => s.necesidades)
   const alertas = useDB((s) => s.alertas)
   const usuarios = useDB((s) => s.usuarios)
-  const familias = useDB((s) => s.familias)
+  const vinculos = useDB((s) => s.vinculos)
+  const catalogos = useDB((s) => s.catalogos)
+  const configuracion = useDB((s) => s.configuracion)
 
-  const esAdmin = user.rol === 'admin'
-  // El coordinador tiene las pantallas de visitas y necesidades; el administrador no (usa un Sheet con el detalle).
-  const conRutasDeVisitas = user.rol === 'coordinador'
+  const activo = adulto.estado === 'activo'
+  const editable = puede(user, 'adultos:editar', adulto) && !adulto.anonimizado
+  const sensible = puede(user, 'adultos:ver-sensible', adulto)
+  const verAlertas = puede(user, 'alertas:ver', adulto)
+  const umbral = configOrg({ catalogos, configuracion }, adulto.orgId).diasSinVisitaAlerta
 
-  const [pestana, setPestana] = useState<Pestana>('necesidades')
-  const [detalle, setDetalle] = useState<Detalle>(null)
-  const [asignando, setAsignando] = useState(false)
-  const [seleccion, setSeleccion] = useState<string[]>([])
-  const cerrarDetalle = useCallback(() => setDetalle(null), [])
-  const cerrarAsignar = useCallback(() => setAsignando(false), [])
-
-  const misNecesidades = useMemo(() => necesidades.filter((n) => n.adultoId === adulto.id).sort((a, b) => b.creadaEn.localeCompare(a.creadaEn)), [necesidades, adulto.id])
-  const misVisitas = useMemo(
-    () => visitas.filter((v) => v.adultoId === adulto.id).sort((a, b) => `${b.fecha} ${b.horaPautada}`.localeCompare(`${a.fecha} ${a.horaPautada}`)),
-    [visitas, adulto.id],
-  )
-  const misAlertas = useMemo(
-    () =>
-      alertas
-        .filter((a) => a.adultoId === adulto.id)
-        .sort((a, b) => Number(a.estado === 'atendida') - Number(b.estado === 'atendida') || PESO_SEVERIDAD[a.severidad] - PESO_SEVERIDAD[b.severidad] || b.creadaEn.localeCompare(a.creadaEn)),
+  const abiertas = useMemo(
+    () => alertas.filter((a) => a.adultoId === adulto.id && a.estado !== 'atendida').sort((a, b) => PESO_SEVERIDAD[a.severidad] - PESO_SEVERIDAD[b.severidad] || b.creadaEn.localeCompare(a.creadaEn)),
     [alertas, adulto.id],
   )
-  const ultima = ultimaVisitaCompletada(visitas, adulto.id)
-  const activas = necesidadesActivas(necesidades, adulto.id).length
-  const familia = familias.find((f) => f.id === adulto.familiaId)
-  const asignados = adulto.cuidadorIds.map((id) => usuarios.find((u) => u.id === id)).filter((u) => u !== undefined)
-  const candidatos = useMemo(() => cuidadoresActivos(usuarios, adulto.orgId), [usuarios, adulto.orgId])
+  const pendientes = useMemo(() => necesidades.filter((n) => n.adultoId === adulto.id && necesidadAbierta(n.estado)).length, [necesidades, adulto.id])
+  const sinVisita = useMemo(() => diasSinVisita({ visitas }, adulto), [visitas, adulto])
+  const voluntarios = useMemo(() => voluntariosDe(vinculos, adulto.id).length, [vinculos, adulto.id])
+  const vencida = activo && sinVisita.dias > umbral
 
-  const abrirAsignar = () => {
-    setSeleccion(adulto.cuidadorIds)
-    setAsignando(true)
-  }
-  const guardarAsignacion = () => {
-    asignarCuidadores(adulto.id, seleccion)
-    setAsignando(false)
-    toast('Cuidadores actualizados')
-  }
-  const quitar = (id: string) => {
-    asignarCuidadores(adulto.id, adulto.cuidadorIds.filter((x) => x !== id))
-    toast('Cuidador quitado')
-  }
+  const autonomia = AUTONOMIAS.find((x) => x.value === adulto.condicionGeneral.autonomia)?.label ?? '—'
+  const condiciones = adulto.condicionGeneral.condiciones.map((c) => CONDICIONES.find((x) => x.value === c)?.label ?? c)
 
-  const necesidadDetalle = detalle?.tipo === 'necesidad' ? misNecesidades.find((n) => n.id === detalle.id) : undefined
-  const visitaDetalle = detalle?.tipo === 'visita' ? misVisitas.find((v) => v.id === detalle.id) : undefined
-
-  const tarjetaNecesidad = (n: Necesidad) => (
-    <ItemCard
-      key={n.id}
-      fecha={fechaHora(n.creadaEn)}
-      badge={<Badge tone={tonoNecesidad[n.estado]}>{n.estado === 'activa' ? 'ACTIVA' : ESTADO_NECESIDAD_TEXTO[n.estado]}</Badge>}
-      titulo={TIPO_NECESIDAD_TEXTO[n.tipo]}
-      texto={n.descripcion}
-      to={conRutasDeVisitas ? `${base}/necesidades/${n.id}` : undefined}
-      onOpen={() => setDetalle({ tipo: 'necesidad', id: n.id })}
-    />
-  )
-  const tarjetaVisita = (v: Visita) => (
-    <ItemCard
-      key={v.id}
-      fecha={`${fechaCorta(v.fecha)} - ${hhmmA12(v.horaPautada)}`}
-      badge={<Badge tone={tonoVisita[v.estado]}>{ESTADO_VISITA_TEXTO[v.estado]}</Badge>}
-      titulo={v.tipo}
-      texto={`Cuidador: ${nombreUsuario(usuarios, v.cuidadorId) ?? '—'}`}
-      to={conRutasDeVisitas ? `${base}/visitas/${v.id}` : undefined}
-      onOpen={() => setDetalle({ tipo: 'visita', id: v.id })}
-    />
-  )
-  const tarjetaAlerta = (a: Alerta) => (
-    <ItemCard
-      key={a.id}
-      fecha={fechaHora(a.creadaEn)}
-      badge={<Badge tone={tonoAlerta[a.estado]}>{ESTADO_ALERTA_TEXTO[a.estado]}</Badge>}
-      titulo={a.titulo}
-      texto={a.categoria}
-      to={`${base}/alertas/${a.id}`}
-    />
-  )
-
-  const sinDatos: Record<Pestana, string> = {
-    necesidades: 'Sin necesidades registradas.',
-    visitas: 'Sin visitas registradas.',
-    alertas: 'Sin alertas para este adulto.',
-  }
-  const cantidad = { necesidades: misNecesidades.length, visitas: misVisitas.length, alertas: misAlertas.length }[pestana]
+  const acciones = [
+    puede(user, 'visitas:registrar', adulto) && activo && (
+      <ButtonLink key="visita" variant="soft" to={`${base}/visitas/nueva?adulto=${adulto.id}`} icon={<ClipboardList size={20} aria-hidden />}>
+        Registrar visita
+      </ButtonLink>
+    ),
+    puede(user, 'necesidades:registrar', adulto) && activo && (
+      <ButtonLink key="necesidad" variant="soft" to={`${base}/necesidades/nueva?adulto=${adulto.id}`} icon={<HandHelping size={20} aria-hidden />}>
+        Agregar necesidad
+      </ButtonLink>
+    ),
+    puede(user, 'visitas:programar', adulto) && activo && (
+      <ButtonLink key="programar" variant="light" to={`${base}/visitas/programar?adulto=${adulto.id}`} icon={<CalendarPlus size={20} aria-hidden />}>
+        Programar visita
+      </ButtonLink>
+    ),
+    editable && (
+      <ButtonLink key="editar" variant="light" to={`${base}/adultos/${adulto.id}/editar`} icon={<Pencil size={20} aria-hidden />}>
+        Editar perfil
+      </ButtonLink>
+    ),
+    puede(user, 'adultos:evaluar', adulto) && activo && (
+      <ButtonLink key="riesgo" variant="light" to={`${base}/adultos/${adulto.id}/riesgo`} state={{ desde: 'perfil' }} icon={<ShieldCheck size={20} aria-hidden />}>
+        Evaluación de riesgo
+      </ButtonLink>
+    ),
+  ].filter(Boolean)
 
   return (
-    <Page title="Perfil Envejeciente" back={back} hideAvatar wide>
-      <div className={styles.layout}>
-        {/* Columna 1: datos */}
-        <div className={styles.col}>
-          <section className={styles.hero} aria-label="Resumen del adulto">
-            <CircleUserRound size={112} strokeWidth={1.4} className={styles.avatar} aria-hidden />
-            <h2 className={styles.nombre}>{nombreAdulto(adulto)}</h2>
-            <p className={styles.cedula}>{adulto.cedula}</p>
-            <div className={styles.chips}>
-              <RiesgoPill riesgo={adulto.riesgo} />
-              {adulto.estado === 'inactivo' && <Badge tone="neutral">Inactivo</Badge>}
-            </div>
-            <p className={styles.evaluacion}>
-              {adulto.evaluacion
-                ? `Evaluado el ${fechaCorta(adulto.evaluacion.fecha)} · ${adulto.evaluacion.puntaje} de 100 puntos`
-                : 'Aún sin evaluación de riesgo'}
+    <Page title="Perfil del adulto mayor" back={back} hideAvatar wide>
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8 lg:items-start">
+        {/* ───── Columna 1: datos del perfil ───── */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6 min-w-0">
+          <section className="order-1 lg:order-none flex flex-col items-center gap-1 text-center" aria-label="Resumen del adulto mayor">
+            <CircleUserRound size={96} strokeWidth={1.4} className="text-blue-bright mb-1" aria-hidden />
+            <h2 className="text-[28px] leading-tight font-bold text-navy wrap-anywhere">{nombreAdulto(adulto)}</h2>
+            <p className="text-sm text-muted">
+              {adulto.cedula} · {edad(adulto.fechaNacimiento)} años
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+              <RiesgoBadge riesgo={adulto.riesgo} />
+              {!activo && <Badge tone="neutral">Inactivo</Badge>}
+              {adulto.anonimizado && <Badge tone="neutral">Anonimizado</Badge>}
+            </div>
           </section>
 
-          <section className="stack" aria-labelledby="info-personal">
-            <h2 id="info-personal" className={styles.titulo}>
-              Información Personal
-            </h2>
-            <InfoRow icon={<Cake size={22} aria-hidden />} label="Fecha de Nacimiento" value={`${fechaCorta(adulto.fechaNacimiento)} (${edad(adulto.fechaNacimiento)} años)`} />
-            <InfoRow icon={<Phone size={22} aria-hidden />} label="Teléfono" value={adulto.telefono} />
-            <InfoRow icon={<VenusAndMars size={22} aria-hidden />} label="Sexo" value={adulto.sexo} />
-            <InfoRow icon={<MapPin size={22} aria-hidden />} label="Zona" value={adulto.municipio ? `${adulto.zona} · ${adulto.municipio}` : adulto.zona} />
-            <InfoRow icon={<UsersRound size={22} aria-hidden />} label="Familia" value={familia?.nombre ?? '—'} />
-            <InfoRow
-              icon={<Phone size={22} aria-hidden />}
-              label="Contacto de Emergencia"
-              value={`${adulto.contactoEmergencia.nombre} · ${adulto.contactoEmergencia.telefono}`}
-            />
-          </section>
-
-          <div className={styles.tiles}>
-            <div className={styles.tile}>
-              <span className={styles.tileLabel}>Última Visita</span>
-              <strong className={styles.tileValor}>{ultima ? fechaCorta(ultima) : 'Sin visitas'}</strong>
-            </div>
-            <div className={styles.tile}>
-              <span className={styles.tileLabel}>Necesidades Activas</span>
-              <strong className={styles.tileValor}>{activas}</strong>
-            </div>
+          <div className="order-2 lg:order-none grid grid-cols-2 gap-3">
+            <Tile label="Días sin visita" valor={activo ? sinVisita.dias : '—'} alerta={vencida}>
+              <span className="text-[11px]">{sinVisita.conVisitas ? `Última: ${fechaCorta(sinVisita.referencia)}` : 'Nunca visitado'}</span>
+            </Tile>
+            <Tile label="Necesidades pendientes" valor={pendientes} />
+            <Tile label="Alertas abiertas" valor={abiertas.length} alerta={abiertas.some((a) => a.severidad === 'alta')} />
+            <Tile label="Voluntarios asignados" valor={voluntarios} alerta={activo && voluntarios === 0} />
           </div>
-        </div>
-
-        {/* Columna 2: acciones y actividad */}
-        <div className={styles.col}>
-          {conRutasDeVisitas && (
-            <section className="stack" aria-labelledby="registrar">
-              <h2 id="registrar" className={styles.titulo}>
-                Registrar
-              </h2>
-              <div className={styles.dosBotones}>
-                <ButtonLink variant="soft" to={`${base}/visitas/nueva?adulto=${adulto.id}`}>
-                  Visita
-                </ButtonLink>
-                <ButtonLink variant="soft" to={`${base}/necesidades/nueva?adulto=${adulto.id}`}>
-                  Necesidad
-                </ButtonLink>
-              </div>
-            </section>
+          {vencida && (
+            <div className="order-3 lg:order-none">
+              <NotaInfo tono="aviso">
+                Superó el límite de <b>{umbral} días</b> sin visita comunitaria (RF-05). El sistema generó una alerta de seguimiento familiar: conviene contactar a la familia y programar una
+                visita.
+              </NotaInfo>
+            </div>
           )}
 
-          <section className="stack" aria-labelledby="acciones">
-            <h2 id="acciones" className={styles.titulo}>
-              Acciones Rápidas
-            </h2>
-            <div className={styles.acciones}>
-              <ButtonLink variant="light" fullWidth to={`${base}/adultos/${adulto.id}/editar`}>
-                Editar información
-              </ButtonLink>
-              <ButtonLink variant="light" fullWidth to={`${base}/adultos/${adulto.id}/riesgo`} state={{ desde: 'perfil' }}>
-                Realizar evaluación de riesgo
-              </ButtonLink>
-            </div>
-          </section>
-
-          <section className="stack" aria-labelledby="cuidadores">
-            <div className="row-between">
-              <h2 id="cuidadores" className={styles.titulo}>
-                Cuidadores asignados
-              </h2>
-              {esAdmin && (
-                <Button size="sm" variant="light" onClick={abrirAsignar}>
-                  Asignar
-                </Button>
-              )}
-            </div>
-            {asignados.length === 0 ? (
-              <p className="muted text-sm">Este adulto aún no tiene cuidadores asignados.</p>
-            ) : (
-              <ul className={styles.cuidadores}>
-                {asignados.map((c) => (
-                  <li key={c.id} className={styles.cuidador}>
-                    <Avatar nombre={nombreCompleto(c)} src={c.avatar} size={40} />
-                    <span className={styles.cuidadorTexto}>
-                      <strong>{nombreCompleto(c)}</strong>
-                      <small>
-                        {c.etiqueta}
-                        {c.estado === 'inactivo' ? ' · Inactivo' : ''}
-                      </small>
-                    </span>
-                    {esAdmin && (
-                      <button type="button" className={styles.quitar} aria-label={`Quitar a ${nombreCompleto(c)}`} onClick={() => quitar(c.id)}>
-                        <X size={20} aria-hidden />
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="stack" aria-label="Actividad del adulto">
-            <Segmented<Pestana>
-              label="Actividad"
-              value={pestana}
-              onChange={setPestana}
-              options={[
-                { value: 'necesidades', label: 'Necesidades' },
-                { value: 'visitas', label: 'Visitas' },
-                { value: 'alertas', label: 'Alertas' },
-              ]}
-            />
-            {cantidad === 0 ? (
-              <EmptyState title={sinDatos[pestana]} />
-            ) : (
-              <div className={styles.lista} role="tabpanel">
-                {pestana === 'necesidades' && misNecesidades.map(tarjetaNecesidad)}
-                {pestana === 'visitas' && misVisitas.map(tarjetaVisita)}
-                {pestana === 'alertas' && misAlertas.map(tarjetaAlerta)}
-              </div>
-            )}
-          </section>
-        </div>
-      </div>
-
-      {/* Detalle de necesidad / visita para el administrador (no tiene pantallas propias) */}
-      <Sheet open={!!necesidadDetalle} onClose={cerrarDetalle} title="Detalle de necesidad">
-        {necesidadDetalle && (
-          <>
-            <Datum label="Tipo" value={TIPO_NECESIDAD_TEXTO[necesidadDetalle.tipo]} />
-            <Datum label="Estado" value={ESTADO_NECESIDAD_TEXTO[necesidadDetalle.estado]} />
-            <Datum label="Descripción" value={necesidadDetalle.descripcion} />
-            <Datum label="Registrada por" value={nombreUsuario(usuarios, necesidadDetalle.registradaPor) ?? '—'} />
-            <Datum label="Fecha" value={fechaHora(necesidadDetalle.creadaEn)} />
-            {necesidadDetalle.satisfechaEn && <Datum label="Satisfecha" value={`${fechaHora(necesidadDetalle.satisfechaEn)} · ${nombreUsuario(usuarios, necesidadDetalle.satisfechaPor) ?? '—'}`} />}
-          </>
-        )}
-      </Sheet>
-      <Sheet open={!!visitaDetalle} onClose={cerrarDetalle} title="Detalle de visita">
-        {visitaDetalle && (
-          <>
-            <Datum label="Tipo" value={visitaDetalle.tipo} />
-            <Datum label="Estado" value={ESTADO_VISITA_TEXTO[visitaDetalle.estado]} />
-            <Datum label="Fecha y hora pautada" value={`${fechaCorta(visitaDetalle.fecha)} - ${hhmmA12(visitaDetalle.horaPautada)}`} />
-            <Datum label="Cuidador" value={nombreUsuario(usuarios, visitaDetalle.cuidadorId) ?? '—'} />
-            {visitaDetalle.observaciones && <Datum label="Observaciones" value={visitaDetalle.observaciones} />}
-            {visitaDetalle.notas && <Datum label="Instrucciones" value={visitaDetalle.notas} />}
-          </>
-        )}
-      </Sheet>
-
-      {/* Asignar cuidadores (solo administrador) */}
-      <Sheet
-        open={asignando}
-        onClose={cerrarAsignar}
-        title="Asignar cuidadores"
-        footer={
-          <>
-            <Button variant="outline" onClick={cerrarAsignar}>
-              Cancelar
-            </Button>
-            <Button onClick={guardarAsignacion}>Guardar</Button>
-          </>
-        }
-      >
-        <p className="muted text-sm">Cuidadores activos de tu organización. Marca los que acompañarán a {adulto.nombre}.</p>
-        {candidatos.length === 0 ? (
-          <EmptyState title="No hay cuidadores activos" text="Invita o activa cuidadores desde Miembros." />
-        ) : (
-          <ul className={styles.candidatos}>
-            {candidatos.map((c) => (
-              <li key={c.id}>
-                <Checkbox
-                  checked={seleccion.includes(c.id)}
-                  onChange={(e) => setSeleccion((s) => (e.target.checked ? [...s, c.id] : s.filter((x) => x !== c.id)))}
-                  label={
-                    <span className={styles.candidato}>
-                      <Avatar nombre={nombreCompleto(c)} src={c.avatar} size={36} />
-                      <span className={styles.cuidadorTexto}>
-                        <strong>{nombreCompleto(c)}</strong>
-                        <small>{c.email}</small>
-                      </span>
-                    </span>
+          <Seccion titulo="Identificación y ubicación" id="info-personal" className="order-6 lg:order-none">
+            <div className="flex flex-col gap-3 p-4 rounded-md bg-surface shadow-1">
+              <InfoRow icon={<Cake size={22} aria-hidden />} label="Fecha de nacimiento" value={`${fechaCorta(adulto.fechaNacimiento)} (${edad(adulto.fechaNacimiento)} años)`} />
+              <div className="grid grid-cols-2 gap-3">
+                <InfoRow icon={<VenusAndMars size={22} aria-hidden />} label="Sexo" value={adulto.sexo} />
+                <InfoRow
+                  icon={<Phone size={22} aria-hidden />}
+                  label="Teléfono"
+                  value={
+                    adulto.telefono ? (
+                      <a href={`tel:${adulto.telefono.replace(/\D/g, '')}`} className="inline-flex items-center min-h-12 -my-3 text-navy font-semibold underline-offset-2 hover:underline">
+                        {adulto.telefono}
+                      </a>
+                    ) : (
+                      'No registrado'
+                    )
                   }
                 />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Sheet>
+              </div>
+              <InfoRow icon={<MapPin size={22} aria-hidden />} label="Municipio y provincia" value={municipioYProvincia(catalogos, adulto.municipioCod) || '—'} />
+              <InfoRow icon={<Home size={22} aria-hidden />} label="Dirección" value={direccionCompleta(catalogos, adulto) || '—'} />
+              <InfoRow icon={<UserRoundPen size={22} aria-hidden />} label="Registrado" value={`${fechaHora(adulto.creadoEn)} · por ${nombreUsuario(usuarios, adulto.registradoPor) ?? 'usuario no disponible'}`} />
+              {adulto.actualizadoEn !== adulto.creadoEn && (
+                <InfoRow icon={<History size={22} aria-hidden />} label="Última actualización" value={`${fechaHora(adulto.actualizadoEn)}${adulto.actualizadoPor ? ` · por ${nombreUsuario(usuarios, adulto.actualizadoPor) ?? '—'}` : ''}`} />
+              )}
+            </div>
+          </Seccion>
+
+          <ContactosSeccion adulto={adulto} editable={editable && activo} className="order-7 lg:order-none" />
+
+          {sensible && <RiesgosSeccion adulto={adulto} base={base} puedeEvaluar={puede(user, 'adultos:evaluar', adulto) && activo} className="order-9 lg:order-none" />}
+
+          {sensible && (
+            <Seccion titulo="Condición general" id="condicion" className="order-10 lg:order-none">
+              <p className="text-xs text-muted -mt-2">Información sensible: visible solo para roles autorizados (SRS §8.2.2.3.4 d).</p>
+              <InfoRow label="Grado de autonomía" value={autonomia} />
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold text-ink">Situaciones registradas</span>
+                {condiciones.length === 0 ? (
+                  <p className="text-sm text-muted">Ninguna registrada.</p>
+                ) : (
+                  <ul className="flex flex-wrap gap-2">
+                    {condiciones.map((c) => (
+                      <li key={c} className="px-3 py-1 rounded-pill bg-surface-2 text-ink-2 text-sm font-semibold">
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {adulto.condicionGeneral.nota && <InfoRow label="Nota" value={adulto.condicionGeneral.nota} />}
+            </Seccion>
+          )}
+
+          <Seccion titulo="Consentimiento informado" id="consentimiento" className="order-11 lg:order-none">
+            {adulto.consentimiento?.otorgado ? (
+              <InfoRow
+                icon={<FileCheck2 size={22} aria-hidden className="text-success-700" />}
+                label="Otorgado (Ley 172-13)"
+                value={`Por ${adulto.consentimiento.otorgadoPor === 'adulto' ? 'el adulto mayor' : 'su representante'} · ${fechaCorta(adulto.consentimiento.fecha)} · registrado por ${nombreUsuario(usuarios, adulto.consentimiento.registradoPor) ?? '—'}`}
+              />
+            ) : (
+              <NotaInfo tono="aviso">No hay consentimiento informado registrado. Edita el perfil para registrarlo.</NotaInfo>
+            )}
+          </Seccion>
+        </div>
+
+        {/* ───── Columna 2: acciones, vínculos, salud y actividad ───── */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6 min-w-0">
+          {acciones.length > 0 && (
+            <Seccion titulo="Acciones" id="acciones" className="order-4 lg:order-none">
+              <div className="grid gap-3 sm:grid-cols-2 [&>a]:text-base">{acciones}</div>
+            </Seccion>
+          )}
+
+          {verAlertas && abiertas.length > 0 && (
+            <Seccion titulo="Alertas abiertas" id="alertas-abiertas" className="order-5 lg:order-none">
+              <ul className="flex flex-col gap-2">
+                {abiertas.map((al) => {
+                  const v = URGENCIA_VISUAL[al.severidad]
+                  const nec = necesidadDeAlerta(al, necesidades)
+                  return (
+                    <li key={al.id}>
+                      <Link to={`${base}/alertas/${al.id}`} className={cn('flex items-center gap-3 min-h-12 p-3 rounded-sm border border-line-soft border-l-4 bg-surface hover:shadow-1', v.borde)}>
+                        <span className={cn('grid place-items-center size-10 flex-none rounded-full', v.icono)} aria-hidden>
+                          <v.Icono size={20} />
+                        </span>
+                        <span className="flex-1 min-w-0 flex flex-col gap-1">
+                          <span className="text-xs text-muted">{nombreCatalogo(catalogos.alertas, al.tipo)}</span>
+                          <strong className="text-sm text-ink">{al.titulo}</strong>
+                          {nec && <span className="text-xs text-ink-2 line-clamp-1">Necesidad: {nec.descripcion}</span>}
+                          <span className="flex flex-wrap gap-1">
+                            <UrgenciaBadge severidad={al.severidad} />
+                            <EstadoAlertaBadge estado={al.estado} />
+                          </span>
+                        </span>
+                        <ArrowRight size={18} className="text-navy flex-none" aria-hidden />
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </Seccion>
+          )}
+
+          <VinculosSeccion adulto={adulto} puedeAsignar={puede(user, 'adultos:asignar', adulto) && activo} className="order-8 lg:order-none" />
+
+          {puede(user, 'indicaciones:ver', adulto) && <IndicacionesSeccion adulto={adulto} gestiona={puede(user, 'indicaciones:gestionar', adulto) && activo} className="order-12 lg:order-none" />}
+
+          {puede(user, 'agenda:ver', adulto) && <AgendaSeccion adulto={adulto} base={base} gestiona={puede(user, 'agenda:gestionar', adulto)} className="order-13 lg:order-none" />}
+
+          <HistorialSeccion
+            adulto={adulto}
+            base={base}
+            verVisitas={puede(user, 'visitas:ver', adulto)}
+            verNecesidades={puede(user, 'necesidades:ver', adulto)}
+            verAlertas={verAlertas}
+            sensible={sensible}
+            className="order-14 lg:order-none"
+          />
+        </div>
+      </div>
     </Page>
   )
 }
-

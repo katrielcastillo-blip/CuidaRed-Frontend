@@ -1,3 +1,9 @@
+/*
+ * avatar.ts — Lectura y recorte de la foto de perfil (dataURL JPEG cuadrada y liviana).
+ * Módulo: perfil.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+
 /**
  * Lee una imagen del usuario y la devuelve como dataURL JPEG cuadrada de, como máximo, `max` px de lado
  * (recorte centrado + canvas). Así el avatar cabe sin problema en localStorage.

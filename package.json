@@ -1,13 +1,25 @@
 {
   "name": "cuidared-frontend",
+  "version": "1.0.0",
+  "description": "CuidaRed: PWA mobile-first para el seguimiento comunitario de adultos mayores vulnerables en la República Dominicana (frontend).",
+  "author": "Equipo CuidaRed - INTEC",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "PENDIENTE: URL del repositorio del equipo (Azure DevOps)"
+  },
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "icons": "node scripts/make-icons.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -18,6 +30,8 @@
     "vite-plugin-pwa": "^2.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
@@ -25,6 +39,7 @@
     "oxlint": "^1.81.0",
     "playwright": "^1.63.0",
     "sharp": "^0.35.5",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

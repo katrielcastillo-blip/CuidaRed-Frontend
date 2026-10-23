@@ -1,4 +1,7 @@
-// Genera los iconos PWA (PNG) a partir de un SVG de marca sencillo.
+// make-icons.mjs — Genera los iconos PNG de la PWA.
+// © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+// Genera los iconos PWA (PNG 192/256/512 + maskable + apple-touch) a partir del SVG de marca (SRS §18.1).
+// Uso: node scripts/make-icons.mjs
 import sharp from 'sharp'
 import { mkdirSync } from 'node:fs'
 
@@ -16,6 +19,7 @@ const out = (name, size, pad) =>
   sharp(Buffer.from(svg(pad))).resize(size, size).png().toFile(`public/icons/${name}`)
 await Promise.all([
   out('icon-192.png', 192, 0),
+  out('icon-256.png', 256, 0),
   out('icon-512.png', 512, 0),
   out('icon-maskable-512.png', 512, 70),
   out('apple-touch-icon.png', 180, 0),

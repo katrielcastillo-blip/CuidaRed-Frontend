@@ -1,171 +1,128 @@
+/*
+ * Dashboard.tsx — Inicio del FAMILIAR RESPONSABLE (SRS §13.1 "Módulo de consulta restringida"): solo los
+ * adultos mayores con los que tiene vínculo "familiar_responsable" (Vinculo · adultosVisibles) con el estado
+ * de su seguimiento: tipo de vínculo, última y próxima visita (con su motivo, Visit_razon; incluye visitas en
+ * las que el adulto es adulto adicional del hogar) y necesidades abiertas con su prioridad. El umbral de días
+ * sin visita sale de Configuracion_Cuenta (configOrg). Solo lectura (RF-09 · §8.2.2.3.4 c).
+ * Módulo: familiar.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { UserPlus } from 'lucide-react'
-import { Page, useShell } from '@/layouts/AppShell'
+import { Eye } from 'lucide-react'
+import { Page } from '@/layouts/AppShell'
 import { nombreCompleto, useUser } from '@/domain/auth'
+import { useEnLinea } from '@/domain/conectividad'
+import { diasSinVisita, ultimaVisitaCompletada } from '@/domain/reglas'
 import { useDB } from '@/domain/store'
-import { hhmmA12 } from '@/domain/dates'
-import { Badge, ButtonLink, Card, EmptyState, SearchInput } from '@/components/ui'
-import { AdultoCard } from '../components/AdultoCard'
-import { InvitacionOverlay } from '../components/InvitacionOverlay'
-import {
-  ESTADO_VISITA,
-  etiquetaDia,
-  masRecientesPrimero,
-  normaliza,
-  RIESGO_ORDEN,
-  TIPO_NECESIDAD,
-  ultimaVisitaCompletada,
-  useAdultosFamilia,
-  useEnLinea,
-} from '../lib'
-import styles from './Dashboard.module.css'
+import { EmptyState, SearchInput } from '@/components/ui'
+import { cn } from '@/lib/cn'
+import { SeguimientoCard, type Seguimiento } from '../components/SeguimientoCard'
+import { necesidadAbierta, normaliza, proximasVisitas, useAdultosFamilia, useUmbralSinVisita } from '../lib'
 
-/** Pantalla Dashboard (285:606): saludo, buscador y "Mis Envejecientes". En ≥768 añade KPIs y un panel de actividad. */
 export default function Dashboard() {
   const user = useUser()
-  const { base } = useShell()
   const enLinea = useEnLinea()
   const adultos = useAdultosFamilia()
   const visitas = useDB((s) => s.visitas)
   const necesidades = useDB((s) => s.necesidades)
-  const familias = useDB((s) => s.familias)
+  const vinculos = useDB((s) => s.vinculos)
+  const tiposVinculo = useDB((s) => s.catalogos.tiposVinculo)
   const [q, setQ] = useState('')
+  const umbral = useUmbralSinVisita()
 
-  const ordenados = useMemo(
+  // Seguimiento de cada adulto; primero los que llevan más días sin visita.
+  const seguimientos = useMemo<Seguimiento[]>(
     () =>
-      [...adultos].sort(
-        (a, b) => RIESGO_ORDEN[a.riesgo] - RIESGO_ORDEN[b.riesgo] || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'),
-      ),
-    [adultos],
+      adultos
+        .filter((a) => a.estado === 'activo')
+        .map((a) => {
+          const { dias, conVisitas } = diasSinVisita({ visitas }, a)
+          return {
+            adulto: a,
+            ultima: ultimaVisitaCompletada(visitas, a.id),
+            dias,
+            conVisitas,
+            proxima: proximasVisitas(visitas, a.id)[0],
+            abiertas: necesidades
+              .filter((n) => n.adultoId === a.id && necesidadAbierta(n.estado))
+              .sort((x, y) => y.creadaEn.localeCompare(x.creadaEn)),
+          }
+        })
+        .sort((x, y) => y.dias - x.dias || nombreCompleto(x.adulto).localeCompare(nombreCompleto(y.adulto), 'es')),
+    [adultos, visitas, necesidades],
   )
+
   const visibles = useMemo(() => {
     const t = normaliza(q.trim())
-    if (!t) return ordenados
-    return ordenados.filter((a) => normaliza(`${nombreCompleto(a)} ${a.cedula}`).includes(t))
-  }, [ordenados, q])
+    return t ? seguimientos.filter((s) => normaliza(nombreCompleto(s.adulto)).includes(t)) : seguimientos
+  }, [seguimientos, q])
 
-  const ids = useMemo(() => new Set(adultos.map((a) => a.id)), [adultos])
-  const nombrePorId = useMemo(() => new Map(adultos.map((a) => [a.id, nombreCompleto(a)])), [adultos])
-  const necesidadesActivas = useMemo(
-    () => necesidades.filter((n) => ids.has(n.adultoId) && n.estado === 'activa').sort((a, b) => b.creadaEn.localeCompare(a.creadaEn)),
-    [necesidades, ids],
-  )
-  const proximas = useMemo(
-    () =>
-      visitas
-        .filter((v) => ids.has(v.adultoId) && (v.estado === 'pendiente' || v.estado === 'en_curso'))
-        .sort((a, b) => masRecientesPrimero(b, a)),
-    [visitas, ids],
-  )
-  const verFamilia = user.familiaIds.length > 1
-  const nombreFamilia = (id: string) => familias.find((f) => f.id === id)?.nombre
+  const totalAbiertas = seguimientos.reduce((n, s) => n + s.abiertas.length, 0)
+  const totalProximas = seguimientos.filter((s) => s.proxima).length
+  /** Tipo de vínculo del usuario con el adulto (Tipo_vinculo). */
+  const vinculoCon = (adultoId: string) => {
+    const v = vinculos.find((x) => x.adultoId === adultoId && x.usuarioId === user.id)
+    return v ? (tiposVinculo.find((t) => t.id === v.tipoVinculoId)?.nombre ?? 'Familiar responsable') : undefined
+  }
 
   return (
-    // En móvil el header va sin título (Figma); en escritorio, sin avatar en el header, se muestra "Inicio".
-    <Page wide leading={<h1 className="only-desktop">Inicio</h1>}>
-      <InvitacionOverlay />
-
-      <div className={styles.saludo}>
-        <h1>Hola, {user.nombre}</h1>
-        <span className={styles.enLinea}>
-          <span className={`${styles.punto} ${enLinea ? '' : styles.sinConexion}`} aria-hidden />
-          {enLinea ? 'En línea' : 'Sin conexión'}
+    <Page title="Inicio" wide>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-[1.75rem] font-bold leading-tight text-ink">Hola, {user.nombre}</h2>
+        <span className="inline-flex items-center gap-2 text-sm text-ink-2">
+          <span className={cn('size-2 rounded-full', enLinea ? 'bg-green' : 'bg-warning')} aria-hidden />
+          {enLinea ? 'En línea' : 'Sin conexión: ves la última información guardada'}
         </span>
       </div>
 
-      <div className={styles.kpis}>
-        <div className={styles.kpi}>
-          <span className={styles.kpiEtiqueta}>Envejecientes</span>
-          <span className={styles.kpiValor}>{adultos.length}</span>
-        </div>
-        <div className={`${styles.kpi} ${styles.kpiInfo}`}>
-          <span className={styles.kpiEtiqueta}>Necesidades activas</span>
-          <span className={styles.kpiValor}>{necesidadesActivas.length}</span>
-        </div>
-        <div className={styles.kpi}>
-          <span className={styles.kpiEtiqueta}>Visitas pendientes</span>
-          <span className={styles.kpiValor}>{proximas.length}</span>
-        </div>
-      </div>
+      <p className="flex items-start gap-2 p-3 rounded-sm bg-blue-100 border border-blue text-sm text-ink">
+        <Eye size={18} className="flex-none mt-0.5 text-navy" aria-hidden />
+        <span>
+          Aquí puedes consultar cómo va el seguimiento de {seguimientos.length === 1 ? 'tu familiar' : 'tus familiares'}: visitas recibidas, próximas
+          visitas, necesidades y contactos de emergencia. Es solo de consulta; si algo no está bien, contacta a la organización.
+        </span>
+      </p>
 
-      <div className={styles.cuerpo}>
-        <section className="stack" aria-labelledby="mis-envejecientes">
-          <div className="row-between">
-            <h2 id="mis-envejecientes" className="section-title">
-              Mis Envejecientes
-            </h2>
-            <ButtonLink to={`${base}/invitar`} variant="outline" size="sm" icon={<UserPlus size={18} aria-hidden />}>
-              Invitar
-            </ButtonLink>
-          </div>
-          <SearchInput value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar envejeciente" />
-
-          {visibles.length > 0 ? (
-            <div className="grid-auto">
-              {visibles.map((a) => (
-                <AdultoCard
-                  key={a.id}
-                  adulto={a}
-                  ultimaVisita={ultimaVisitaCompletada(visitas, a.id)}
-                  familia={verFamilia ? nombreFamilia(a.familiaId) : undefined}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title={adultos.length ? 'Sin resultados' : 'Aún no hay envejecientes'}
-              text={adultos.length ? `Ningún envejeciente coincide con «${q.trim()}».` : 'Cuando tu familia tenga envejecientes registrados, aparecerán aquí.'}
-            />
-          )}
+      {seguimientos.length > 1 && (
+        <section aria-label="Resumen" className="grid grid-cols-3 gap-3">
+          <Resumen label="A tu cargo" valor={seguimientos.length} />
+          <Resumen label="Necesidades abiertas" valor={totalAbiertas} />
+          <Resumen label="Con visita programada" valor={totalProximas} />
         </section>
+      )}
 
-        <aside className={styles.actividad} aria-label="Actividad reciente">
-          <Card className={styles.panel}>
-            <h2 className={styles.panelTitulo}>Próximas visitas</h2>
-            {proximas.length ? (
-              <ul className={styles.lista}>
-                {proximas.slice(0, 5).map((v) => (
-                  <li key={v.id}>
-                    <Link to={`${base}/visitas/${v.id}`} className={styles.fila}>
-                      <span className={styles.filaTexto}>
-                        <strong>{nombrePorId.get(v.adultoId)}</strong>
-                        <small>
-                          {etiquetaDia(v.fecha)}, {hhmmA12(v.horaPautada)}
-                        </small>
-                      </span>
-                      <Badge tone={ESTADO_VISITA[v.estado].tono}>{ESTADO_VISITA[v.estado].label}</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted text-sm">No hay visitas programadas.</p>
-            )}
-          </Card>
+      <section className="flex flex-col gap-4" aria-labelledby="mis-familiares">
+        <h2 id="mis-familiares" className="text-xl font-bold text-ink">
+          Estado del seguimiento
+        </h2>
+        {seguimientos.length > 3 && <SearchInput value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar adulto mayor" placeholder="Buscar por nombre..." />}
 
-          <Card className={styles.panel}>
-            <h2 className={styles.panelTitulo}>Necesidades activas</h2>
-            {necesidadesActivas.length ? (
-              <ul className={styles.lista}>
-                {necesidadesActivas.slice(0, 5).map((n) => (
-                  <li key={n.id}>
-                    <Link to={`${base}/necesidades/${n.id}`} className={styles.fila}>
-                      <span className={styles.filaTexto}>
-                        <strong>{TIPO_NECESIDAD[n.tipo].label}</strong>
-                        <small>{nombrePorId.get(n.adultoId)}</small>
-                      </span>
-                      <Badge tone="danger">ACTIVA</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted text-sm">No hay necesidades activas.</p>
-            )}
-          </Card>
-        </aside>
-      </div>
+        {visibles.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibles.map((s) => (
+              <SeguimientoCard key={s.adulto.id} s={s} umbral={umbral} vinculo={vinculoCon(s.adulto.id)} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title={seguimientos.length ? 'Sin resultados' : 'Aún no hay adultos mayores a tu cargo'}
+            text={
+              seguimientos.length
+                ? `Nadie coincide con «${q.trim()}».`
+                : 'Cuando la organización te asigne como familiar responsable de un adulto mayor, aparecerá aquí.'
+            }
+          />
+        )}
+      </section>
     </Page>
+  )
+}
+
+function Resumen({ label, valor }: { label: string; valor: number }) {
+  return (
+    <div className="flex flex-col justify-between gap-1 min-w-0 min-h-[72px] px-3 py-2 rounded-sm bg-surface border border-line-soft">
+      <span className="text-xs font-semibold leading-tight text-muted">{label}</span>
+      <span className="text-2xl font-bold leading-none text-ink">{valor}</span>
+    </div>
   )
 }

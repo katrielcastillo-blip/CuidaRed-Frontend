@@ -1,4 +1,25 @@
+/*
+ * routes.tsx — Rutas del módulo de gestión, compartido por ADMINISTRADOR y COORDINADOR.
+ * Cada ruta exige su permiso con <RequirePermiso> (RF-09 · CU-13); la capa de servicios vuelve a validar.
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ *
+ * Rutas relativas a la base del rol (los enlaces internos se construyen con `useShell().base`):
+ *   adultos                      Listado de perfiles (búsqueda, filtros, días sin visita, alertas)  CU-04   adultos:ver
+ *   adultos/nuevo                Registrar perfil (3 pasos)                                         CU-02   adultos:crear
+ *   adultos/:adultoId            Perfil: contactos, vínculos, riesgos, indicaciones, agenda, historial CU-04   adultos:ver
+ *   adultos/:adultoId/editar     Editar perfil (+ desactivar / reactivar / anonimizar)              CU-03   adultos:editar
+ *   adultos/:adultoId/riesgo     Evaluación de riesgo (alerta automática si queda en "Alto")        RF-01   adultos:evaluar
+ *   alertas                      Bandeja de alertas por urgencia                                     CU-09/10 alertas:ver
+ *   alertas/:alertaId            Detalle y gestión de la alerta                                      CU-09/10 alertas:ver
+ *   resumen                      Resumen de seguimiento de casos activos                             CU-11   resumen:ver
+ *   reportes                     Reportes estadísticos (CSV / PDF)                                   CU-12   reportes:ver
+ * Enlaza a `visitas/…` y `necesidades/…` (módulo visitas) para el historial del adulto.
+ */
+import type { ReactNode } from 'react'
 import type { RouteObject } from 'react-router-dom'
+import { RequirePermiso } from '@/app/guards'
+import type { Accion } from '@/domain/permisos'
 import AdultosPage from './pages/AdultosPage'
 import AdultoNuevoPage from './pages/AdultoNuevoPage'
 import AdultoPerfilPage from './pages/AdultoPerfilPage'
@@ -6,30 +27,24 @@ import AdultoEditarPage from './pages/AdultoEditarPage'
 import RiesgoPage from './pages/RiesgoPage'
 import AlertasPage from './pages/AlertasPage'
 import AlertaDetallePage from './pages/AlertaDetallePage'
+import ResumenPage from './pages/ResumenPage'
 import ReportesPage from './pages/ReportesPage'
 
-/**
- * Gestión de adultos mayores, alertas y reportes — compartido por ADMIN y COORDINADOR.
- * Rutas relativas a la base del rol (los enlaces internos se construyen con `useShell().base`):
- *   adultos                      Adultos Mayores (lista + búsqueda + filtros riesgo/zona/estado)       [408:1081 · 487:1213]
- *   adultos/nuevo                Agregar Adulto Mayor                                                    [417:653 · 487:1000]
- *   adultos/:adultoId            Perfil Envejeciente (+ cuidadores asignados, solo admin edita)          [408:1743 · 487:1315]
- *   adultos/:adultoId/editar     Editar Adulto Mayor (+ desactivar / reactivar)                          [441:2041 · 487:1137]
- *   adultos/:adultoId/riesgo     Evaluación de Riesgo (puntaje ponderado → nivel → alerta si es alto)    [441:3212 · 487:1065]
- *   alertas                      Alertas                                                                 [443:3977 · 487:1646]
- *   alertas/:alertaId            Detalle Alerta (marcar atendida + nota)                                 [479:1412 · 487:1804 · 499:3182]
- *   reportes                     Reportes y Estadísticas (KPIs, gráficos, exportar PDF/CSV)              [479:2093 · 487:2006]
- * El coordinador además enlaza a `visitas/…` y `necesidades/…` (módulo visitas); el admin no tiene esas rutas.
- */
+const ruta = (path: string, accion: Accion, element: ReactNode): RouteObject => ({
+  path,
+  element: <RequirePermiso accion={accion}>{element}</RequirePermiso>,
+})
+
 export function gestionRoutes(): RouteObject[] {
   return [
-    { path: 'adultos', element: <AdultosPage /> },
-    { path: 'adultos/nuevo', element: <AdultoNuevoPage /> },
-    { path: 'adultos/:adultoId', element: <AdultoPerfilPage /> },
-    { path: 'adultos/:adultoId/editar', element: <AdultoEditarPage /> },
-    { path: 'adultos/:adultoId/riesgo', element: <RiesgoPage /> },
-    { path: 'alertas', element: <AlertasPage /> },
-    { path: 'alertas/:alertaId', element: <AlertaDetallePage /> },
-    { path: 'reportes', element: <ReportesPage /> },
+    ruta('adultos', 'adultos:ver', <AdultosPage />),
+    ruta('adultos/nuevo', 'adultos:crear', <AdultoNuevoPage />),
+    ruta('adultos/:adultoId', 'adultos:ver', <AdultoPerfilPage />),
+    ruta('adultos/:adultoId/editar', 'adultos:editar', <AdultoEditarPage />),
+    ruta('adultos/:adultoId/riesgo', 'adultos:evaluar', <RiesgoPage />),
+    ruta('alertas', 'alertas:ver', <AlertasPage />),
+    ruta('alertas/:alertaId', 'alertas:ver', <AlertaDetallePage />),
+    ruta('resumen', 'resumen:ver', <ResumenPage />),
+    ruta('reportes', 'reportes:ver', <ReportesPage />),
   ]
 }

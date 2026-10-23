@@ -1,3 +1,8 @@
+/*
+ * Placeholder.tsx — Marcador temporal mientras se implementa una pantalla. Debe desaparecer al terminar.
+ * Módulo: app.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { Page } from '@/layouts/AppShell'
 import { EmptyState } from '@/components/ui'
 

@@ -1,4 +1,8 @@
-/** Helpers de fecha en español (República Dominicana). Todo en hora local. */
+/*
+ * dates.ts — Helpers de fecha en español (República Dominicana). Todo en hora local salvo ahoraUTC().
+ * Módulo: dominio.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 
 export const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -68,3 +72,18 @@ export function edad(fechaNacimiento: string) {
   if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--
   return e
 }
+
+/** Días calendario entre dos instantes/fechas (hora local): 0 si es el mismo día. */
+export function diasCalendario(desde: Date | string, hasta: Date | string = new Date()) {
+  const a = typeof desde === 'string' ? (/^\d{4}-\d{2}-\d{2}$/.test(desde) ? new Date(`${desde}T00:00:00`) : new Date(desde)) : desde
+  const b = typeof hasta === 'string' ? (/^\d{4}-\d{2}-\d{2}$/.test(hasta) ? new Date(`${hasta}T00:00:00`) : new Date(hasta)) : hasta
+  const ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())
+  const ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())
+  return Math.round((ub - ua) / 86_400_000)
+}
+
+/** "24/08/2026 04:30 p.m." */
+export const fechaHora = (iso: string) => `${fechaCorta(iso)} ${hora12(iso)}`
+
+/** Marca de tiempo UTC (ISO 8601) para auditoría y Last-Write-Wins. */
+export const ahoraUTC = () => new Date().toISOString()

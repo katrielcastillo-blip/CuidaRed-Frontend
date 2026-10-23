@@ -1,440 +1,438 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+/*
+ * ReportesPage.tsx — Reportes estadísticos básicos (RF-08 · CU-12): el usuario elige el tipo de reporte
+ * (adultos mayores registrados, visitas realizadas, necesidades frecuentes, casos prioritarios), aplica
+ * filtros opcionales de fecha (rango predefinido o desde/hasta), municipio, sector, riesgo y categoría, y consulta KPIs, gráficos
+ * accesibles (barras con texto) y una tabla. Exporta a CSV y a una versión imprimible (PDF con
+ * window.print()). Sin datos: "No existen datos disponibles para este reporte con los filtros seleccionados".
+ * Módulo: gestión (administrador y coordinador).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  ArrowRight,
-  BriefcaseMedical,
-  CalendarDays,
-  ChevronDown,
-  CircleCheck,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  MapPin,
-  PersonStanding,
-  ShieldAlert,
-  Tags,
-  TrendingDown,
-  TrendingUp,
-  TriangleAlert,
-} from 'lucide-react'
-import { useToast } from '@/components/ui'
-import { useUser, useSession } from '@/domain/auth'
-import { fechaCorta, fechaLarga, todayISO } from '@/domain/dates'
+import { Link } from 'react-router-dom'
+import { CalendarDays, FileSpreadsheet, HandHelping, Map as MapaIcono, MapPin, PersonStanding, Printer, ShieldAlert, Tags, TriangleAlert, BriefcaseMedical, SearchX } from 'lucide-react'
+import { Button, RiesgoBadge, TextField, useToast } from '@/components/ui'
+import { auditarExportacion } from '@/domain/api'
+import { useSession, useUser } from '@/domain/auth'
+import { fechaHora, fechaLarga, todayISO } from '@/domain/dates'
+import { adultosVisibles } from '@/domain/permisos'
 import { useDB } from '@/domain/store'
-import type { Riesgo, TipoNecesidad } from '@/domain/types'
+import type { Catalogos, Riesgo, TipoNecesidad } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
+import { cn } from '@/lib/cn'
 import { FilaFiltros, FilterChip } from '../components/FilterChip'
-import { RIESGO_TEXTO, TIPO_NECESIDAD_TEXTO } from '../lib/formato'
+import { TIPO_NECESIDAD_TEXTO } from '../lib/formato'
 import { useVolver } from '../lib/navegacion'
 import {
-  calcularReporte,
   descargarArchivo,
   describirFiltros,
+  errorRango,
   FILTROS_INICIALES,
+  generarReporte,
   RANGOS,
   reporteCSV,
-  type Delta,
+  SIN_DATOS,
+  TIPOS_REPORTE,
   type FiltrosReporte,
+  type Grafico,
   type Rango,
   type Reporte,
+  type TipoReporte,
 } from '../lib/reportes'
-import { zonasEnUso } from '../lib/zonas'
-import styles from './ReportesPage.module.css'
+import { municipiosEnUso, sectoresEnUso } from '../lib/ubicacion'
 
-function Variacion({ delta, anterior }: { delta: Delta | null; anterior: string }) {
-  if (!delta) return <span className={styles.subNeutro}>Acumulado total</span>
-  const sube = delta.diff >= 0
-  const texto = delta.pct !== null ? `${sube ? '+' : ''}${delta.pct}%` : `${sube ? '+' : ''}${delta.diff}`
-  return (
-    <span className={sube ? styles.subSube : styles.subBaja}>
-      {sube ? <TrendingUp size={14} aria-hidden /> : <TrendingDown size={14} aria-hidden />}
-      {texto} vs {anterior}
-    </span>
-  )
+const ICONO_TIPO: Record<TipoReporte, typeof PersonStanding> = {
+  adultos: PersonStanding,
+  visitas: BriefcaseMedical,
+  necesidades: HandHelping,
+  prioritarios: TriangleAlert,
 }
 
-function Kpi({ etiqueta, valor, icono, tono, children }: { etiqueta: string; valor: number; icono: ReactNode; tono?: 'peligro'; children?: ReactNode }) {
-  return (
-    <article className={styles.kpi}>
-      <div className={styles.kpiTop}>
-        <h3>{etiqueta}</h3>
-        <span className={`${styles.kpiIcono} ${tono === 'peligro' ? styles.kpiPeligro : ''}`} aria-hidden>
-          {icono}
-        </span>
-      </div>
-      <p className={`${styles.kpiValor} ${tono === 'peligro' ? styles.valorPeligro : ''}`}>{valor.toLocaleString('es-DO')}</p>
-      <div className={styles.kpiSub}>{children}</div>
-    </article>
-  )
-}
+const COLOR_RIESGO: Record<Riesgo, string> = { alto: 'bg-riesgo-alto', medio: 'bg-riesgo-medio', bajo: 'bg-riesgo-bajo' }
 
-function GraficoVisitas({ r }: { r: Reporte }) {
-  const max = Math.max(1, ...r.visitasPorMes.map((m) => m.total))
-  const mesActual = r.visitasPorMes.find((m) => m.actual)
-  const resumen = r.visitasPorMes.map((m) => `${m.etiqueta}: ${m.total}`).join(', ')
+/** Barras horizontales: cada fila muestra etiqueta, total y porcentaje en texto (accesible sin ver el color). */
+function BarrasH({ g }: { g: Grafico }) {
+  const max = Math.max(1, ...g.barras.map((b) => b.valor))
+  if (g.barras.every((b) => b.valor === 0)) return <p className="text-sm text-muted">Sin registros para mostrar.</p>
   return (
-    <section className={styles.panel} aria-labelledby="g-visitas">
-      <div className={styles.panelTop}>
-        <div>
-          <h2 id="g-visitas" className={styles.panelTitulo}>
-            Visitas por Mes
-          </h2>
-          <p className={styles.panelSub}>Últimos 6 meses</p>
-        </div>
-        <strong className={styles.total}>{r.visitasSemestre}</strong>
-      </div>
-      <div className={styles.grafico} role="img" aria-label={`Visitas realizadas por mes. ${resumen}`}>
-        <div className={styles.plot}>
-          {r.visitasPorMes.map((m, i) => {
-            const p = (m.total / max) * 86
-            const tono = m.actual ? styles.barActual : i === 4 ? styles.barPrevio : styles.barBase
-            return (
-              <div key={m.clave} className={styles.col}>
-                <span className={`${styles.valorBarra} ${m.actual ? styles.valorActual : ''}`} style={{ bottom: `calc(${p}% + 4px)` }}>
-                  {m.total}
-                </span>
-                <span className={`${styles.barra} ${tono}`} style={{ height: `${m.total > 0 ? Math.max(p, 3) : 0}%` }} />
-              </div>
-            )
-          })}
-        </div>
-        <div className={styles.meses}>
-          {r.visitasPorMes.map((m) => (
-            <span key={m.clave} className={m.actual ? styles.mesActual : undefined}>
-              {m.etiqueta}
+    <ul className="flex flex-col gap-3">
+      {g.barras.map((b) => (
+        <li key={b.etiqueta} className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="inline-flex items-center gap-2 min-w-0 font-semibold text-ink">
+              {b.riesgo ? <RiesgoBadge riesgo={b.riesgo} /> : <span className="wrap-anywhere">{b.etiqueta}</span>}
             </span>
-          ))}
-        </div>
+            <span className="flex-none text-ink-2">
+              <b className="text-ink">{b.valor}</b> {b.valor === 1 ? g.unidad[0] : g.unidad[1]} · {b.pct}%
+            </span>
+          </div>
+          <div className="h-3 rounded-pill bg-surface-2 overflow-hidden" aria-hidden>
+            <span className={cn('block h-full rounded-pill', b.riesgo ? COLOR_RIESGO[b.riesgo] : 'bg-navy')} style={{ width: `${(b.valor / max) * 100}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Columnas por mes con el valor escrito encima de cada barra. */
+function BarrasV({ g }: { g: Grafico }) {
+  const max = Math.max(1, ...g.barras.map((b) => b.valor))
+  return (
+    <div className="flex flex-col gap-1.5">
+      <ul
+        className="grid gap-1 h-44 border-b border-line-soft bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_calc(25%-1px),#e3e8f0_calc(25%-1px),#e3e8f0_25%)]"
+        style={{ gridTemplateColumns: `repeat(${g.barras.length}, minmax(0, 1fr))` }}
+      >
+        {g.barras.map((b, i) => {
+          const actual = i === g.barras.length - 1
+          const p = (b.valor / max) * 82
+          return (
+            <li key={b.etiqueta + i} className="relative flex items-end justify-center h-full">
+              <span className="sr-only">
+                {b.etiqueta}: {b.valor} {b.valor === 1 ? g.unidad[0] : g.unidad[1]}
+              </span>
+              <span aria-hidden className={cn('absolute left-1/2 -translate-x-1/2 text-xs', actual ? 'font-bold text-navy' : 'text-ink-2')} style={{ bottom: `calc(${p}% + 4px)` }}>
+                {b.valor}
+              </span>
+              <span aria-hidden className={cn('block w-[min(34px,72%)] rounded-t-[5px]', actual ? 'bg-navy' : 'bg-blue')} style={{ height: `${b.valor > 0 ? Math.max(p, 3) : 0}%` }} />
+            </li>
+          )
+        })}
+      </ul>
+      <div className="grid gap-1 text-center text-[11px] text-muted" style={{ gridTemplateColumns: `repeat(${g.barras.length}, minmax(0, 1fr))` }} aria-hidden>
+        {g.barras.map((b, i) => (
+          <span key={b.etiqueta + i} className={cn('truncate', i === g.barras.length - 1 && 'font-bold text-navy')}>
+            {b.etiqueta}
+          </span>
+        ))}
       </div>
-      <p className={styles.leyenda}>
-        <i aria-hidden /> Mes en curso{mesActual ? ` (${mesActual.etiqueta})` : ''}
+    </div>
+  )
+}
+
+function PanelGrafico({ g }: { g: Grafico }) {
+  return (
+    <figure className="flex flex-col gap-4 min-w-0 m-0 p-4 rounded-md bg-surface shadow-1">
+      <figcaption>
+        <h3 className="text-lg font-bold text-ink">{g.titulo}</h3>
+        {g.descripcion && <p className="text-sm text-muted">{g.descripcion}</p>}
+      </figcaption>
+      {g.forma === 'v' ? <BarrasV g={g} /> : <BarrasH g={g} />}
+    </figure>
+  )
+}
+
+function TablaReporte({ r, base }: { r: Reporte; base: string }) {
+  const { columnas, filas, titulo } = r.tabla
+  return (
+    <section className="flex flex-col gap-3 min-w-0" aria-labelledby="tabla-reporte">
+      <h3 id="tabla-reporte" className="text-lg font-bold">
+        {titulo} <span className="text-sm font-normal text-muted">({filas.length})</span>
+      </h3>
+      <div className="relative overflow-x-auto rounded-md bg-surface shadow-1" tabIndex={0} aria-label={`${titulo}: desplázate horizontalmente si no ves todas las columnas`}>
+        <table className="w-full text-sm">
+          <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-ink-2">
+            <tr>
+              {columnas.map((c) => (
+                <th key={c.etiqueta} scope="col" className={cn('px-3 py-3 whitespace-nowrap', c.tipo === 'numero' && 'text-right')}>
+                  {c.etiqueta}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.id} className="border-t border-line-soft">
+                {f.celdas.map((v, i) => {
+                  const c = columnas[i]!
+                  if (i === 0 && f.adultoId && r.tipo !== 'visitas')
+                    return (
+                      <th key={i} scope="row" className="px-3 py-1 text-left font-semibold whitespace-nowrap">
+                        <Link to={`${base}/adultos/${f.adultoId}`} className="inline-flex items-center min-h-12 text-navy hover:underline">
+                          {v}
+                        </Link>
+                      </th>
+                    )
+                  return (
+                    <td key={i} className={cn('px-3 py-2 whitespace-nowrap', c.tipo === 'numero' && 'text-right tabular-nums', i === 0 && 'font-semibold')}>
+                      {c.tipo === 'riesgo' && f.riesgo ? <RiesgoBadge riesgo={f.riesgo} /> : v}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+/** Hoja imprimible (PDF): solo visible al imprimir; el resto de la app se oculta con print:hidden. */
+function HojaImpresa({ r, filtros, cat, organizacion }: { r: Reporte; filtros: FiltrosReporte; cat: Pick<Catalogos, 'municipios'>; organizacion: string }) {
+  return (
+    <div className="hidden print:block p-6 text-[12px] text-black bg-white" aria-hidden>
+      <h1 className="text-xl font-bold">CuidaRed · {r.titulo}</h1>
+      <p>
+        {organizacion} · Generado el {fechaLarga()} · {fechaHora(new Date().toISOString())}
       </p>
-    </section>
+      <p className="mt-1 text-[11px]">{describirFiltros(filtros, cat).join(' · ')}</p>
+      {r.vacio ? (
+        <p className="mt-4 font-semibold">{SIN_DATOS}</p>
+      ) : (
+        <>
+          <h2 className="mt-4 mb-1 text-sm font-bold">Indicadores</h2>
+          <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
+            <tbody>
+              {r.kpis.map((k) => (
+                <tr key={k.etiqueta}>
+                  <th className="text-left">{k.etiqueta}</th>
+                  <td>
+                    {k.valor} {k.nota ? `(${k.nota})` : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="grid grid-cols-2 gap-4">
+            {r.graficos.map((g) => (
+              <div key={g.id} className="break-inside-avoid">
+                <h2 className="mt-4 mb-1 text-sm font-bold">{g.titulo}</h2>
+                <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
+                  <tbody>
+                    {g.barras.map((b) => (
+                      <tr key={b.etiqueta}>
+                        <th className="text-left">{b.etiqueta}</th>
+                        <td>
+                          {b.valor} ({b.pct}%)
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+          <h2 className="mt-4 mb-1 text-sm font-bold">{r.tabla.titulo}</h2>
+          <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
+            <thead>
+              <tr>
+                {r.tabla.columnas.map((c) => (
+                  <th key={c.etiqueta} className="text-left">
+                    {c.etiqueta}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {r.tabla.filas.map((f) => (
+                <tr key={f.id} className="break-inside-avoid">
+                  {f.celdas.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+      <p className="mt-6 text-[10px]">© 2026 Equipo CuidaRed – INTEC. Documento de uso interno: contiene datos personales protegidos por la Ley 172-13.</p>
+    </div>
   )
 }
 
-function Categorias({ r }: { r: Reporte }) {
-  return (
-    <section className={`${styles.panel} ${styles.panelAzul}`} aria-labelledby="g-cat">
-      <div className={styles.panelTop}>
-        <h2 id="g-cat" className={styles.panelTitulo}>
-          Distribución por Categoría
-        </h2>
-        <span className={styles.solicitudes}>
-          <b>{r.solicitudes}</b> {r.solicitudes === 1 ? 'Solicitud' : 'Solicitudes'}
-        </span>
-      </div>
-      <div className={styles.apilada} role="img" aria-label={`Distribución de necesidades por categoría. ${r.categorias.map((c) => `${c.etiqueta} ${c.pct}%`).join(', ')}`}>
-        {r.solicitudes > 0 ? (
-          r.categorias.filter((c) => c.total > 0).map((c) => <span key={c.tipo} className={styles[`cat_${c.tipo}`]} style={{ flexGrow: c.total }} />)
-        ) : (
-          <span className={styles.vacia} />
-        )}
-      </div>
-      {r.solicitudes === 0 && <p className={styles.panelSub}>No hay necesidades registradas con estos filtros.</p>}
-      <ul className={styles.categorias}>
-        {r.categorias.map((c) => (
-          <li key={c.tipo}>
-            <i className={styles[`cat_${c.tipo}`]} aria-hidden />
-            <span className={styles.catNombre}>{c.etiqueta}</span>
-            <span className={styles.catPct}>{c.pct}%</span>
-            <span className={styles.catN}>({c.total})</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-function Riesgos({ r }: { r: Reporte }) {
-  return (
-    <section className={styles.panel} aria-labelledby="g-riesgo">
-      <div>
-        <h2 id="g-riesgo" className={styles.panelTitulo}>
-          Adultos por Nivel de Riesgo
-        </h2>
-        <p className={styles.panelSub}>Clasificación por Nivel de Riesgo Social</p>
-      </div>
-      <ul className={styles.riesgos}>
-        {r.riesgo.map((x) => (
-          <li key={x.nivel}>
-            <div className={styles.riesgoTop}>
-              <span className={`${styles.riesgoNombre} ${styles[`n_${x.nivel}`]}`}>
-                <i aria-hidden /> {x.etiqueta} ({x.pct}%)
-              </span>
-              <span className={styles.riesgoN}>
-                {x.total} {x.total === 1 ? 'adulto' : 'adultos'}
-              </span>
-            </div>
-            <div className={styles.pista} role="img" aria-label={`${x.etiqueta}: ${x.pct}%`}>
-              <span className={styles[`b_${x.nivel}`]} style={{ width: `${x.pct}%` }} />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-/** Exportar: PDF = imprimir el resumen ejecutivo (window.print) · hoja de cálculo = CSV generado en el cliente. */
-function ExportarPanel({ r, filtros, organizacion }: { r: Reporte; filtros: FiltrosReporte; organizacion: string }) {
-  const toast = useToast()
-  const [abierto, setAbierto] = useState(true)
-  const imprimir = () => {
-    const titulo = document.title
-    document.title = `Reporte CuidaRed ${todayISO()}`
-    window.print()
-    document.title = titulo
-  }
-  const descargar = () => {
-    descargarArchivo(`reporte-cuidared-${todayISO()}.csv`, reporteCSV(r, filtros, organizacion))
-    toast('Hoja de cálculo descargada')
-  }
-  return (
-    <section className={styles.exportar} aria-labelledby="exportar">
-          <button type="button" className={styles.exportarBtn} aria-expanded={abierto} aria-controls="formatos" onClick={() => setAbierto((a) => !a)}>
-            <Download size={20} aria-hidden />
-            <span id="exportar">Exportar Reporte</span>
-            <ChevronDown size={20} aria-hidden className={abierto ? styles.girado : undefined} />
-          </button>
-          {abierto && (
-            <div id="formatos" className={styles.formatos}>
-              <p className={styles.formatoTitulo}>SELECCIONAR FORMATO</p>
-              <button type="button" className={styles.formato} onClick={imprimir}>
-                <span className={`${styles.formatoIcono} ${styles.pdf}`} aria-hidden>
-                  <FileText size={22} />
-                </span>
-                <span className={styles.formatoTexto}>
-                  <strong>Documento PDF (.pdf)</strong>
-                  <small>Resumen ejecutivo listo para imprimir</small>
-                </span>
-                <ArrowRight size={18} aria-hidden />
-              </button>
-              <button type="button" className={styles.formato} onClick={descargar}>
-                <span className={`${styles.formatoIcono} ${styles.hoja}`} aria-hidden>
-                  <FileSpreadsheet size={22} />
-                </span>
-                <span className={styles.formatoTexto}>
-                  <strong>Hoja de cálculo (.csv)</strong>
-                  <small>Datos brutos tabulados y métricas</small>
-                </span>
-                <ArrowRight size={18} aria-hidden />
-              </button>
-            </div>
-          )}
-    </section>
-  )
-}
-
-/** Reportes y Estadísticas (Figma 479:2093 admin · 487:2006 coordinador). Todo se calcula del store con los filtros. */
 export default function ReportesPage() {
   const { base } = useShell()
   const user = useUser()
   const { org } = useSession()
+  const toast = useToast()
   const { back } = useVolver(`${base}/mas`)
   const adultos = useDB((s) => s.adultos)
   const visitas = useDB((s) => s.visitas)
   const necesidades = useDB((s) => s.necesidades)
   const alertas = useDB((s) => s.alertas)
+  const usuarios = useDB((s) => s.usuarios)
+  const vinculos = useDB((s) => s.vinculos)
+  const catalogos = useDB((s) => s.catalogos)
   const [filtros, setFiltros] = useState<FiltrosReporte>(FILTROS_INICIALES)
   const set = <K extends keyof FiltrosReporte>(k: K, v: FiltrosReporte[K]) => setFiltros((f) => ({ ...f, [k]: v }))
 
-  const zonas = useMemo(() => zonasEnUso(adultos.filter((a) => a.orgId === user.orgId)), [adultos, user.orgId])
+  const visibles = useMemo(() => adultosVisibles(user, adultos), [user, adultos])
+  const municipios = useMemo(() => municipiosEnUso(catalogos, visibles), [catalogos, visibles])
+  const sectores = useMemo(() => sectoresEnUso(visibles, filtros.municipio || undefined), [visibles, filtros.municipio])
+  const errorFechas = errorRango(filtros)
+  // Si el rango personalizado es incoherente, se mantiene el último reporte válido (sin filtrar por fecha).
+  const efectivos = useMemo(() => (errorFechas ? { ...filtros, desde: '', hasta: '' } : filtros), [errorFechas, filtros])
   const r = useMemo(
-    () => calcularReporte({ adultos, visitas, necesidades, alertas }, user.orgId, filtros),
-    [adultos, visitas, necesidades, alertas, user.orgId, filtros],
+    () => generarReporte({ visitas, necesidades, alertas, usuarios, vinculos, catalogos }, visibles, efectivos),
+    [visitas, necesidades, alertas, usuarios, vinculos, catalogos, visibles, efectivos],
   )
-  const rango = RANGOS.find((x) => x.value === filtros.rango)!
   const orgNombre = org?.nombre ?? 'CuidaRed'
+  const generado = useMemo(() => (r ? new Date().toISOString() : ''), [r])
 
-  // Marca el documento mientras se está en esta pantalla (el CSS de impresión oculta la app y muestra el resumen).
+  // Al imprimir solo se ve la hoja del reporte: se oculta la app mientras esta pantalla está abierta.
   useEffect(() => {
-    document.documentElement.dataset.imprimirReporte = '1'
-    return () => {
-      delete document.documentElement.dataset.imprimirReporte
-    }
+    const root = document.getElementById('root')
+    root?.classList.add('print:hidden')
+    return () => root?.classList.remove('print:hidden')
   }, [])
 
+  const imprimir = () => {
+    const titulo = document.title
+    document.title = `Reporte CuidaRed - ${r.titulo} - ${todayISO()}`
+    auditarExportacion(user, `Reporte "${r.titulo}" (impresión/PDF)`)
+    window.print()
+    document.title = titulo
+  }
+  const exportarCSV = () => {
+    descargarArchivo(`reporte-${filtros.tipo}-${todayISO()}.csv`, reporteCSV(r, efectivos, catalogos, orgNombre))
+    auditarExportacion(user, `Reporte "${r.titulo}" (CSV)`)
+    toast('Reporte descargado en formato CSV')
+  }
+
   return (
-    <Page title="Reportes y Estadísticas" back={back} hideAvatar wide>
-      <FilaFiltros>
-        <FilterChip<Rango>
-          etiqueta="Rango"
-          icono={<CalendarDays size={16} aria-hidden />}
-          value={filtros.rango}
-          onChange={(v) => set('rango', v)}
-          opciones={RANGOS.map((x) => ({ value: x.value, label: x.label }))}
-        />
-        <FilterChip
-          etiqueta="Zona"
-          icono={<MapPin size={16} aria-hidden />}
-          value={filtros.zona}
-          onChange={(v) => set('zona', v)}
-          opciones={[{ value: '', label: 'Todas' }, ...zonas.map((z) => ({ value: z, label: z }))]}
-        />
-        <FilterChip<'' | Riesgo>
-          etiqueta="Riesgo"
-          icono={<ShieldAlert size={16} aria-hidden />}
-          value={filtros.riesgo}
-          onChange={(v) => set('riesgo', v)}
-          opciones={[
-            { value: '', label: 'Todos' },
-            { value: 'alto', label: 'Alto' },
-            { value: 'medio', label: 'Medio' },
-            { value: 'bajo', label: 'Bajo' },
-          ]}
-        />
-        <FilterChip<'' | TipoNecesidad>
-          etiqueta="Categoría"
-          icono={<Tags size={16} aria-hidden />}
-          value={filtros.categoria}
-          onChange={(v) => set('categoria', v)}
-          opciones={[{ value: '', label: 'Todas' }, ...(Object.keys(TIPO_NECESIDAD_TEXTO) as TipoNecesidad[]).map((t) => ({ value: t, label: TIPO_NECESIDAD_TEXTO[t] }))]}
-        />
-      </FilaFiltros>
-
-      <div className={styles.kpis}>
-        <Kpi etiqueta="Adultos Registrados" valor={r.adultosRegistrados} icono={<PersonStanding size={18} />}>
-          {r.adultosNuevos === null ? (
-            <span className={styles.subNeutro}>Total registrado</span>
-          ) : (
-            <span className={styles.subSube}>
-              <TrendingUp size={14} aria-hidden />+{r.adultosNuevos} {rango.sufijo}
-            </span>
-          )}
-        </Kpi>
-        <Kpi etiqueta="Visitas Realizadas" valor={r.visitasRealizadas} icono={<BriefcaseMedical size={18} />}>
-          <Variacion delta={r.visitasDelta} anterior={rango.anterior} />
-        </Kpi>
-        <Kpi etiqueta="Necesidades Atendidas" valor={r.necesidadesAtendidas} icono={<CircleCheck size={18} />}>
-          <Variacion delta={r.necesidadesDelta} anterior={rango.anterior} />
-        </Kpi>
-        <Kpi etiqueta="Casos Prioritarios" valor={r.casosPrioritarios} icono={<TriangleAlert size={18} />} tono="peligro">
-          {r.casosPrioritarios > 0 ? (
-            <span className={styles.urgente}>
-              <i aria-hidden /> Atención Urgente
-            </span>
-          ) : (
-            <span className={styles.subNeutro}>Sin casos urgentes</span>
-          )}
-        </Kpi>
-      </div>
-
-      <div className={styles.graficos}>
-        <div className={styles.colA}>
-          <GraficoVisitas r={r} />
-          <Riesgos r={r} />
+    <Page title="Reportes y estadísticas" back={back} hideAvatar wide>
+      {/* 1 · Tipo de reporte */}
+      <section className="flex flex-col gap-2" aria-labelledby="tipo-reporte">
+        <h2 id="tipo-reporte" className="text-base font-semibold text-ink">
+          Tipo de reporte
+        </h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4" role="radiogroup" aria-labelledby="tipo-reporte">
+          {TIPOS_REPORTE.map((t) => {
+            const Icono = ICONO_TIPO[t.value]
+            const activo = filtros.tipo === t.value
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={activo}
+                onClick={() => set('tipo', t.value)}
+                className={cn(
+                  'flex items-center gap-2 min-h-14 px-3 py-2 rounded-sm border-2 text-left text-sm font-semibold leading-tight transition-colors',
+                  activo ? 'border-navy bg-navy text-white' : 'border-line-soft bg-surface text-ink hover:border-line',
+                )}
+              >
+                <Icono size={20} className="flex-none" aria-hidden />
+                {t.label}
+              </button>
+            )
+          })}
         </div>
-        <div className={styles.colB}>
-          <Categorias r={r} />
-          <ExportarPanel r={r} filtros={filtros} organizacion={orgNombre} />
-        </div>
-      </div>
+      </section>
 
-      {/* Resumen ejecutivo: solo visible al imprimir / guardar como PDF (el resto de la app se oculta) */}
-      {createPortal(<ResumenImpreso r={r} filtros={filtros} organizacion={orgNombre} />, document.body)}
+      {/* 2 · Filtros opcionales */}
+      <section className="flex flex-col gap-3 min-w-0" aria-label="Filtros del reporte">
+        <FilaFiltros>
+          <FilterChip<Rango>
+            etiqueta="Período"
+            icono={<CalendarDays size={16} aria-hidden />}
+            value={filtros.rango}
+            onChange={(v) => set('rango', v)}
+            opciones={RANGOS.map((x) => ({ value: x.value, label: x.label }))}
+          />
+          <FilterChip
+            etiqueta="Municipio"
+            icono={<MapaIcono size={16} aria-hidden />}
+            value={filtros.municipio}
+            onChange={(v) => setFiltros((f) => ({ ...f, municipio: v, sector: '' }))}
+            opciones={[{ value: '', label: 'Todos' }, ...municipios]}
+          />
+          <FilterChip
+            etiqueta="Sector"
+            icono={<MapPin size={16} aria-hidden />}
+            value={filtros.sector}
+            onChange={(v) => set('sector', v)}
+            opciones={[{ value: '', label: 'Todos' }, ...sectores.map((z) => ({ value: z, label: z }))]}
+          />
+          <FilterChip<'' | Riesgo>
+            etiqueta="Riesgo"
+            icono={<ShieldAlert size={16} aria-hidden />}
+            value={filtros.riesgo}
+            onChange={(v) => set('riesgo', v)}
+            opciones={[
+              { value: '', label: 'Todos' },
+              { value: 'alto', label: 'Alto' },
+              { value: 'medio', label: 'Medio' },
+              { value: 'bajo', label: 'Bajo' },
+            ]}
+          />
+          {filtros.tipo === 'necesidades' && (
+            <FilterChip<'' | TipoNecesidad>
+              etiqueta="Categoría"
+              icono={<Tags size={16} aria-hidden />}
+              value={filtros.categoria}
+              onChange={(v) => set('categoria', v)}
+              opciones={[{ value: '', label: 'Todas' }, ...(Object.keys(TIPO_NECESIDAD_TEXTO) as TipoNecesidad[]).map((t) => ({ value: t, label: TIPO_NECESIDAD_TEXTO[t] }))]}
+            />
+          )}
+          {(filtros.rango !== 'todo' || filtros.municipio || filtros.sector || filtros.riesgo || filtros.categoria) && (
+            <button type="button" className="min-h-12 px-2 text-sm font-semibold text-navy underline underline-offset-2" onClick={() => setFiltros((f) => ({ ...FILTROS_INICIALES, tipo: f.tipo }))}>
+              Quitar filtros
+            </button>
+          )}
+        </FilaFiltros>
+        {filtros.rango === 'personalizado' && (
+          <div className="grid grid-cols-2 gap-3 max-w-md">
+            <TextField label="Desde" type="date" max={filtros.hasta || todayISO()} value={filtros.desde} onChange={(e) => set('desde', e.target.value)} />
+            <TextField label="Hasta" type="date" min={filtros.desde || undefined} max={todayISO()} value={filtros.hasta} onChange={(e) => set('hasta', e.target.value)} error={errorFechas} />
+          </div>
+        )}
+      </section>
+
+      {/* 3 · Reporte */}
+      <section className="flex flex-col gap-5 min-w-0" aria-labelledby="titulo-reporte" aria-live="polite">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="titulo-reporte" className="text-xl font-bold text-navy">
+              {r.titulo}
+            </h2>
+            <p className="text-sm text-ink-2">{r.descripcion}</p>
+            <p className="text-xs text-muted">
+              {describirFiltros(efectivos, catalogos).join(' · ')} · Datos actualizados: {fechaHora(generado)}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-none [&_button]:whitespace-nowrap">
+            <Button size="sm" variant="outline" icon={<FileSpreadsheet size={18} aria-hidden />} onClick={exportarCSV} disabled={r.vacio}>
+              Exportar CSV
+            </Button>
+            <Button size="sm" variant="outline" icon={<Printer size={18} aria-hidden />} onClick={imprimir} disabled={r.vacio}>
+              Imprimir / PDF
+            </Button>
+          </div>
+        </div>
+
+        {r.vacio ? (
+          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center rounded-md bg-surface shadow-1" role="status">
+            <SearchX size={40} className="text-muted" aria-hidden />
+            <p className="text-lg font-bold">{SIN_DATOS}</p>
+            <p className="text-sm text-muted">Prueba con otro período o quita algún filtro.</p>
+          </div>
+        ) : (
+          <>
+            <div className={cn('grid grid-cols-2 gap-3', r.kpis.length === 6 ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]')}>
+              {r.kpis.map((k) => (
+                <article key={k.etiqueta} className="flex flex-col gap-1 min-w-0 p-4 rounded-md bg-surface shadow-1">
+                  <h3 className="text-sm font-normal leading-tight text-ink-2">{k.etiqueta}</h3>
+                  <p className={cn('font-bold leading-tight break-words', typeof k.valor === 'string' && k.valor.length > 6 ? 'text-xl' : 'text-[28px]', k.peligro ? 'text-danger' : 'text-ink')}>
+                    {typeof k.valor === 'number' ? k.valor.toLocaleString('es-DO') : k.valor}
+                  </p>
+                  {k.nota && <p className="text-xs text-muted">{k.nota}</p>}
+                </article>
+              ))}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 md:items-start">
+              {r.graficos.map((g) => (
+                <PanelGrafico key={g.id} g={g} />
+              ))}
+            </div>
+            <TablaReporte r={r} base={base} />
+          </>
+        )}
+      </section>
+
+      {createPortal(<HojaImpresa r={r} filtros={efectivos} cat={catalogos} organizacion={orgNombre} />, document.body)}
     </Page>
-  )
-}
-
-function ResumenImpreso({ r, filtros, organizacion }: { r: Reporte; filtros: FiltrosReporte; organizacion: string }) {
-  return (
-    <div className={styles.imprimir} aria-hidden>
-      <h1>Reporte de gestión · CuidaRed</h1>
-      <p>
-        {organizacion} · Generado el {fechaLarga()}
-      </p>
-      <p className={styles.imprimirFiltros}>{describirFiltros(filtros).join(' · ')}</p>
-
-      <h2>Resumen</h2>
-      <table>
-        <tbody>
-          <tr>
-            <th>Adultos registrados</th>
-            <td>{r.adultosRegistrados}</td>
-            <th>Visitas realizadas</th>
-            <td>{r.visitasRealizadas}</td>
-          </tr>
-          <tr>
-            <th>Necesidades atendidas</th>
-            <td>{r.necesidadesAtendidas}</td>
-            <th>Casos prioritarios</th>
-            <td>{r.casosPrioritarios}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className={styles.imprimirColumnas}>
-        <div>
-          <h2>Visitas por mes</h2>
-          <table>
-            <tbody>
-              {r.visitasPorMes.map((m) => (
-                <tr key={m.clave}>
-                  <th>{m.etiqueta}</th>
-                  <td>{m.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h2>Necesidades por categoría</h2>
-          <table>
-            <tbody>
-              {r.categorias.map((c) => (
-                <tr key={c.tipo}>
-                  <th>{c.etiqueta}</th>
-                  <td>
-                    {c.total} ({c.pct}%)
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h2>Adultos por nivel de riesgo</h2>
-          <table>
-            <tbody>
-              {r.riesgo.map((x) => (
-                <tr key={x.nivel}>
-                  <th>{x.etiqueta}</th>
-                  <td>
-                    {x.total} ({x.pct}%)
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <h2>Detalle de adultos</h2>
-      <table className={styles.imprimirDetalle}>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Cédula</th>
-            <th>Zona</th>
-            <th>Riesgo</th>
-            <th>Última visita</th>
-            <th>Necesidades activas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {r.adultos.map((a) => (
-            <tr key={a.id}>
-              <td>{a.nombre}</td>
-              <td>{a.cedula}</td>
-              <td>{a.zona}</td>
-              <td>{RIESGO_TEXTO[a.riesgo]}</td>
-              <td>{a.ultimaVisita ? fechaCorta(a.ultimaVisita) : 'Sin visitas'}</td>
-              <td>{a.necesidadesActivas}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }

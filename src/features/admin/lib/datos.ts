@@ -1,3 +1,8 @@
+/*
+ * datos.ts — Utilidades del área de administración: texto, fechas relativas y usuarios de la organización.
+ * Módulo: admin (RF-09 · CU-13).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useMemo } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import { useSession } from '@/domain/auth'
@@ -40,14 +45,7 @@ export function hace(iso: string, ahora: Date = new Date()) {
 
 /** "Carmen Rodríguez" → "Carmen R." (como en las tarjetas de alerta del Figma). */
 export const nombreCorto = (a: { nombre: string; apellido: string }) =>
-  `${a.nombre}${a.apellido ? ` ${a.apellido.trim()[0]!.toUpperCase()}.` : ''}`
-
-/** Contraseña aleatoria para cuentas invitadas (el miembro define la suya al registrarse). */
-export function passwordAleatoria() {
-  const bytes = new Uint8Array(12)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 16)
-}
+  `${a.nombre}${a.apellido.trim() ? ` ${a.apellido.trim()[0]!.toUpperCase()}.` : ''}`
 
 /** Vuelve a la pantalla anterior; si se entró directamente por URL, va a `fallback`. */
 export function volver(navigate: NavigateFunction, fallback: string) {
@@ -56,24 +54,11 @@ export function volver(navigate: NavigateFunction, fallback: string) {
   else navigate(fallback, { replace: true })
 }
 
-/* ───────────── Validaciones ───────────── */
+/* ───────────── Usuarios de la organización ───────────── */
 
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-
-/** Teléfono dominicano: 10 dígitos (o 11 con el 1 inicial); admite espacios, guiones y paréntesis. */
-export function telefonoValido(t: string) {
-  const d = t.replace(/\D/g, '')
-  return d.length === 10 || (d.length === 11 && d.startsWith('1'))
-}
-
-/* ───────────── Miembros ───────────── */
-
-/** Miembro = usuario de la organización con rol cuidador o coordinador (y cualquier invitado pendiente). */
-export const esMiembro = (u: Usuario, orgId: string) =>
-  u.orgId === orgId && u.rol !== 'admin' && (u.rol === 'cuidador' || u.rol === 'coordinador' || u.estado === 'invitado')
-
-export function useMiembros(): Usuario[] {
+/** Todas las cuentas de la organización del administrador (los 4 roles y todos los estados). */
+export function useUsuariosOrg(): Usuario[] {
   const { org } = useSession()
   const usuarios = useDB((s) => s.usuarios)
-  return useMemo(() => (org ? usuarios.filter((u) => esMiembro(u, org.id)) : []), [usuarios, org])
+  return useMemo(() => (org ? usuarios.filter((u) => u.orgId === org.id) : []), [usuarios, org])
 }

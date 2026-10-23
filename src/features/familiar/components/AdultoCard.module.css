@@ -1,5 +1,0 @@
-.cabecera { display: flex; align-items: center; gap: var(--sp-4); }
-.titulo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.nombre { font-size: var(--fs-xl); font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
-.familia { font-size: var(--fs-xs); color: var(--c-muted); }
-.datos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-top: var(--sp-4); }

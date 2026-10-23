@@ -1,37 +1,43 @@
+/*
+ * EditarPerfil.tsx — Editar mi perfil: nombre, correo, teléfono y foto; cambio de contraseña y eliminación de
+ * la propia cuenta (voluntario y familiar responsable).
+ * Módulo: perfil (Ley 172-13: rectificación y cancelación · SRS §8.2.2.3.4 e: auditoría · §8.2.2.1.22: sin
+ * perder lo escrito).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useCallback, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Lock, Pencil } from 'lucide-react'
+import { KeyRound, Pencil, Trash2 } from 'lucide-react'
 import { Button, InfoRow, Sheet, TextField, useToast } from '@/components/ui'
-import { nombreCompleto, useSession } from '@/domain/auth'
-import { mutate, useDB } from '@/domain/store'
+import { logout, nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'
+import { useEnLinea } from '@/domain/conectividad'
 import type { Usuario } from '@/domain/types'
-import { errorEmail, errorNombre, errorTelefono, formatTelefono, hayErrores, normalizarEmail } from '@/features/auth/lib/validar'
+import { Aviso } from '@/features/auth/components/Piezas'
+import { formatTelefono } from '@/features/auth/lib/validar'
 import { Page, useShell } from '@/layouts/AppShell'
+import { useBorrador } from '@/lib/useBorrador'
 import { CambiarPassword } from '../components/CambiarPassword'
 import { PerfilCabecera } from '../components/PerfilCabecera'
 import { leerAvatar } from '../lib/avatar'
+import { actualizarMiPerfil, eliminarMiCuenta, type DatosMiPerfil } from '../lib/cuenta'
 import { muestraCedula, puedeEliminarCuenta } from '../lib/rol'
-import styles from '../Perfil.module.css'
 
-interface Errores {
-  nombre?: string
-  apellido?: string
-  email?: string
-  telefono?: string
-}
+type Errores = Partial<Record<'nombre' | 'apellido' | 'email' | 'telefono', string>>
 
 function Vista({ user }: { user: Usuario }) {
   const { base } = useShell()
   const navigate = useNavigate()
   const toast = useToast()
-  const usuarios = useDB((s) => s.usuarios)
+  const enLinea = useEnLinea()
   const archivo = useRef<HTMLInputElement>(null)
 
-  const [nombre, setNombre] = useState(user.nombre)
-  const [apellido, setApellido] = useState(user.apellido)
-  const [email, setEmail] = useState(user.email)
-  const [telefono, setTelefono] = useState(user.telefono)
-  const [avatar, setAvatar] = useState<string | undefined>(user.avatar)
+  const [d, setD, descartar] = useBorrador<DatosMiPerfil>(`mi-perfil:${user.id}`, {
+    nombre: user.nombre,
+    apellido: user.apellido,
+    email: user.email,
+    telefono: user.telefono,
+    avatar: user.avatar,
+  })
   const [errores, setErrores] = useState<Errores>({})
   const [cambiando, setCambiando] = useState(false)
   const [eliminando, setEliminando] = useState(false)
@@ -39,14 +45,18 @@ function Vista({ user }: { user: Usuario }) {
   const conCedula = muestraCedula(user.rol)
   const cerrarPassword = useCallback(() => setCambiando(false), [])
   const cerrarEliminar = useCallback(() => setEliminando(false), [])
-  const limpiar = (campo: keyof Errores) => setErrores((x) => ({ ...x, [campo]: undefined }))
+  const set = (campo: keyof Errores, valor: string) => {
+    setD((x) => ({ ...x, [campo]: valor }))
+    setErrores((x) => ({ ...x, [campo]: undefined }))
+  }
 
   const elegirFoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     e.target.value = '' // permite volver a elegir el mismo archivo
     if (!f) return
     try {
-      setAvatar(await leerAvatar(f))
+      const avatar = await leerAvatar(f)
+      setD((x) => ({ ...x, avatar }))
     } catch (err) {
       toast(err instanceof Error ? err.message : 'No se pudo cargar la imagen.', 'error')
     }
@@ -54,105 +64,86 @@ function Vista({ user }: { user: Usuario }) {
 
   const guardar = (e: FormEvent) => {
     e.preventDefault()
-    const correo = normalizarEmail(email)
-    const duplicado = usuarios.some((u) => u.id !== user.id && u.email.toLowerCase() === correo)
-    const nuevos: Errores = {
-      nombre: errorNombre(nombre, 'nombre'),
-      apellido: errorNombre(apellido, 'apellido'),
-      email: errorEmail(email) ?? (duplicado ? 'Ya existe una cuenta con este correo.' : undefined),
-      telefono: errorTelefono(telefono),
+    const res = actualizarMiPerfil(user, d)
+    if (!res.ok) {
+      setErrores(res.errores ?? {})
+      if (!res.errores) toast(res.error, 'error')
+      return
     }
-    setErrores(nuevos)
-    if (hayErrores({ ...nuevos })) return
-
-    mutate((db) => {
-      const u = db.usuarios.find((x) => x.id === user.id)
-      if (!u) return
-      u.nombre = nombre.trim()
-      u.apellido = apellido.trim()
-      u.email = correo
-      u.telefono = telefono
-      if (avatar) u.avatar = avatar
-      else delete u.avatar
-    })
+    descartar()
     toast('Cambios guardados')
     navigate(`${base}/perfil`)
   }
 
+  const cancelar = () => {
+    descartar()
+    navigate(`${base}/perfil`)
+  }
+
   const eliminar = () => {
-    mutate((db) => {
-      db.usuarios = db.usuarios.filter((u) => u.id !== user.id)
-      for (const a of db.adultos) a.cuidadorIds = a.cuidadorIds.filter((id) => id !== user.id)
-      db.sessionUserId = null
-    })
-    toast('Tu cuenta fue eliminada')
+    const res = eliminarMiCuenta(user)
+    if (!res.ok) {
+      toast(res.error, 'error')
+      return
+    }
+    descartar()
+    logout()
+    toast('Tu cuenta fue eliminada. Gracias por acompañar a tu comunidad.')
     navigate('/inicio', { replace: true })
   }
 
-  const nombreVista = nombreCompleto({ nombre: nombre.trim() || user.nombre, apellido: apellido.trim() || user.apellido })
+  const nombreVista = nombreCompleto({ nombre: d.nombre.trim() || user.nombre, apellido: d.apellido.trim() || user.apellido })
 
   return (
-    <Page title="Editar Mi Perfil" back={`${base}/perfil`} hideAvatar>
-      <form className={styles.panel} onSubmit={guardar} noValidate>
+    <Page title="Editar perfil" back={`${base}/perfil`} hideAvatar>
+      <form
+        className="flex flex-col gap-7 md:rounded-lg md:border md:border-line-soft md:bg-surface md:px-10 md:py-8 md:shadow-1"
+        onSubmit={guardar}
+        noValidate
+      >
         <PerfilCabecera
           nombre={nombreVista}
-          avatar={avatar}
-          size={195}
+          avatar={d.avatar}
+          size={150}
           cedula={conCedula ? user.cedula : undefined}
-          etiqueta={user.etiqueta}
+          rol={ROL_LABEL[user.rol]}
           fotoAccion={
             <>
-              <button type="button" className={styles.fotoBtn} aria-label="Cambiar foto de perfil" onClick={() => archivo.current?.click()}>
+              <button
+                type="button"
+                className="absolute bottom-1 right-0 grid size-12 place-items-center rounded-full border-[3px] border-bg bg-navy text-white shadow-2 transition hover:bg-navy-700"
+                aria-label="Cambiar foto de perfil"
+                onClick={() => archivo.current?.click()}
+              >
                 <Pencil size={20} aria-hidden />
               </button>
               <input ref={archivo} type="file" accept="image/*" hidden onChange={elegirFoto} />
             </>
           }
-        />
-        {avatar && (
-          <div className={styles.quitarFoto}>
-            <Button variant="ghost" size="sm" onClick={() => setAvatar(undefined)}>
+        >
+          {d.avatar && (
+            <Button variant="ghost" size="sm" onClick={() => setD((x) => ({ ...x, avatar: undefined }))}>
               Quitar foto
             </Button>
-          </div>
-        )}
+          )}
+        </PerfilCabecera>
 
-        <section className={styles.seccion} aria-labelledby="editar-info">
+        <section className="flex flex-col gap-5" aria-labelledby="editar-info">
           <h2 className="section-title" id="editar-info">
-            Información Personal
+            Información personal
           </h2>
-          <div className={styles.campos}>
-            <TextField
-              label="Nombre"
-              autoComplete="given-name"
-              value={nombre}
-              error={errores.nombre}
-              onChange={(e) => {
-                setNombre(e.target.value)
-                limpiar('nombre')
-              }}
-            />
-            <TextField
-              label="Apellido"
-              autoComplete="family-name"
-              value={apellido}
-              error={errores.apellido}
-              onChange={(e) => {
-                setApellido(e.target.value)
-                limpiar('apellido')
-              }}
-            />
+          <div className="grid gap-5 md:grid-cols-2 md:gap-x-6">
+            <TextField label="Nombre" autoComplete="given-name" value={d.nombre} error={errores.nombre} onChange={(e) => set('nombre', e.target.value)} />
+            <TextField label="Apellido" autoComplete="family-name" value={d.apellido} error={errores.apellido} onChange={(e) => set('apellido', e.target.value)} />
             <TextField
               label="Correo electrónico"
               type="email"
               inputMode="email"
               autoComplete="email"
-              value={email}
+              value={d.email}
               error={errores.email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                limpiar('email')
-              }}
+              help="Es el correo con el que inicias sesión. Si lo cambias, usa el nuevo la próxima vez."
+              onChange={(e) => set('email', e.target.value)}
             />
             <TextField
               label="Teléfono"
@@ -161,24 +152,22 @@ function Vista({ user }: { user: Usuario }) {
               autoComplete="tel-national"
               placeholder="000 000 0000"
               maxLength={12}
-              value={telefono}
+              value={d.telefono}
               error={errores.telefono}
-              onChange={(e) => {
-                setTelefono(formatTelefono(e.target.value))
-                limpiar('telefono')
-              }}
+              onChange={(e) => set('telefono', formatTelefono(e.target.value))}
             />
           </div>
+          {conCedula && <p className="text-sm text-muted">Para corregir tu cédula o tu rol, contacta al administrador de tu organización.</p>}
         </section>
 
-        <section className={styles.seccion} aria-labelledby="editar-cuenta">
+        <section className="flex flex-col gap-4" aria-labelledby="editar-cuenta">
           <h2 className="section-title" id="editar-cuenta">
             Cuenta
           </h2>
           <InfoRow
-            icon={<Lock size={24} aria-hidden />}
+            icon={<KeyRound size={22} aria-hidden />}
             label="Contraseña"
-            value="••••••••••••••••"
+            value="••••••••••••"
             action={
               <Button variant="ghost" size="sm" onClick={() => setCambiando(true)}>
                 Cambiar
@@ -187,13 +176,21 @@ function Vista({ user }: { user: Usuario }) {
           />
         </section>
 
-        <div className={styles.acciones}>
-          <Button type="submit" variant="soft" fullWidth>
-            Guardar Cambios
+        <div className="flex flex-col gap-3">
+          {!enLinea && (
+            <Aviso tono="offline">
+              Sin conexión: tus cambios se conservan en este formulario, pero solo podrás guardarlos cuando vuelvas a tener internet.
+            </Aviso>
+          )}
+          <Button type="submit" variant="soft" fullWidth disabled={!enLinea}>
+            Guardar cambios
+          </Button>
+          <Button variant="outline" fullWidth onClick={cancelar}>
+            Cancelar
           </Button>
           {puedeEliminarCuenta(user.rol) && (
-            <Button variant="danger-soft" fullWidth onClick={() => setEliminando(true)}>
-              Eliminar Cuenta
+            <Button variant="danger-soft" fullWidth icon={<Trash2 size={20} aria-hidden />} disabled={!enLinea} onClick={() => setEliminando(true)}>
+              Eliminar mi cuenta
             </Button>
           )}
         </div>
@@ -204,30 +201,35 @@ function Vista({ user }: { user: Usuario }) {
       <Sheet
         open={eliminando}
         onClose={cerrarEliminar}
-        title="Eliminar cuenta"
+        title="Eliminar mi cuenta"
         footer={
           <>
-            <Button variant="outline" onClick={cerrarEliminar}>
+            <Button variant="outline" size="sm" onClick={cerrarEliminar}>
               Cancelar
             </Button>
-            <Button variant="danger" onClick={eliminar}>
+            <Button variant="danger" size="sm" onClick={eliminar} disabled={!enLinea}>
               Sí, eliminar
             </Button>
           </>
         }
       >
-        <div className={styles.confirma}>
+        <div className="flex flex-col gap-3 leading-normal text-ink-2">
           <p>
-            ¿Seguro que quieres eliminar la cuenta <strong>{user.email}</strong>?
+            ¿Seguro que quieres eliminar la cuenta <strong className="wrap-anywhere text-ink">{user.email}</strong>?
           </p>
-          <p>Esta acción no se puede deshacer: se cerrará tu sesión y dejarás de tener acceso a CuidaRed.</p>
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            <li>Se borrarán tus datos personales y se cerrará tu sesión.</li>
+            <li>Dejarás de tener acceso a CuidaRed; para volver, tu organización tendrá que invitarte de nuevo.</li>
+            <li>Las visitas y necesidades que registraste se conservan en el historial del adulto mayor, según la política de retención.</li>
+          </ul>
+          <p className="font-semibold text-danger">Esta acción no se puede deshacer.</p>
         </div>
       </Sheet>
     </Page>
   )
 }
 
-/** Editar Mi Perfil — compartido por los 4 roles (cuidador 358:2787 · familiar 285:819 · admin 238:612 · coordinador 361:723). */
+/** Editar perfil — compartido por los 4 roles. */
 export default function EditarPerfil() {
   const { user } = useSession()
   if (!user) return null
