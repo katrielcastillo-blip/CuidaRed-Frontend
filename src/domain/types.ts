@@ -54,7 +54,27 @@ export interface Parametro {
   valorDefecto: string
 }
 
-/** @tabla Plan (Plan_Id, Plan_Nombre, Plan_Categoria FK, Plan_Precio, Plan_Periodicidad, Plan_DuracionDias, Plan_Estado, Limite_Envejecientes, Limite_Usuarios, Cuenta_Tipo_Id FK) */
+/**
+ * Funcionalidades que dependen del plan contratado (Reglas de Negocio V2 §Plan). Se consultan con
+ * `cuentaTieneFuncionalidad` (domain/planes.ts) y `useFuncionalidad` (domain/usePlan.ts).
+ */
+export type Funcionalidad =
+  | 'registro_visitas'
+  | 'necesidades_diarias'
+  | 'visitas_recurrentes'
+  | 'tablon_notificaciones'
+  | 'alertas_tiempo_real'
+  | 'historial_inmutable'
+  | 'dashboard_metricas'
+  | 'riesgo_completo'
+  | 'org_necesidad'
+  | 'reportes_avanzados'
+
+/**
+ * @tabla Plan (Plan_Id, Plan_Nombre, Plan_Categoria FK, Plan_Precio, Plan_Periodicidad, Plan_DuracionDias, Plan_Estado,
+ * Limite_Envejecientes, Limite_Usuarios, Cuenta_Tipo_Id FK). V2: cada plan aplica a un único tipo de cuenta y ya no
+ * existe un plan "Trial": la prueba gratuita vive en la Cuenta. Límite `null` = ilimitado.
+ */
 export interface Plan {
   id: string
   nombre: string
@@ -63,9 +83,17 @@ export interface Plan {
   periodicidad: 'mensual' | 'anual' | 'unico'
   duracionDias: number
   estado: 'activo' | 'inactivo'
-  limiteEnvejecientes: number
-  limiteUsuarios: number
-  tipoCuentaId?: string
+  limiteEnvejecientes: number | null
+  /** Miembros (staff) de la cuenta. */
+  limiteUsuarios: number | null
+  /** [V2] Límite de familiares (plan Básico Familiar: 3). */
+  limiteFamiliares?: number | null
+  /** Tipo de cuenta que puede contratarlo (tc-familia | tc-organizacion). @col Cuenta_Tipo_Id */
+  tipoCuentaId: string
+  /** [V2] Funcionalidades incluidas. */
+  funcionalidades: Funcionalidad[]
+  /** Texto corto de la oferta, para la pantalla de planes. */
+  resumen?: string
 }
 
 /** Todos los catálogos de la BD (tablas de referencia). Se inicializan con datos maestros (SRS §11). */
@@ -74,8 +102,8 @@ export interface Catalogos {
   roles: Array<ItemCatalogo & { id: Rol }>
   /** @tabla TipoCuenta */
   tiposCuenta: ItemCatalogo[]
-  /** @tabla Categoria_cuenta */
-  categoriasCuenta: ItemCatalogo[]
+  /** @tabla Categoria_cuenta (V2: cada categoría pertenece a un tipo de cuenta). */
+  categoriasCuenta: Array<ItemCatalogo & { tipoCuentaId: string }>
   /** @tabla PlanCategoria */
   categoriasPlan: ItemCatalogo[]
   planes: Plan[]
@@ -105,8 +133,12 @@ export interface Catalogos {
 
 /* ════════════════════════════ Cuenta / organización ════════════════════════════ */
 
-/** Roles del sistema (RF-09): administrador, coordinador, voluntario y familiar responsable. @tabla Rol */
-export type Rol = 'voluntario' | 'familiar' | 'admin' | 'coordinador'
+/**
+ * Roles del sistema (RF-09 · Reglas de Negocio V2 §Cuenta). @tabla Rol
+ *  - Cuenta Familia: coordinador, cuidador, familiar.
+ *  - Cuenta Organización: admin, coordinador, cuidador, familiar, voluntario.
+ */
+export type Rol = 'voluntario' | 'familiar' | 'admin' | 'coordinador' | 'cuidador'
 export type Riesgo = 'bajo' | 'medio' | 'alto'
 export type Prioridad = 'alta' | 'media' | 'baja'
 export type EstadoMiembro = 'activo' | 'inactivo' | 'invitado'
@@ -307,12 +339,13 @@ export interface ContactoEmergencia {
 }
 
 /** Tipos de vínculo con significado para el control de acceso. @tabla Tipo_vinculo */
-export type TipoVinculo = 'familiar_responsable' | 'voluntario_asignado' | 'referente'
+export type TipoVinculo = 'familiar_responsable' | 'cuidador_asignado' | 'voluntario_asignado' | 'referente'
 
 /**
  * @tabla Vinculo (Env_Id, User_Id, Tipo_vinculo_Id): relación usuario ↔ adulto mayor.
- * Define el alcance de acceso: el voluntario ve los adultos con vínculo "voluntario_asignado"; el familiar
- * responsable, los adultos con vínculo "familiar_responsable".
+ * Define el alcance de acceso (V2: el vínculo por sí solo no concede acceso; se combina con el rol):
+ * el cuidador ve los adultos con vínculo "cuidador_asignado", el voluntario los de "voluntario_asignado" y el
+ * familiar responsable solo aquellos con autorización explícita ("familiar_responsable").
  */
 export interface Vinculo {
   adultoId: string
@@ -406,8 +439,43 @@ export interface Visita extends MarcaSync {
   notas?: string
   evidencias: string[]
   creadaPor?: string
+  /**
+   * [V2] Visita de una persona externa autorizada a partir de una SolicitudVisita. En ese caso `cuidadorId` es el
+   * usuario principal que la autorizó (responsable ante la cuenta) y la observación la deja el visitante.
+   */
+  visitante?: { nombre: string; solicitudId: string }
   actualizadoEn: string
   actualizadoPor?: string
+}
+
+/**
+ * Solicitud de visita de una persona externa (visitante / voluntario ocasional). V2: el visitante no es un rol
+ * ni pertenece a una cuenta con plan; pide la visita desde la página de bienvenida, un usuario principal de la
+ * cuenta (Administrador o Coordinador) la autoriza y, ya realizada, el visitante deja su observación con el
+ * código de seguimiento. [V2] (RegistroVisita.Autorizada_por_user_Id)
+ */
+export interface SolicitudVisita {
+  id: string
+  orgId: string
+  visitante: { nombres: string; apellidos: string; cedula: string; telefono: string; correo?: string }
+  /** Nombre de la persona a visitar tal como lo escribe el visitante (no se le muestran perfiles). */
+  personaAVisitar: string
+  /** Adulto confirmado por quien autoriza. */
+  adultoId?: string
+  fechaPropuesta: string // YYYY-MM-DD
+  horaPropuesta: string // HH:MM
+  motivo: string
+  estado: 'pendiente' | 'autorizada' | 'rechazada' | 'realizada' | 'cancelada'
+  /** Hash del código de seguimiento que recibe el visitante (nunca el código en claro). */
+  codigoHash: string
+  creadaEn: string // ISO UTC
+  revisadaPor?: string
+  revisadaEn?: string
+  motivoRechazo?: string
+  /** Visita creada al autorizar. */
+  visitaId?: string
+  observacion?: string
+  observacionEn?: string
 }
 
 /* ════════════════════════════ Necesidades ════════════════════════════ */
@@ -462,6 +530,29 @@ export interface Necesidad extends MarcaSync {
   visitaId?: string
   actualizadoEn: string
   actualizadoPor?: string
+}
+
+/**
+ * @tabla Org_Necesidad [V2 · plan Gestión Comunitaria Avanzada]: necesidad de la organización (no de un
+ * envejeciente concreto), p. ej. insumos para el centro o transporte para una jornada.
+ */
+export interface NecesidadOrganizacion {
+  id: string
+  orgId: string
+  catalogoId?: string
+  tipo: TipoNecesidad
+  descripcion: string
+  cantidad?: number
+  unidad?: string
+  prioridad: Prioridad
+  estado: EstadoNecesidad
+  registradaPor: string
+  creadaEn: string // ISO UTC
+  responsableId?: string
+  satisfechaEn?: string
+  motivoResolucion?: string
+  historial: CambioEstadoNecesidad[]
+  actualizadoEn: string
 }
 
 /* ════════════════════════════ Alertas ════════════════════════════ */
@@ -534,6 +625,8 @@ export interface Tarea {
   estado: EstadoTarea
   requiereEvidencia: boolean
   repetitiva: boolean
+  /** Serie a la que pertenece una ocurrencia repetida (cada ocurrencia es una tarea individual, V2). */
+  serieId?: string
   creadaPor: string
   actualizadoEn: string
 }
@@ -549,6 +642,13 @@ export interface Evidencia {
   estadoValidacion: 'pendiente' | 'validada' | 'rechazada'
   registradaPor: string
   validadaPor?: string
+  validadaEn?: string
+  /** Motivo obligatorio al rechazar (lo ve el cuidador). */
+  motivoRechazo?: string
+  /** Metadatos del archivo original (RS-013: tipo y tamaño limitados). */
+  nombreArchivo?: string
+  tipoArchivo?: string
+  tamano?: number
 }
 
 /* ════════════════════════════ Otros ════════════════════════════ */
@@ -580,6 +680,7 @@ export type EntidadAuditada =
   | 'indicacion'
   | 'tarea'
   | 'pago'
+  | 'solicitud'
 export type ResultadoAuditoria = 'exito' | 'fallo' | 'denegado' | 'conflicto'
 
 export interface RegistroAuditoria {
@@ -632,6 +733,8 @@ export interface DB {
   tareas: Tarea[]
   evidencias: Evidencia[]
   invitaciones: Invitacion[]
+  solicitudesVisita: SolicitudVisita[]
+  necesidadesOrg: NecesidadOrganizacion[]
   auditoria: RegistroAuditoria[]
   bloqueos: Record<string, BloqueoLogin>
   recuperaciones: Recuperacion[]

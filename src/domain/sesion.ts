@@ -9,6 +9,8 @@
  */
 export interface Sesion {
   usuarioId: string
+  /** Membresía (cuenta + rol) en la que actúa el usuario. V2: un usuario puede pertenecer a varias cuentas. */
+  membresiaId?: string
   inicio: string // ISO UTC
   ultimaActividad: string // ISO UTC
 }
@@ -46,9 +48,18 @@ function guardar(s: Sesion | null) {
 
 export const getSesion = () => actual
 
-export function abrirSesion(usuarioId: string) {
+/** Identidad de la sesión ("usuario|membresía") como texto estable para useSyncExternalStore. */
+export const claveSesion = () => (actual ? `${actual.usuarioId}|${actual.membresiaId ?? ''}` : null)
+
+export function abrirSesion(usuarioId: string, membresiaId?: string) {
   const ahora = new Date().toISOString()
-  guardar({ usuarioId, inicio: ahora, ultimaActividad: ahora })
+  guardar({ usuarioId, membresiaId, inicio: ahora, ultimaActividad: ahora })
+}
+
+/** Cambia la cuenta/rol activo sin cerrar la sesión (selector de cuenta). */
+export function fijarMembresiaSesion(membresiaId: string) {
+  if (!actual) return
+  guardar({ ...actual, membresiaId, ultimaActividad: new Date().toISOString() })
 }
 
 export function cerrarSesionLocal() {

@@ -9,8 +9,10 @@
  * limpiarDatos(): borra la base local, la sesión, el sessionStorage y la cola offline (IndexedDB) y
  * recarga, de modo que la app vuelve a sembrar los datos de demostración (fechas relativas a hoy).
  *
- * Modelo de datos V3.0 (DB_VERSION 4, docs/MAPEO-BD.md): el acceso de voluntarios y familiares a un adulto
- * mayor se define con la tabla `vinculos` (voluntario_asignado / familiar_responsable), los contactos de
+ * Modelo de datos V3.0 + Reglas de Negocio V2 (DB_VERSION 5, docs/MAPEO-BD.md): 5 roles (admin, coordinador, cuidador,
+ * voluntario, familiar) y dos cuentas demo (Organización «Fundación Esperanza» org-1 y Familia «Familia Méndez»
+ * org-fam). El acceso a un adulto mayor se define con la tabla `vinculos` (cuidador_asignado / voluntario_asignado /
+ * familiar_responsable), los contactos de
  * emergencia viven en `contactos`, el nivel de riesgo vigente se deriva de `riesgos` (Env_Riesgo) y el umbral
  * de días sin visita es el parámetro DIAS_SIN_VISITA_ALERTA (prm-1) de `configuracion`. Los constructores
  * visitaCompletada() y necesidadPendiente() crean registros completos de ese modelo para sembrarlos con editarDB().
@@ -27,11 +29,15 @@ export const PASSWORD_DEMO = 'Demo1234'
 export const CUENTAS: Record<Rol, { email: string; id: string; nombre: string; etiqueta: string; home: string }> = {
   admin: { email: 'admin@cuidared.do', id: 'u-admin', nombre: 'Andrea Peña', etiqueta: 'Administrador', home: '/admin' },
   coordinador: { email: 'coordinador@cuidared.do', id: 'u-coord', nombre: 'Laura Núñez', etiqueta: 'Coordinador', home: '/coordinador' },
-  voluntario: { email: 'voluntario@cuidared.do', id: 'u-cuid', nombre: 'Carlos Ruiz', etiqueta: 'Voluntario', home: '/voluntario' },
+  cuidador: { email: 'cuidador@cuidared.do', id: 'u-cuid', nombre: 'Carlos Ruiz', etiqueta: 'Cuidador', home: '/cuidador' },
+  voluntario: { email: 'voluntario@cuidared.do', id: 'u-vol', nombre: 'Miguel Acosta', etiqueta: 'Voluntario', home: '/voluntario' },
   familiar: { email: 'familiar@cuidared.do', id: 'u-fam', nombre: 'Clara Rodríguez', etiqueta: 'Familiar responsable', home: '/familiar' },
 }
 
-const HOME_POR_ID: Record<string, string> = Object.fromEntries(Object.values(CUENTAS).map((c) => [c.id, c.home]))
+/** Coordinadora titular de la cuenta Familia «Familia Méndez» (en prueba gratuita de 14 días). */
+export const CUENTA_FAMILIA = { email: 'familia@cuidared.do', id: 'u-fcoord', nombre: 'Patricia Méndez', etiqueta: 'Coordinador', home: '/coordinador', orgId: 'org-fam' } as const
+
+const HOME_POR_ID: Record<string, string> = { ...Object.fromEntries(Object.values(CUENTAS).map((c) => [c.id, c.home])), [CUENTA_FAMILIA.id]: CUENTA_FAMILIA.home }
 
 /**
  * Deja la app con datos limpios: borra 'cuidared:db', 'cuidared:sesion' (y el resto de claves de la app),

@@ -1,19 +1,26 @@
 /*
- * AgregarMiembro.tsx — Alta de usuario: datos, rol (los 4 del SRS) y modo de acceso. Por defecto se envía
- * una INVITACIÓN (la persona activa su cuenta en "Activar mi cuenta" y elige su contraseña); opcionalmente el
- * administrador define una contraseña inicial que cumple la política de contraseñas robustas.
- * Tablas: Usuario, Membresia (rol inicial) y Vinculo (adultos a cargo del familiar responsable).
- * Módulo: admin (RF-09 · CU-13 · SRS §8.2.2.3.5 b/d · §8.2.2.1.18 Operabilidad).
+ * AgregarMiembro.tsx — Alta de miembro de la cuenta: datos, rol (solo los del tipo de cuenta: Familia u Organización),
+ * adultos mayores a los que tendrá acceso y modo de acceso. Por defecto se genera una INVITACIÓN con su código de
+ * activación para compartir (la persona activa su cuenta en «Activar mi cuenta», /registro, y elige su contraseña);
+ * opcionalmente se define una contraseña inicial que cumple la política. Con el rol Voluntario es la invitación del
+ * voluntario ocasional: registra visitas sin plan propio y no cuenta para el límite de usuarios del plan. Si el correo
+ * ya pertenece a una persona registrada en otra cuenta, se le agrega una membresía (no se duplica la persona).
+ * Tablas: Usuario, Membresia (rol inicial), Invitacion y Vinculo (adultos con acceso).
+ * Módulo: admin (RF-09 · CU-13 · SRS §8.2.2.3.5 b/d · §8.2.2.1.18 Operabilidad · Reglas de Negocio V2 §Cuenta y §Voluntario).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import { Button, ChoicePills, PasswordField, SuccessOverlay, useToast } from '@/components/ui'
-import { crearUsuario } from '@/domain/api'
-import { useUser } from '@/domain/auth'
+import { crearUsuario, errorDeCupo } from '@/domain/api'
+import { useSession, useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
+import { puede } from '@/domain/permisos'
+import { tipoDeCuenta } from '@/domain/planes'
 import { REGLAS_PASSWORD } from '@/domain/seguridad'
+import { useDB } from '@/domain/store'
+import type { Rol } from '@/domain/types'
 import { useBorrador } from '@/lib/useBorrador'
 import { cn } from '@/lib/cn'
 import { Page, useShell } from '@/layouts/AppShell'
@@ -28,22 +35,42 @@ const MODOS: Array<{ value: Modo; label: string }> = [
   { value: 'password', label: 'Definir contraseña' },
 ]
 
+interface Creado {
+  id: string
+  invitado: boolean
+  codigo?: string
+  email: string
+  rol: Rol
+  yaExistia: boolean
+}
+
 export default function AgregarMiembro() {
   const { base } = useShell()
   const admin = useUser()
+  const { org } = useSession()
   const navigate = useNavigate()
   const toast = useToast()
   const enLinea = useEnLinea()
+  const adultos = useDB((s) => s.adultos)
+  const usuarios = useDB((s) => s.usuarios)
+  const membresias = useDB((s) => s.membresias)
+  const catalogos = useDB((s) => s.catalogos)
   // El borrador conserva lo escrito si se recarga la pantalla. La contraseña NUNCA se guarda en el borrador.
   const [datos, setDatos, descartar] = useBorrador<CamposUsuario>('admin:nuevo-usuario', CAMPOS_VACIOS)
   const [modo, setModo] = useState<Modo>('invitacion')
   const [password, setPassword] = useState('')
   const [errores, setErrores] = useState<ErroresUsuario>({})
   const [enviando, setEnviando] = useState(false)
-  const [creado, setCreado] = useState<{ id: string; invitado: boolean; codigo?: string; email: string } | null>(null)
+  const [creado, setCreado] = useState<Creado | null>(null)
+
+  const tipo = tipoDeCuenta(org)
+  const esVoluntario = datos.rol === 'voluntario'
+  /** Aviso del plan: si el rol elegido no cabe (los voluntarios no cuentan), no se deja enviar. */
+  const cupo = useMemo(() => (datos.rol ? errorDeCupo({ adultos, usuarios, membresias, catalogos }, org, datos.rol) : undefined), [datos.rol, adultos, usuarios, membresias, catalogos, org])
 
   const cambiar = <K extends keyof CamposUsuario>(campo: K, valor: CamposUsuario[K]) => {
-    setDatos((d) => ({ ...d, [campo]: valor, ...(campo === 'rol' && valor !== 'familiar' ? { adultoIds: [] } : {}) }))
+    // Al cambiar de rol se limpian los adultos marcados: autorizar a un familiar y asignar a un voluntario no son lo mismo.
+    setDatos((d) => ({ ...d, [campo]: valor, ...(campo === 'rol' ? { adultoIds: [] } : {}) }))
     if (errores[campo]) setErrores((e) => ({ ...e, [campo]: undefined }))
   }
 
@@ -63,7 +90,7 @@ export default function AgregarMiembro() {
     }
     descartar()
     setPassword('')
-    setCreado({ id: r.valor.id, invitado: r.valor.estado === 'invitado', codigo: r.valor.codigoActivacion, email: r.valor.email })
+    setCreado({ id: r.valor.id, invitado: r.valor.estado === 'invitado', codigo: r.valor.codigoActivacion, email: r.valor.email, rol: r.valor.rol, yaExistia: !!r.valor.yaExistia })
   }
 
   const cancelar = () => {
@@ -71,21 +98,37 @@ export default function AgregarMiembro() {
     volver(navigate, `${base}/miembros`)
   }
 
+  const irAlPerfil = () => creado && navigate(`${base}/miembros/${creado.id}`, { replace: true })
+
   return (
-    <Page title="Agregar usuario" back={`${base}/miembros`}>
+    <Page title="Agregar miembro" back={`${base}/miembros`}>
       <form className="flex flex-col gap-5" onSubmit={enviar} noValidate>
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold">Nuevo usuario</h2>
-          <p className="text-muted">Registra los datos de la persona y asígnale un rol. Los campos con * son obligatorios.</p>
+          <h2 className="text-2xl font-bold">Nuevo miembro</h2>
+          <p className="text-muted">
+            Registra los datos de la persona, elige su rol y los adultos mayores a los que tendrá acceso.
+            {tipo === 'familia' ? ' En una cuenta Familia puedes ofrecer Coordinador, Cuidador y Familiar.' : ''} Los campos con * son obligatorios.
+          </p>
         </div>
 
         {!enLinea && <AvisoSinConexion />}
 
         <UsuarioCampos datos={datos} errores={errores} onChange={cambiar} />
 
+        {cupo && (
+          <Nota tono="warning">
+            {cupo}{' '}
+            {puede(admin, 'cuenta:suscripcion') && (
+              <Link to={`${base}/suscripcion`} className="font-bold text-navy underline">
+                Ver plan
+              </Link>
+            )}
+          </Nota>
+        )}
+
         <section className="flex flex-col gap-4 p-4 rounded-md bg-surface shadow-1" aria-labelledby="h-acceso">
           <h3 id="h-acceso" className="text-base font-bold">
-            Acceso a la cuenta
+            {esVoluntario ? 'Invitación del voluntario' : 'Acceso a la cuenta'}
           </h3>
           <ChoicePills
             label="¿Cómo obtendrá su contraseña?"
@@ -99,8 +142,9 @@ export default function AgregarMiembro() {
           />
           {modo === 'invitacion' ? (
             <Nota>
-              La cuenta quedará como <strong>Invitado</strong>. La persona la activa desde <strong>“Activar mi cuenta”</strong> con este mismo correo y elige su propia
-              contraseña.
+              Al guardar se genera un <strong>código de activación</strong> para compartir con la persona (copiar o enviar por mensaje). La cuenta queda como{' '}
+              <strong>Invitado</strong>; la persona la activa desde <strong>“Activar mi cuenta”</strong> con este mismo correo y el código, y elige su propia contraseña.
+              {esVoluntario && ' Al activarla entra directo a su área de voluntario para registrar visitas.'}
             </Nota>
           ) : (
             <>
@@ -135,8 +179,8 @@ export default function AgregarMiembro() {
         </section>
 
         <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
-          <Button type="submit" fullWidth loading={enviando} disabled={!enLinea}>
-            {modo === 'invitacion' ? 'Guardar y enviar invitación' : 'Crear usuario'}
+          <Button type="submit" fullWidth loading={enviando} disabled={!enLinea || !!cupo}>
+            {modo === 'invitacion' ? 'Guardar y generar invitación' : 'Crear miembro'}
           </Button>
           <Button variant="outline" className="border-navy!" fullWidth onClick={cancelar}>
             Cancelar
@@ -146,15 +190,11 @@ export default function AgregarMiembro() {
 
       <SuccessOverlay
         open={!!creado && !creado.invitado}
-        message="¡Usuario creado!"
-        detail="La cuenta ya puede iniciar sesión."
-        onDone={() => creado && navigate(`${base}/miembros/${creado.id}`, { replace: true })}
+        message={creado?.yaExistia ? '¡Miembro agregado!' : '¡Miembro creado!'}
+        detail={creado?.yaExistia ? 'Ya usaba CuidaRed: se agregó a tu cuenta con su perfil actual. Elige esta cuenta en el selector para entrar.' : 'La cuenta ya puede iniciar sesión.'}
+        onDone={irAlPerfil}
       />
-      <CodigoActivacion
-        codigo={creado?.invitado ? (creado.codigo ?? null) : null}
-        email={creado?.email ?? ''}
-        onCerrar={() => creado && navigate(`${base}/miembros/${creado.id}`, { replace: true })}
-      />
+      <CodigoActivacion codigo={creado?.invitado ? (creado.codigo ?? null) : null} email={creado?.email ?? ''} rol={creado?.rol} onCerrar={irAlPerfil} />
     </Page>
   )
 }

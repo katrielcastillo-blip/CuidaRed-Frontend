@@ -10,7 +10,7 @@ import { nombreCompleto } from '../nombres'
 import { getDB, mutate, uid } from '../store'
 import { encolar } from '../sync'
 import { notificarAlerta } from '../reglas'
-import { tieneVinculo } from '../relaciones'
+import { esRolDeCampo, tieneVinculo, VINCULO_DE_ROL } from '../relaciones'
 import type { Alerta, DetalleVisita, EstadoAdultoVisita, Usuario, Visita } from '../types'
 import { enLista, errorFechaPasada, errorTexto, fechaValida, hayErrores } from '../validacion'
 import { todayISO } from '../dates'
@@ -32,6 +32,11 @@ export interface DatosVisita {
   observaciones: string
   checklist: string[]
   evidencias: string[]
+  /**
+   * Registro mínimo del Voluntario (V2 §Visita: solo registra que la visita ocurrió y deja una observación):
+   * el estado del adulto y la lista de aspectos son opcionales.
+   */
+  minima?: boolean
 }
 
 const ESTADOS_ADULTO: EstadoAdultoVisita[] = ['estable', 'requiere_atencion', 'situacion_critica']
@@ -49,7 +54,7 @@ export function validarVisita(d: DatosVisita) {
           ? 'Escribe una observación para cada adulto adicional.'
           : undefined,
     fecha: errorFechaPasada(d.fecha, 'la fecha de la visita'),
-    estadoAdulto: enLista(d.estadoAdulto, ESTADOS_ADULTO) ? undefined : 'Indica el estado del adulto durante la visita.',
+    estadoAdulto: enLista(d.estadoAdulto, ESTADOS_ADULTO) || (d.minima && d.estadoAdulto === '') ? undefined : 'Indica el estado del adulto durante la visita.',
     observaciones: errorTexto(d.observaciones, 'las observaciones', 3, 1000),
     checklist: d.checklist.every((c) => ASPECTOS.includes(c)) ? undefined : 'Hay aspectos no válidos en la lista.',
   }
@@ -213,11 +218,12 @@ export function programarVisita(actor: Usuario, d: DatosProgramacion): Resultado
   }
   mutate((draft) => {
     draft.visitas.push(visita)
-    // El responsable pasa a tener vínculo "voluntario asignado" con el adulto (para que lo vea en su lista).
+    // El responsable (cuidador o voluntario) pasa a tener el vínculo de su rol con el adulto (para que lo vea en su lista).
     const resp = draft.usuarios.find((u) => u.id === d.responsableId)
-    if (resp?.rol === 'voluntario' && !tieneVinculo(draft.vinculos, resp.id, adulto.id, 'voluntario_asignado')) {
+    const tipoVinc = resp ? VINCULO_DE_ROL[resp.rol] : undefined
+    if (resp && esRolDeCampo(resp.rol) && tipoVinc && !tieneVinculo(draft.vinculos, resp.id, adulto.id, tipoVinc)) {
       draft.vinculos = draft.vinculos.filter((v) => !(v.adultoId === adulto.id && v.usuarioId === resp.id))
-      draft.vinculos.push({ adultoId: adulto.id, usuarioId: resp.id, tipoVinculoId: 'voluntario_asignado', creadoEn: new Date().toISOString() })
+      draft.vinculos.push({ adultoId: adulto.id, usuarioId: resp.id, tipoVinculoId: tipoVinc, creadoEn: new Date().toISOString() })
     }
     auditar(draft, actor, { accion: 'visita.programar', entidad: 'visita', registroId: visita.id, detalle: `Para ${d.fecha} ${d.hora}` })
   })

@@ -16,7 +16,7 @@ import { ASPECTOS_VISITA } from '@/domain/catalogos'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, hhmmA12, hora12 } from '@/domain/dates'
 import { alcanzaAdulto, puede } from '@/domain/permisos'
-import { voluntariosDe } from '@/domain/relaciones'
+import { asignadosDe, esRolDeCampo } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Adulto, Usuario, Visita } from '@/domain/types'
 import { Button, Card, Datum, SelectField, Sheet, useToast } from '@/components/ui'
@@ -61,7 +61,7 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
 
   const responsable = usuarios.find((u) => u.id === visita.cuidadorId)
   const autorizo = visita.autorizadaPor ? usuarios.find((u) => u.id === visita.autorizadaPor) : undefined
-  const asignados = useMemo(() => new Set(voluntariosDe(vinculos, adulto.id)), [vinculos, adulto.id])
+  const asignados = useMemo(() => new Set(asignadosDe(vinculos, adulto.id)), [vinculos, adulto.id])
   const estado = ESTADO_VISITA[visita.estado]
   const abierta = visita.estado === 'pendiente' || visita.estado === 'en_curso'
   const puedeProgramar = puede(user, 'visitas:programar', adulto)
@@ -74,7 +74,7 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
   const candidatos = useMemo(
     () =>
       usuarios
-        .filter((u) => (u.rol === 'voluntario' || u.rol === 'coordinador') && u.estado === 'activo' && u.orgId === user.orgId)
+        .filter((u) => (esRolDeCampo(u.rol) || u.rol === 'coordinador') && u.estado === 'activo' && u.orgId === user.orgId)
         .sort((a, b) => Number(asignados.has(b.id)) - Number(asignados.has(a.id)))
         .map((u) => ({
           value: u.id,
@@ -136,8 +136,14 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
                   <Datum label="Registrada el" value={fechaCorta(visita.fin)} />
                 </div>
               )}
+              {/* Visita de un visitante externo autorizado: el responsable ante la cuenta es quien la autorizó. */}
+              {visita.visitante && (
+                <div className="col-span-2">
+                  <Datum label="Visitante" value={visita.visitante.nombre} />
+                </div>
+              )}
               <div className="col-span-2">
-                <Datum label="Responsable" value={responsable ? nombreCompleto(responsable) : 'Sin asignar'} />
+                <Datum label={visita.visitante ? 'Responsable ante la cuenta' : 'Responsable'} value={responsable ? nombreCompleto(responsable) : 'Sin asignar'} />
               </div>
               <div className="col-span-2">
                 <Datum label="Autorizada por" value={autorizo ? nombreCompleto(autorizo) : visita.autorizadaPor ? 'Usuario eliminado' : 'Sin autorización previa (visita registrada en campo)'} />

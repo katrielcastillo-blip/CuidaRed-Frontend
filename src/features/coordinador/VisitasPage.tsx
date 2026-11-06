@@ -2,7 +2,7 @@
  * VisitasPage.tsx — Agenda de visitas de la organización para el coordinador: pestañas Hoy · Próximas ·
  * Historial, filtros por voluntario responsable y estado, búsqueda (adulto, voluntario o motivo) y registros
  * pendientes de sincronización. Cada visita muestra su motivo (Visit_razon) y los adultos adicionales del
- * hogar (DetalleVisita) (CU-05 · CU-06 · RF-10).
+ * hogar (DetalleVisita) (CU-05 · CU-06 · RF-10); las de personas externas indican el visitante y quién la autorizó.
  * Módulo: coordinador.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -16,7 +16,7 @@ import { puede } from '@/domain/permisos'
 import type { Adulto, EstadoVisita, Usuario, Visita } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { VisitaCard } from './components/VisitaCard'
-import { ESTADO_VISITA, useOrgData } from './lib/datos'
+import { ESTADO_VISITA, textoVisitante, useOrgData } from './lib/datos'
 
 type Tab = 'hoy' | 'proximas' | 'historial'
 const TABS: Array<{ value: Tab; label: string }> = [
@@ -38,7 +38,7 @@ const VACIO: Record<Tab, { title: string; text: string }> = {
 
 export function VisitasPage() {
   const { base } = useShell()
-  const { user, visitas, adultoPorId, usuarioPorId, voluntarios } = useOrgData()
+  const { user, visitas, adultoPorId, usuarioPorId, nombreDe, voluntarios } = useOrgData()
   const [params, setParams] = useSearchParams()
   const tab: Tab = esTab(params.get('tab')) ? (params.get('tab') as Tab) : 'hoy'
   const [q, setQ] = useState('')
@@ -67,7 +67,9 @@ export function VisitasPage() {
       const adulto = adultoPorId.get(v.adultoId)
       const resp = usuarioPorId.get(v.cuidadorId)
       const otros = v.detallesAdicionales.map((d) => adultoPorId.get(d.adultoId)).filter((a): a is Adulto => !!a)
-      return norm([adulto ? nombreCompleto(adulto) : '', ...otros.map(nombreCompleto), resp ? nombreCompleto(resp) : '', v.tipo, v.razon].join(' ')).includes(t)
+      return norm(
+        [adulto ? nombreCompleto(adulto) : '', ...otros.map(nombreCompleto), resp ? nombreCompleto(resp) : '', v.visitante?.nombre ?? '', v.tipo, v.razon].join(' '),
+      ).includes(t)
     })
   }, [grupos, tab, q, responsableId, estado, adultoPorId, usuarioPorId])
 
@@ -117,7 +119,7 @@ export function VisitasPage() {
           className="min-w-0 md:flex-[1_1_220px]"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por adulto, voluntario o motivo..."
+          placeholder="Buscar por adulto, voluntario, visitante o motivo..."
           aria-label="Buscar visitas"
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:flex md:flex-[1_1_420px]">
@@ -155,6 +157,7 @@ export function VisitasPage() {
               adulto={adultoPorId.get(v.adultoId)}
               adicionales={v.detallesAdicionales.map((d) => adultoPorId.get(d.adultoId)).filter((a): a is Adulto => !!a)}
               responsable={usuarioPorId.get(v.cuidadorId)}
+              visitante={textoVisitante(v, nombreDe)}
               to={`${base}/visitas/${v.id}`}
             />
           ))}

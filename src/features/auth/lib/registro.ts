@@ -1,16 +1,20 @@
 /*
- * registro.ts — Activación de cuentas invitadas y registro de organizaciones.
+ * registro.ts — Activación de cuentas invitadas y registro de cuentas nuevas (Organización o Familia).
  * Módulo: auth (CU-01 · CU-13 · Req. de negocio 8.1 · SRS §8.2.2.3.5 b: sin contraseñas en texto plano).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
  * Modelo de cuentas:
- *  - Las cuentas personales (coordinador, voluntario, familiar responsable y otros administradores) las CREA
- *    el administrador de la organización: quedan en estado "invitado" con una invitación pendiente.
- *  - "/registro" ACTIVA esa cuenta: la persona confirma sus datos, elige su propia contraseña (el
- *    administrador nunca la conoce) y acepta los Términos y la Política de Privacidad.
- *  - "/registro-organizacion" incorpora una organización nueva (tabla Cuenta, con su plan y la prueba gratuita
- *    de 30 días) junto con su primera cuenta de Administrador (Usuario + Membresia), que queda como titular
- *    (User_Titular). Los parámetros (Configuracion_Cuenta) toman su valor por defecto.
+ *  - Las cuentas personales (coordinador, cuidador, voluntario, familiar responsable y otros administradores) las
+ *    CREA quien gestiona la cuenta: quedan en estado "invitado" con una invitación pendiente.
+ *  - "/registro" ACTIVA esa cuenta: la persona confirma sus datos, elige su propia contraseña (quien la invitó
+ *    nunca la conoce) y acepta los Términos y la Política de Privacidad.
+ *  - "/crear-cuenta" pregunta el tipo de cuenta (Familia u Organización). Cada tipo tiene su formulario:
+ *      · "/registro-organizacion": tabla Cuenta de tipo Organización + primera cuenta de Administrador.
+ *      · "/registro-familia": tabla Cuenta de tipo Familia + persona Coordinadora (en Familia no hay Administrador).
+ *    En ambos casos la cuenta nace en prueba gratuita de 14 días (DIAS_PRUEBA_GRATUITA, domain/planes.ts) con
+ *    funciones limitadas (PRUEBA_GRATUITA), sin plan (Plan_Id vacío, Plan_Precio 0) y sin pedir tarjeta: el plan
+ *    se elige cuando la prueba está por terminar (pantalla Suscripción). La persona registrada queda como titular
+ *    (User_Titular) con su Usuario + Membresia. Los parámetros (Configuracion_Cuenta) toman su valor por defecto.
  *  - Toda cuenta activa tiene una membresía vigente (tabla Membresia): la activación la crea si falta.
  *
  * No existe un servicio en domain/api para estos flujos públicos (no hay usuario en sesión): se escriben
@@ -22,19 +26,20 @@ import { auditar } from '@/domain/auditoria'
 import { estaEnLinea } from '@/domain/conectividad'
 import { addDays, toISODate } from '@/domain/dates'
 import { ROL_LABEL } from '@/domain/nombres'
+import { DIAS_PRUEBA_GRATUITA, TIPO_CUENTA_ID, TIPO_CUENTA_LABEL, type TipoCuenta } from '@/domain/planes'
 import { protegerPassword, validarPassword } from '@/domain/seguridad'
 import { getDB, MENSAJE_SIN_CONEXION, mutate, uid } from '@/domain/store'
-import type { DB, Organizacion, Rol, Usuario } from '@/domain/types'
+import type { Catalogos, DB, Organizacion, Rol, Usuario } from '@/domain/types'
 import { emailValido, errorCedula, errorEmail, errorNombre, errorTelefono, errorTexto, hayErrores, limpiarTexto } from '@/domain/validacion'
 import { normalizarEmail } from './validar'
 
 export type Errores = Record<string, string | undefined>
 export type ResultadoRegistro = AuthResult | { ok: false; error: string; errores?: Errores }
 
-export const MENSAJE_SIN_INVITACION = 'Tu organización debe crear tu cuenta; pide al administrador que te invite.'
+export const MENSAJE_SIN_INVITACION = 'Tu cuenta debe crearla quien gestiona tu organización o tu familia; pídele que te invite.'
 const ERROR_REVISA = 'Revisa los campos marcados.'
 /** Mensaje genérico ante correo o código incorrectos: no revela cuál de los dos falló. */
-export const MENSAJE_CODIGO_INVALIDO = 'El correo o el código de activación no son válidos (o el código caducó). Pide al administrador un código nuevo.'
+export const MENSAJE_CODIGO_INVALIDO = 'El correo o el código de activación no son válidos (o el código caducó). Pide un código nuevo a quien te invitó.'
 
 /* ───────────── Memoria de contraseñas entre pantallas ─────────────
  * Si la persona abre los Términos o la Política y vuelve, no pierde lo escrito. Solo vive en la memoria
@@ -73,12 +78,12 @@ export function datosInvitacion(email: string): InvitacionEncontrada | null {
   const u = cuentaInvitada(email)
   if (!u) return null
   const org = getDB().orgs.find((o) => o.id === u.orgId)
-  return { rol: u.rol, organizacion: org?.nombre ?? 'tu organización' }
+  return { rol: u.rol, organizacion: org?.nombre ?? 'tu cuenta' }
 }
 
 /**
- * Paso 1: correo + código de activación de un solo uso entregado por el administrador. Solo dice "sí"
- * (con el rol y la organización) o devuelve un mensaje genérico que no revela si el correo existe.
+ * Paso 1: correo + código de activación de un solo uso entregado por quien invitó. Solo dice "sí"
+ * (con el rol y la cuenta) o devuelve un mensaje genérico que no revela si el correo existe.
  */
 export async function buscarInvitacion(email: string, codigo: string): Promise<{ ok: true; valor: InvitacionEncontrada } | { ok: false; error: string }> {
   if (!estaEnLinea()) return { ok: false, error: MENSAJE_SIN_CONEXION }
@@ -99,9 +104,6 @@ export function validarDatosPersonales(d: DatosPersonales): Errores {
     telefono: errorTelefono(d.telefono),
   }
 }
-
-/** Días de la prueba gratuita de una cuenta nueva (Cuenta.Prueba_gratuita). */
-export const DIAS_PRUEBA_GRATUITA = 30
 
 /**
  * Garantiza que el usuario tenga una membresía vigente con su rol actual (dentro de un mutate): si no tiene
@@ -136,11 +138,11 @@ export async function activarCuenta(email: string, codigo: string, datos: DatosP
     password: validarPassword(password),
     acepto: acepto ? undefined : 'Debes aceptar los Términos y la Política de Privacidad.',
   }
-  // Si el administrador registró la cédula al invitar, debe coincidir (verificación básica de identidad).
+  // Si quien invitó registró la cédula, debe coincidir (verificación básica de identidad).
   if (!errores.cedula && invitado.cedula && invitado.cedula !== datos.cedula.trim()) {
-    errores.cedula = 'La cédula no coincide con la registrada por tu organización.'
+    errores.cedula = 'La cédula no coincide con la registrada al invitarte.'
   } else if (!errores.cedula && cedulaEnUso(datos.cedula, invitado.id)) {
-    errores.cedula = 'Esta cédula ya está asociada a otra cuenta. Contacta al administrador de tu organización.'
+    errores.cedula = 'Esta cédula ya está asociada a otra cuenta. Contacta a quien te invitó.'
   }
   if (hayErrores(errores)) return { ok: false, error: ERROR_REVISA, errores }
 
@@ -166,12 +168,17 @@ export async function activarCuenta(email: string, codigo: string, datos: DatosP
   return login(e, password)
 }
 
-/* ───────────── Registro de una organización nueva ───────────── */
+/* ───────────── Registro de una cuenta nueva (Organización o Familia) ───────────── */
 
-/** Datos de la tabla Cuenta que se piden al registrar la organización. */
-export interface DatosOrganizacion {
+/** Rol de la persona titular según el tipo de cuenta (V2 §Cuenta): Administrador en Organización, Coordinador en Familia. */
+export const ROL_TITULAR: Record<TipoCuenta, Rol> = { organizacion: 'admin', familia: 'coordinador' }
+
+/** Categorías de cuenta válidas para un tipo (Categoria_cuenta.Cuenta_Tipo_Id). */
+export const categoriasDeTipo = (cat: Pick<Catalogos, 'categoriasCuenta'>, tipo: TipoCuenta) => cat.categoriasCuenta.filter((c) => c.tipoCuentaId === TIPO_CUENTA_ID[tipo])
+
+/** Datos de la tabla Cuenta que se piden al registrar la cuenta (el tipo lo fija el formulario, no la persona). */
+export interface DatosCuenta {
   nombre: string
-  tipoCuentaId: string
   categoriaCuentaId: string
   provinciaCod: string
   municipioCod: string
@@ -180,30 +187,44 @@ export interface DatosOrganizacion {
   correo: string
 }
 
-/** Errores con las claves de los campos del formulario de registro (paso 1). */
-export function validarOrganizacion(o: DatosOrganizacion): Errores {
+const NOMBRE_CUENTA: Record<TipoCuenta, string> = { organizacion: 'el nombre de la organización', familia: 'el nombre de la familia' }
+
+/** Categoría y municipio comprobados contra el catálogo (la categoría debe pertenecer al tipo de cuenta). */
+function validarClasificacion(tipo: TipoCuenta, c: Pick<DatosCuenta, 'categoriaCuentaId' | 'provinciaCod' | 'municipioCod'>): Errores {
   const cat = getDB().catalogos
   return {
-    nombreOrg: errorTexto(o.nombre, 'el nombre de la organización', 3, 80),
-    tipoCuentaId: cat.tiposCuenta.some((t) => t.id === o.tipoCuentaId) ? undefined : 'Selecciona el tipo de organización.',
-    categoriaCuentaId: cat.categoriasCuenta.some((c) => c.id === o.categoriaCuentaId) ? undefined : 'Selecciona la categoría.',
-    provinciaCod: cat.provincias.some((p) => p.cod === o.provinciaCod) ? undefined : 'Selecciona la provincia.',
-    municipioCod: cat.municipios.some((m) => m.cod === o.municipioCod && m.provinciaCod === o.provinciaCod) ? undefined : 'Selecciona el municipio.',
+    categoriaCuentaId: categoriasDeTipo(cat, tipo).some((x) => x.id === c.categoriaCuentaId) ? undefined : 'Selecciona la categoría.',
+    provinciaCod: cat.provincias.some((p) => p.cod === c.provinciaCod) ? undefined : 'Selecciona la provincia.',
+    municipioCod: cat.municipios.some((m) => m.cod === c.municipioCod && m.provinciaCod === c.provinciaCod) ? undefined : 'Selecciona el municipio.',
+  }
+}
+
+/** Errores con las claves de los campos del formulario de la organización (pasos 1 y 2). */
+export function validarOrganizacion(o: DatosCuenta): Errores {
+  return {
+    nombreOrg: errorTexto(o.nombre, NOMBRE_CUENTA.organizacion, 3, 80),
+    ...validarClasificacion('organizacion', o),
     direccion: o.direccion.trim().length > 150 ? 'Máximo 150 caracteres.' : undefined,
     telefonoOrg: errorTelefono(o.telefono),
     correoOrg: o.correo.trim() && !emailValido(o.correo) ? 'Escribe un correo válido (ejemplo@correo.com).' : undefined,
   }
 }
 
-/** El plan elegido debe existir y estar activo (paso 2). */
-export function validarPlan(planId: string): Errores {
-  return { planId: getDB().catalogos.planes.some((p) => p.id === planId && p.estado === 'activo') ? undefined : 'Elige un plan para tu organización.' }
+/** Errores con las claves del formulario de la familia (paso 1). El contacto de la cuenta es el de la persona coordinadora. */
+export function validarFamilia(f: Pick<DatosCuenta, 'nombre' | 'categoriaCuentaId' | 'provinciaCod' | 'municipioCod'>): Errores {
+  return {
+    nombreFamilia: errorTexto(f.nombre, NOMBRE_CUENTA.familia, 3, 80),
+    ...validarClasificacion('familia', f),
+  }
 }
 
 /** Mensaje neutro: no confirma si el correo pertenece a otra cuenta. */
 const ERROR_CORREO_NO_DISPONIBLE = 'No es posible usar este correo. Si ya tienes una cuenta, inicia sesión o recupera tu contraseña.'
 
-export function validarAdministrador(d: DatosPersonales & { email: string }): Errores {
+/** Persona titular de la cuenta nueva (Administrador de la organización o Coordinadora de la familia). */
+export type DatosTitular = DatosPersonales & { email: string }
+
+export function validarTitular(d: DatosTitular): Errores {
   const e = normalizarEmail(d.email)
   return {
     ...validarDatosPersonales(d),
@@ -213,61 +234,55 @@ export function validarAdministrador(d: DatosPersonales & { email: string }): Er
 }
 
 /**
- * Crea la cuenta (Cuenta) con el plan elegido y una prueba gratuita de 30 días (Suscripcion_Estado "prueba",
- * Plan_Precio copiado del plan), su cuenta de Administrador activa (Usuario) con su membresía vigente
- * (Membresia) y la marca como titular (User_Titular). Los parámetros toman su valor por defecto (no se escribe
- * Configuracion_Cuenta). Audita e inicia sesión.
+ * Crea la cuenta (Cuenta) del tipo indicado, en prueba gratuita de 14 días (Suscripcion_Estado "prueba", sin plan:
+ * Plan_Id vacío y Plan_Precio 0), con su persona titular activa (Usuario) y su membresía vigente (Membresia), y la
+ * marca como titular (User_Titular). Los parámetros toman su valor por defecto (no se escribe Configuracion_Cuenta).
+ * Audita "usuario.crear" y "cuenta.registrar" e inicia sesión. Valida todo de nuevo antes de escribir.
  */
-export async function registrarOrganizacion(
-  org: DatosOrganizacion,
-  planId: string,
-  admin: DatosPersonales & { email: string },
-  password: string,
-  acepto: boolean,
-): Promise<ResultadoRegistro> {
+async function registrarCuenta(tipo: TipoCuenta, cuenta: DatosCuenta, titular: DatosTitular, password: string, acepto: boolean): Promise<ResultadoRegistro> {
   if (!estaEnLinea()) return { ok: false, error: MENSAJE_SIN_CONEXION }
   const errores: Errores = {
-    ...validarOrganizacion(org),
-    ...validarPlan(planId),
-    ...validarAdministrador(admin),
+    ...(tipo === 'familia' ? validarFamilia(cuenta) : validarOrganizacion(cuenta)),
+    ...validarTitular(titular),
     password: validarPassword(password),
     acepto: acepto ? undefined : 'Debes aceptar los Términos y la Política de Privacidad.',
   }
   if (hayErrores(errores)) return { ok: false, error: ERROR_REVISA, errores }
-  const plan = getDB().catalogos.planes.find((p) => p.id === planId)!
 
-  const email = normalizarEmail(admin.email)
+  const rol = ROL_TITULAR[tipo]
+  const email = normalizarEmail(titular.email)
   const ahora = new Date().toISOString()
   const hoy = new Date()
   const usuarioId = uid('u')
   const organizacion: Organizacion = {
     id: uid('org'),
-    nombre: limpiarTexto(org.nombre),
-    tipoCuentaId: org.tipoCuentaId,
-    categoriaCuentaId: org.categoriaCuentaId,
-    municipioCod: org.municipioCod,
-    direccion: limpiarTexto(org.direccion),
-    telefono: org.telefono.trim(),
-    correo: org.correo.trim().toLowerCase(),
+    nombre: limpiarTexto(cuenta.nombre),
+    tipoCuentaId: TIPO_CUENTA_ID[tipo],
+    categoriaCuentaId: cuenta.categoriaCuentaId,
+    municipioCod: cuenta.municipioCod,
+    direccion: limpiarTexto(cuenta.direccion),
+    // Una familia no tiene datos institucionales: el contacto de la cuenta es el de la persona coordinadora.
+    telefono: (tipo === 'familia' ? titular.telefono : cuenta.telefono).trim(),
+    correo: tipo === 'familia' ? email : cuenta.correo.trim().toLowerCase(),
     suscripcionEstado: 'prueba',
     creadoEn: ahora,
     pruebaGratuita: true,
     fechaInicioPrueba: toISODate(hoy),
     fechaFinPrueba: toISODate(addDays(hoy, DIAS_PRUEBA_GRATUITA)),
-    planId: plan.id,
-    planPrecio: plan.precio,
+    planId: '',
+    planPrecio: 0,
     usuarioTitularId: usuarioId,
   }
   const usuario: Usuario = {
     id: usuarioId,
-    rol: 'admin',
-    nombre: limpiarTexto(admin.nombre),
-    apellido: limpiarTexto(admin.apellido),
-    cedula: admin.cedula.trim(),
+    rol,
+    nombre: limpiarTexto(titular.nombre),
+    apellido: limpiarTexto(titular.apellido),
+    cedula: titular.cedula.trim(),
     email,
-    telefono: admin.telefono.trim(),
+    telefono: titular.telefono.trim(),
     ...(await protegerPassword(password)),
-    etiqueta: ROL_LABEL.admin,
+    etiqueta: ROL_LABEL[rol],
     estado: 'activo',
     orgId: organizacion.id,
     creadoEn: ahora,
@@ -276,22 +291,30 @@ export async function registrarOrganizacion(
   const escrito = mutate((db) => {
     db.orgs.push(organizacion)
     db.usuarios.push(usuario)
-    db.membresias.push({ id: uid('m'), usuarioId: usuario.id, orgId: organizacion.id, rol: 'admin', estado: 'activa', fechaInicio: ahora })
+    db.membresias.push({ id: uid('m'), usuarioId: usuario.id, orgId: organizacion.id, rol, estado: 'activa', fechaInicio: ahora })
     auditar(db, usuario, {
       accion: 'usuario.crear',
       entidad: 'usuario',
       registroId: usuario.id,
       orgId: organizacion.id,
-      detalle: `Rol ${ROL_LABEL.admin} · registro de la organización`,
+      detalle: `Rol ${ROL_LABEL[rol]} · titular de la cuenta`,
     })
     auditar(db, usuario, {
-      accion: 'pago.plan',
-      entidad: 'pago',
+      accion: 'cuenta.registrar',
+      entidad: 'organizacion',
       registroId: organizacion.id,
       orgId: organizacion.id,
-      detalle: `Plan ${plan.nombre} · prueba gratuita de ${DIAS_PRUEBA_GRATUITA} días`,
+      detalle: `Cuenta ${TIPO_CUENTA_LABEL[tipo]} · prueba gratuita de ${DIAS_PRUEBA_GRATUITA} días, sin plan`,
     })
   })
   if (!escrito) return { ok: false, error: MENSAJE_SIN_CONEXION }
   return login(email, password)
 }
+
+/** Registra una organización con su primera cuenta de Administrador (titular). */
+export const registrarOrganizacion = (org: DatosCuenta, admin: DatosTitular, password: string, acepto: boolean) =>
+  registrarCuenta('organizacion', org, admin, password, acepto)
+
+/** Registra una familia con su persona Coordinadora (titular). */
+export const registrarFamilia = (familia: DatosCuenta, coordinadora: DatosTitular, password: string, acepto: boolean) =>
+  registrarCuenta('familia', familia, coordinadora, password, acepto)

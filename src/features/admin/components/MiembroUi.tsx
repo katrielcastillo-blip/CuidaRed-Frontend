@@ -17,6 +17,7 @@ export const estadoTexto = (e: EstadoMiembro) => ESTADO_TXT[e]
 const ROL_TONO: Record<Rol, string> = {
   admin: 'bg-ink text-white',
   coordinador: 'bg-blue-100 text-navy border border-navy',
+  cuidador: 'bg-success-100 text-success-700 border border-success-700',
   voluntario: 'bg-navy text-blue-100',
   familiar: 'bg-teal-100 text-success-700 border border-teal',
 }

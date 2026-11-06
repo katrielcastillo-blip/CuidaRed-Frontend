@@ -18,7 +18,7 @@
 import { useSyncExternalStore } from 'react'
 import { avisar } from './avisos'
 import { estaEnLinea, suscribirConectividad } from './conectividad'
-import { registrarFuenteVinculos } from './permisos'
+import { registrarFuenteOrgs, registrarFuenteVinculos } from './permisos'
 import { aplicarReglas } from './reglas'
 import { buildSeed, DB_VERSION } from './seed'
 import { getSesion, suscribirSesion } from './sesion'
@@ -177,14 +177,18 @@ export function uid(prefix: string) {
 
 // Los permisos consultan la tabla Vinculo de la vista actual.
 registrarFuenteVinculos(() => vista.vinculos)
+// …y el tipo de cuenta (Familia u Organización) de la membresía activa.
+registrarFuenteOrgs(() => vista.orgs)
 
 // Cambió la sesión → cambia qué pendientes se superponen.
 suscribirSesion(notificar)
 
 /** Relee la copia del servidor (cambios hechos por otros "dispositivos" mientras este estaba sin conexión). */
-function releerServidor(raw: string | null = localStorage.getItem(KEY)) {
-  if (!raw) return
+function releerServidor(rawDado?: string | null) {
   try {
+    // Dentro del try: con el almacenamiento bloqueado (SecurityError) no debe cortar a los demás suscriptores.
+    const raw = rawDado === undefined ? localStorage.getItem(KEY) : rawDado
+    if (!raw) return
     const nuevo = JSON.parse(raw) as DB
     if (nuevo.version === DB_VERSION) {
       servidor = nuevo

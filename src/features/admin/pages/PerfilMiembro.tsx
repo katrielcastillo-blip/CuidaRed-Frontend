@@ -1,34 +1,38 @@
 /*
- * PerfilMiembro.tsx — Perfil de un usuario de la organización: datos (tabla Usuario), historial de membresías
- * (Membresia: rol, estado, inicio y fin), vínculos con adultos mayores (Vinculo + Tipo_vinculo), perfil de
- * cuidador (Cuidador + Tipo_Cuidado), permisos efectivos del rol, actividad reciente (auditoría) y acciones:
- * editar datos y rol, desactivar/reactivar y eliminar.
+ * PerfilMiembro.tsx — Perfil de un miembro de la cuenta activa: datos (tabla Usuario), historial de membresías de ESTA
+ * cuenta (Membresia: rol, estado, inicio y fin), acceso a adultos mayores (Vinculo: «Adultos mayores que puede ver»
+ * del Familiar con permiso explícito, o los asignados al Cuidador y al Voluntario), perfil de cuidador (Cuidador),
+ * permisos efectivos del rol, actividad reciente (auditoría) y acciones: editar datos, cambiar rol, desactivar/reactivar
+ * (se conserva el historial) y cancelar una invitación pendiente.
  * Módulo: admin (RF-09 · CU-13 · SRS §8.2.2.1.3 Auditabilidad · §8.2.2.3.5 b "invalidar usuarios desactivados").
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { CalendarDays, Check, ChevronRight, HandHeart, IdCard, Mail, Pencil, Phone, Trash2, UserCheck, UserRound, UserX } from 'lucide-react'
-import { Button, ButtonLink, EmptyState, InfoRow, RiesgoBadge, Sheet, SuccessOverlay, useToast } from '@/components/ui'
-import { actualizarUsuario, cambiarEstadoUsuario, eliminarUsuario } from '@/domain/api'
-import { nombreCompleto, useUser } from '@/domain/auth'
+import { CalendarDays, Check, ChevronRight, HandHeart, IdCard, Mail, Pencil, Phone, Trash2, UserCheck, UserCog, UserRound, UserX } from 'lucide-react'
+import { Badge, Button, ButtonLink, EmptyState, InfoRow, Sheet, SuccessOverlay, useToast } from '@/components/ui'
+import { actualizarUsuario, cambiarEstadoUsuario, cambiarRolMiembro, eliminarUsuario, estadoEnCuenta, membresiaEnCuenta } from '@/domain/api'
+import { nombreCompleto, useSession, useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { puede } from '@/domain/permisos'
-import { adultosVinculados, cuidadorDeUsuario, membresiasDe } from '@/domain/relaciones'
-import { getDB, useDB } from '@/domain/store'
-import type { Usuario } from '@/domain/types'
+import { tipoDeCuenta } from '@/domain/planes'
+import { cuidadorDeUsuario, membresiasDe, VINCULO_DE_ROL } from '@/domain/relaciones'
+import { useDB } from '@/domain/store'
+import type { Rol, Usuario } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { operacionTexto, ResultadoBadge } from '../components/AuditoriaUi'
+import { AccesosAdultos } from '../components/AccesosAdultos'
 import { EstadoBadge, MiembroAvatarGrande, RolBadge, rolTexto } from '../components/MiembroUi'
-import { AvisoSinConexion } from '../components/Nota'
+import { AvisoSinConexion, Nota } from '../components/Nota'
 import { ReenviarInvitacion } from '../components/CodigoActivacion'
+import { RolSelector } from '../components/RolSelector'
 import { UsuarioCampos, type CamposUsuario, type ErroresUsuario } from '../components/UsuarioCampos'
 import { hace } from '../lib/datos'
-import { ALCANCE_ROL, permisosDeRol } from '../lib/permisos'
+import { alcanceDeRol, permisosDeRol, rolesDeTipo } from '../lib/permisos'
 import { EditarCuidador, PerfilCuidador } from '../components/CuidadorUi'
 
-type Dialogo = 'editar' | 'estado' | 'eliminar' | 'cuidador' | null
+type Dialogo = 'datos' | 'rol' | 'estado' | 'cancelar' | 'cuidador' | null
 
 const TARJETA = 'flex flex-col gap-3 p-4 rounded-md bg-surface shadow-1'
 const H2 = 'text-xl font-bold text-ink'
@@ -37,6 +41,7 @@ export default function PerfilMiembro() {
   const { usuarioId } = useParams()
   const { base } = useShell()
   const yo = useUser()
+  const { org } = useSession()
   const navigate = useNavigate()
   const toast = useToast()
   const enLinea = useEnLinea()
@@ -45,50 +50,49 @@ export default function PerfilMiembro() {
   const vinculos = useDB((s) => s.vinculos)
   const membresias = useDB((s) => s.membresias)
   const cuidadores = useDB((s) => s.cuidadores)
-  const orgs = useDB((s) => s.orgs)
-  const catalogos = useDB((s) => s.catalogos)
   const auditoria = useDB((s) => s.auditoria)
 
   const [dialogo, setDialogo] = useState<Dialogo>(null)
-  const [eliminado, setEliminado] = useState(false)
-  /** Copia para seguir pintando el perfil mientras se muestra «Usuario eliminado». */
-  const [copia, setCopia] = useState<Usuario | null>(null)
+  const [cancelada, setCancelada] = useState(false)
+  /** Copia para seguir pintando el perfil mientras se muestra «Invitación cancelada». */
+  const [copia, setCopia] = useState<{ usuario: Usuario; rol: Rol } | null>(null)
 
-  const encontrado = useMemo(() => usuarios.find((u) => u.id === usuarioId && u.orgId === yo.orgId) ?? null, [usuarios, usuarioId, yo.orgId])
-  const u = encontrado ?? copia
-  const aCargo = useMemo(() => (u ? adultosVinculados(vinculos, u.id, 'voluntario_asignado') : []), [vinculos, u])
-  /** Todos los vínculos del usuario con adultos mayores (cualquier tipo), con el adulto resuelto. */
-  const susVinculos = useMemo(
-    () =>
-      u
-        ? vinculos
-            .filter((v) => v.usuarioId === u.id)
-            .flatMap((v) => {
-              const adulto = adultos.find((a) => a.id === v.adultoId)
-              return adulto ? [{ vinculo: v, adulto, tipo: catalogos.tiposVinculo.find((t) => t.id === v.tipoVinculoId)?.nombre ?? v.tipoVinculoId }] : []
-            })
-            .sort((a, b) => nombreCompleto(a.adulto).localeCompare(nombreCompleto(b.adulto)))
-        : [],
-    [vinculos, adultos, catalogos, u],
-  )
-  const historial = useMemo(() => (u ? membresiasDe(membresias, u.id) : []), [membresias, u])
+  const tipo = tipoDeCuenta(org)
+  /** La persona y su membresía en ESTA cuenta: quien no pertenece a la cuenta activa no se puede abrir (CU-13). */
+  const encontrado = useMemo(() => {
+    const usuario = usuarios.find((u) => u.id === usuarioId)
+    const membresia = usuario ? membresiaEnCuenta(membresias, usuario.id, yo.orgId) : undefined
+    return usuario && membresia ? { usuario, membresia } : null
+  }, [usuarios, membresias, usuarioId, yo.orgId])
+  const u = encontrado?.usuario ?? copia?.usuario ?? null
+  const rol: Rol | null = encontrado?.membresia.rol ?? copia?.rol ?? null
+  const estado = encontrado ? estadoEnCuenta(encontrado.usuario, encontrado.membresia) : 'invitado'
+
+  /** Adultos de la cuenta con el vínculo de acceso de su rol (familiar, cuidador o voluntario). */
+  const aCargo = useMemo(() => {
+    const tipoVinculo = rol ? VINCULO_DE_ROL[rol] : undefined
+    if (!u || !tipoVinculo) return 0
+    const propios = new Set(adultos.filter((a) => a.orgId === yo.orgId).map((a) => a.id))
+    return vinculos.filter((v) => v.usuarioId === u.id && v.tipoVinculoId === tipoVinculo && propios.has(v.adultoId)).length
+  }, [vinculos, adultos, u, rol, yo.orgId])
+  const historial = useMemo(() => (u ? membresiasDe(membresias, u.id).filter((m) => m.orgId === yo.orgId) : []), [membresias, u, yo.orgId])
   const cuidador = useMemo(() => (u ? cuidadorDeUsuario(cuidadores, u.id) : undefined), [cuidadores, u])
   const actividad = useMemo(
     () => (u ? auditoria.filter((e) => e.orgId === yo.orgId && (e.usuarioId === u.id || (e.entidad === 'usuario' && e.registroId === u.id))).slice(0, 8) : []),
     [auditoria, u, yo.orgId],
   )
-  const permisos = useMemo(() => (u ? permisosDeRol(u.rol) : []), [u])
+  const permisos = useMemo(() => (rol ? permisosDeRol(rol, tipo) : []), [rol, tipo])
 
   const volverALista = `${base}/miembros`
   const cerrar = useCallback(() => setDialogo(null), [])
 
-  if (!u) {
+  if (!u || !rol) {
     return (
-      <Page title="Perfil de usuario" back={volverALista}>
+      <Page title="Perfil de miembro" back={volverALista}>
         <EmptyState
-          title="Usuario no encontrado"
-          text="Puede que haya sido eliminado o que el enlace no sea válido."
-          action={<ButtonLink to={volverALista}>Volver a usuarios</ButtonLink>}
+          title="Miembro no encontrado"
+          text="Esta persona no pertenece a la cuenta activa o el enlace no es válido."
+          action={<ButtonLink to={volverALista}>Volver a miembros</ButtonLink>}
         />
       </Page>
     )
@@ -96,94 +100,81 @@ export default function PerfilMiembro() {
 
   const nombre = nombreCompleto(u)
   const esYo = u.id === yo.id
-  const desactivar = u.estado !== 'inactivo'
-  const bloqueo = !enLinea ? 'Necesitas conexión para esta acción.' : esYo ? 'No puedes desactivar ni eliminar tu propia cuenta.' : undefined
+  const esTitular = org?.usuarioTitularId === u.id
+  /** Los datos personales son de la persona: solo se editan desde su cuenta principal. */
+  const propia = u.orgId === yo.orgId
+  const inactivo = estado === 'inactivo'
+  const desactivar = !inactivo
+  const bloqueo = !enLinea ? 'Necesitas conexión para esta acción.' : esYo ? 'No puedes desactivar ni cambiar el rol de tu propia cuenta.' : esTitular ? 'La persona titular de la cuenta no puede cambiar de rol ni desactivarse.' : undefined
+  const tieneAcceso = !!VINCULO_DE_ROL[rol]
 
   const cambiarEstado = () => {
     const r = cambiarEstadoUsuario(yo, u.id, desactivar ? 'inactivo' : 'activo')
     setDialogo(null)
     if (!r.ok) return toast(r.error, 'error')
-    toast(desactivar ? `${nombre} ya no puede acceder a CuidaRed.` : `${nombre} puede volver a iniciar sesión.`)
+    toast(desactivar ? `${nombre} ya no puede acceder a esta cuenta.` : `${nombre} vuelve a tener acceso a esta cuenta como ${rolTexto(rol)}.`)
   }
 
-  const eliminar = () => {
-    const snapshot = u
+  const cancelarInvitacion = () => {
+    const snapshot = { usuario: u, rol }
     const r = eliminarUsuario(yo, u.id)
     setDialogo(null)
     if (!r.ok) return toast(r.error, 'error')
     setCopia(snapshot)
-    setEliminado(true)
+    setCancelada(true)
   }
 
   return (
-    <Page title="Perfil de usuario" back={volverALista} wide>
+    <Page title="Perfil de miembro" back={volverALista} wide>
       {!enLinea && <AvisoSinConexion />}
 
       <div className="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-8 md:items-start">
         <div className="contents md:flex md:flex-col md:gap-6 md:min-w-0">
           {/* Identidad */}
-          <section className="order-1 md:order-none flex flex-col items-center gap-3 text-center md:px-5 md:py-8 md:rounded-md md:bg-surface md:shadow-1" aria-label="Datos del usuario">
+          <section className="order-1 md:order-none flex flex-col items-center gap-3 text-center md:px-5 md:py-8 md:rounded-md md:bg-surface md:shadow-1" aria-label="Datos del miembro">
             <MiembroAvatarGrande src={u.avatar} size={112} />
             <div className="flex flex-col gap-0.5 max-w-full">
               <h2 className="text-[28px] font-bold leading-tight text-[#0a3fa0] wrap-anywhere">{nombre}</h2>
               <p className="text-base text-muted tracking-[0.02em]">{u.cedula || 'Cédula no registrada'}</p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
-              <RolBadge rol={u.rol} inactivo={u.estado === 'inactivo'} grande />
-              <EstadoBadge estado={u.estado} grande />
+              <RolBadge rol={rol} inactivo={inactivo} grande />
+              <EstadoBadge estado={estado} grande />
             </div>
+            {esTitular && <Badge tone="info">Titular de la cuenta</Badge>}
             {esYo && <p className="text-sm text-muted">Esta es tu cuenta.</p>}
           </section>
 
-          {/* Vínculos con adultos mayores (tabla Vinculo) */}
-          <section className={`order-6 md:order-none ${TARJETA}`} aria-labelledby="h-vinculos">
-            <div className="flex items-center justify-between gap-3">
+          {/* Adultos mayores a los que tiene acceso (tabla Vinculo): autorización explícita del familiar, asignados del cuidador/voluntario */}
+          {tieneAcceso && !inactivo ? (
+            <AccesosAdultos key={`${u.id}-${rol}`} usuario={u} rol={rol} className="order-4 md:order-none" />
+          ) : (
+            <section className={`order-4 md:order-none ${TARJETA}`} aria-labelledby="h-vinculos">
               <h3 id="h-vinculos" className="text-base font-bold">
-                Vínculos con adultos mayores
+                Adultos mayores
               </h3>
-              <span className="text-2xl font-bold" aria-label={`${susVinculos.length} vínculos`}>
-                {susVinculos.length}
-              </span>
-            </div>
-            {susVinculos.length === 0 ? (
-              <p className={u.rol === 'familiar' ? 'text-sm text-danger' : 'text-sm text-muted'}>
-                {u.rol === 'familiar'
-                  ? 'Sin adultos mayores a su cargo: edita el usuario para indicarlos.'
-                  : u.rol === 'voluntario'
-                    ? 'Sin adultos asignados. Asígnalos desde el perfil de cada adulto mayor.'
-                    : 'Sin vínculos. Administradores y coordinadores acceden a todos los adultos de la organización.'}
+              <p className="text-sm text-muted">
+                {inactivo
+                  ? 'Sin acceso: la membresía está inactiva en esta cuenta.'
+                  : `Accede a todos los adultos mayores de la cuenta (${rolTexto(rol)}): no necesita asignaciones individuales.`}
               </p>
-            ) : (
-              <ul className="flex flex-col divide-y divide-line-soft">
-                {susVinculos.map(({ vinculo, adulto, tipo }) => (
-                  <li key={`${vinculo.adultoId}-${vinculo.tipoVinculoId}`}>
-                    <Link to={`${base}/adultos/${adulto.id}`} className="flex items-center justify-between gap-3 min-h-14 py-1 hover:underline">
-                      <span className="min-w-0 flex flex-col">
-                        <span className="text-sm font-semibold truncate">{adulto.anonimizado ? 'Perfil anonimizado' : nombreCompleto(adulto)}</span>
-                        <span className="text-xs text-muted">
-                          {tipo} · desde {fechaCorta(vinculo.creadoEn)}
-                        </span>
-                      </span>
-                      <RiesgoBadge riesgo={adulto.riesgo} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            </section>
+          )}
 
           {/* Permisos efectivos */}
           <section className={`order-7 md:order-none ${TARJETA}`} aria-labelledby="h-permisos">
             <div className="flex items-center justify-between gap-3">
               <h3 id="h-permisos" className="text-base font-bold">
-                Permisos del rol {rolTexto(u.rol)}
+                Permisos del rol {rolTexto(rol)}
               </h3>
-              <Link to={`${base}/roles`} className="inline-flex items-center min-h-12 text-sm font-bold text-navy hover:underline">
-                Ver matriz
-              </Link>
+              {puede(yo, 'usuarios:gestionar') && (
+                <Link to={`${base}/roles`} className="inline-flex items-center min-h-12 text-sm font-bold text-navy hover:underline">
+                  Ver matriz
+                </Link>
+              )}
             </div>
             <p className="text-sm text-ink-2">
-              <strong>Alcance:</strong> {ALCANCE_ROL[u.rol]}
+              <strong>Alcance:</strong> {alcanceDeRol(rol, tipo)}
             </p>
             <dl className="flex flex-col gap-3">
               {permisos.map((g) => (
@@ -217,10 +208,10 @@ export default function PerfilMiembro() {
             <InfoRow icon={<IdCard size={22} aria-hidden />} label="Cédula" value={u.cedula || 'No registrada'} />
             <InfoRow
               icon={<CalendarDays size={22} aria-hidden />}
-              label="Fecha de registro"
-              value={`${fechaCorta(u.creadoEn)}${u.actualizadoEn ? ` · última modificación ${fechaCorta(u.actualizadoEn)}` : ''}`}
+              label="Miembro desde"
+              value={fechaCorta(historial.at(-1)?.fechaInicio ?? u.creadoEn)}
             />
-            <InfoRow icon={<UserCheck size={22} aria-hidden />} label="Estado de la cuenta" value={<EstadoBadge estado={u.estado} />} />
+            <InfoRow icon={<UserCheck size={22} aria-hidden />} label="Estado en esta cuenta" value={<EstadoBadge estado={estado} />} />
           </section>
 
           {/* Acciones */}
@@ -229,8 +220,11 @@ export default function PerfilMiembro() {
               Acciones
             </h2>
             <div className="flex flex-col gap-3">
-              <Button variant="outline" className="border-navy!" fullWidth icon={<Pencil size={20} aria-hidden />} disabled={!enLinea} onClick={() => setDialogo('editar')}>
-                Editar datos y rol
+              <Button variant="outline" className="border-navy!" fullWidth icon={<Pencil size={20} aria-hidden />} disabled={!enLinea || !propia} onClick={() => setDialogo('datos')}>
+                Editar datos
+              </Button>
+              <Button variant="outline" className="border-navy!" fullWidth icon={<UserCog size={20} aria-hidden />} disabled={!!bloqueo || inactivo} onClick={() => setDialogo('rol')}>
+                Cambiar rol
               </Button>
               <Button
                 variant={desactivar ? 'outline' : 'soft'}
@@ -242,31 +236,36 @@ export default function PerfilMiembro() {
               >
                 {desactivar ? 'Desactivar' : 'Reactivar'}
               </Button>
-              <Button variant="danger-soft" className="border-danger!" fullWidth icon={<Trash2 size={20} aria-hidden />} disabled={!!bloqueo} onClick={() => setDialogo('eliminar')}>
-                Eliminar
-              </Button>
+              {estado === 'invitado' && (
+                <Button variant="danger-soft" className="border-danger!" fullWidth icon={<Trash2 size={20} aria-hidden />} disabled={!!bloqueo} onClick={() => setDialogo('cancelar')}>
+                  Cancelar invitación
+                </Button>
+              )}
             </div>
             {bloqueo && <p className="text-sm text-muted">{bloqueo}</p>}
-            {u.estado === 'invitado' && (
+            {!propia && <p className="text-sm text-muted">Esta persona también pertenece a otra cuenta: sus datos personales los edita ella misma. Aquí gestionas su rol y su acceso a esta cuenta.</p>}
+            {estado === 'invitado' && (
               <>
-                <p className="text-sm text-ink-2">Invitación pendiente: la cuenta se activará cuando la persona cree su contraseña en “Activar mi cuenta” con {u.email} y su código de activación.</p>
-                <ReenviarInvitacion usuarioId={u.id} email={u.email} deshabilitado={!enLinea} />
+                <p className="text-sm text-ink-2">
+                  Invitación pendiente: la cuenta se activará cuando la persona cree su contraseña en “Activar mi cuenta” con {u.email} y su código de activación.
+                </p>
+                <ReenviarInvitacion usuarioId={u.id} email={u.email} rol={rol} deshabilitado={!enLinea} />
               </>
             )}
           </section>
 
-          {/* Historial de membresías (tabla Membresia) */}
-          <section className={`order-4 md:order-none ${TARJETA}`} aria-labelledby="h-membresias">
+          {/* Historial de membresías de esta cuenta (tabla Membresia) */}
+          <section className={`order-5 md:order-none ${TARJETA}`} aria-labelledby="h-membresias">
             <h3 id="h-membresias" className="text-base font-bold">
               Historial de membresías
             </h3>
-            <p className="-mt-1 text-sm text-muted">Cada cambio de rol o de estado cierra la membresía vigente y abre una nueva.</p>
+            <p className="-mt-1 text-sm text-muted">Cada cambio de rol o de estado cierra la membresía vigente y abre una nueva: el historial se conserva.</p>
             {historial.length === 0 ? (
               <p className="text-sm text-muted">Sin membresías registradas.</p>
             ) : (
               <div className="relative overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
-                  <caption className="sr-only">Membresías de {nombre}: rol, estado, fecha de inicio y de fin</caption>
+                  <caption className="sr-only">Membresías de {nombre} en esta cuenta: rol, estado, fecha de inicio y de fin</caption>
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-line-soft">
                       <th scope="col" className="pr-2 py-2 font-bold">Rol</th>
@@ -280,7 +279,6 @@ export default function PerfilMiembro() {
                       <tr key={m.id} className="align-top">
                         <td className="pr-2 py-2.5">
                           <span className="font-semibold">{rolTexto(m.rol)}</span>
-                          {m.orgId !== u.orgId && <span className="block text-xs text-muted">{orgs.find((o) => o.id === m.orgId)?.nombre ?? 'Otra organización'}</span>}
                         </td>
                         <td className="pr-2 py-2.5">
                           <span
@@ -304,62 +302,67 @@ export default function PerfilMiembro() {
           </section>
 
           {/* Perfil de cuidador (tabla Cuidador) */}
-          <section className={`order-5 md:order-none ${TARJETA}`} aria-labelledby="h-cuidador">
-            <div className="flex items-center justify-between gap-3">
-              <h3 id="h-cuidador" className="flex items-center gap-2 text-base font-bold">
-                <HandHeart size={20} className="text-navy" aria-hidden /> Perfil de cuidador
-              </h3>
-              {puede(yo, 'cuidadores:gestionar') && (
-                <Button variant="ghost" size="sm" icon={<Pencil size={18} aria-hidden />} disabled={!enLinea} onClick={() => setDialogo('cuidador')}>
-                  {cuidador ? 'Editar' : 'Registrar'}
-                </Button>
-              )}
-            </div>
-            <PerfilCuidador cuidador={cuidador} />
-          </section>
+          {(rol === 'cuidador' || rol === 'voluntario' || cuidador) && (
+            <section className={`order-6 md:order-none ${TARJETA}`} aria-labelledby="h-cuidador">
+              <div className="flex items-center justify-between gap-3">
+                <h3 id="h-cuidador" className="flex items-center gap-2 text-base font-bold">
+                  <HandHeart size={20} className="text-navy" aria-hidden /> Perfil de cuidador
+                </h3>
+                {puede(yo, 'cuidadores:gestionar') && propia && (
+                  <Button variant="ghost" size="sm" icon={<Pencil size={18} aria-hidden />} disabled={!enLinea} onClick={() => setDialogo('cuidador')}>
+                    {cuidador ? 'Editar' : 'Registrar'}
+                  </Button>
+                )}
+              </div>
+              <PerfilCuidador cuidador={cuidador} />
+            </section>
+          )}
 
           {/* Actividad reciente */}
-          <section className={`order-8 md:order-none ${TARJETA}`} aria-labelledby="h-actividad">
-            <div className="flex items-center justify-between gap-3">
-              <h3 id="h-actividad" className="text-base font-bold">
-                Actividad reciente
-              </h3>
-              <Link to={`${base}/auditoria?usuario=${u.id}`} className="inline-flex items-center gap-1 min-h-12 text-sm font-bold text-navy hover:underline">
-                Ver en auditoría <ChevronRight size={16} aria-hidden />
-              </Link>
-            </div>
-            {actividad.length === 0 ? (
-              <p className="text-sm text-muted">Sin actividad registrada.</p>
-            ) : (
-              <ol className="flex flex-col divide-y divide-line-soft">
-                {actividad.map((e) => (
-                  <li key={e.id} className="flex flex-col gap-1 py-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-sm font-semibold text-ink">{operacionTexto(e.accion)}</span>
-                      <ResultadoBadge resultado={e.resultado} className="flex-none" />
-                    </div>
-                    <span className="text-xs text-muted">
-                      <time dateTime={e.fecha} title={fechaHora(e.fecha)}>
-                        {hace(e.fecha)}
-                      </time>
-                      {e.usuarioId !== u.id && ` · por ${e.usuarioNombre}`}
-                      {e.detalle && ` · ${e.detalle}`}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+          {puede(yo, 'auditoria:ver') && (
+            <section className={`order-8 md:order-none ${TARJETA}`} aria-labelledby="h-actividad">
+              <div className="flex items-center justify-between gap-3">
+                <h3 id="h-actividad" className="text-base font-bold">
+                  Actividad reciente
+                </h3>
+                <Link to={`${base}/auditoria?usuario=${u.id}`} className="inline-flex items-center gap-1 min-h-12 text-sm font-bold text-navy hover:underline">
+                  Ver en auditoría <ChevronRight size={16} aria-hidden />
+                </Link>
+              </div>
+              {actividad.length === 0 ? (
+                <p className="text-sm text-muted">Sin actividad registrada.</p>
+              ) : (
+                <ol className="flex flex-col divide-y divide-line-soft">
+                  {actividad.map((e) => (
+                    <li key={e.id} className="flex flex-col gap-1 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm font-semibold text-ink">{operacionTexto(e.accion)}</span>
+                        <ResultadoBadge resultado={e.resultado} className="flex-none" />
+                      </div>
+                      <span className="text-xs text-muted">
+                        <time dateTime={e.fecha} title={fechaHora(e.fecha)}>
+                          {hace(e.fecha)}
+                        </time>
+                        {e.usuarioId !== u.id && ` · por ${e.usuarioNombre}`}
+                        {e.detalle && ` · ${e.detalle}`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          )}
         </div>
       </div>
 
-      {dialogo === 'editar' && <EditarUsuario key={u.id} usuario={u} esYo={esYo} onClose={cerrar} />}
+      {dialogo === 'datos' && <EditarDatos key={u.id} usuario={u} onClose={cerrar} />}
+      {dialogo === 'rol' && <CambiarRol key={`${u.id}-${rol}`} usuario={u} rolActual={rol} adultosACargo={aCargo} onClose={cerrar} />}
       {dialogo === 'cuidador' && <EditarCuidador key={u.id} usuario={u} cuidador={cuidador} onClose={cerrar} />}
 
       <Sheet
         open={dialogo === 'estado'}
         onClose={cerrar}
-        title={desactivar ? 'Desactivar usuario' : 'Reactivar usuario'}
+        title={desactivar ? 'Desactivar miembro' : 'Reactivar miembro'}
         footer={
           <>
             <Button variant="light" onClick={cerrar}>
@@ -374,46 +377,47 @@ export default function PerfilMiembro() {
         {desactivar ? (
           <>
             <p>
-              <strong>{nombre}</strong> perderá el acceso de inmediato: su sesión abierta se cerrará y no podrá volver a entrar.
+              <strong>{nombre}</strong> perderá el acceso a esta cuenta
+              {aCargo > 0 ? ` y dejará de tener acceso a ${aCargo} ${aCargo === 1 ? 'adulto mayor' : 'adultos mayores'}` : ''}. Si no pertenece a otra cuenta, su sesión se cerrará y no podrá volver a entrar.
             </p>
-            <p className="text-sm text-muted">Sus registros (visitas, necesidades, auditoría) se conservan. Puedes reactivar la cuenta cuando quieras.</p>
+            <p className="text-sm text-muted">Su historial (membresía, visitas, necesidades, auditoría) se conserva. Puedes reactivarlo cuando quieras.</p>
           </>
         ) : (
           <p>
-            <strong>{nombre}</strong> podrá volver a iniciar sesión con su contraseña y tendrá los permisos del rol {rolTexto(u.rol)}.
+            <strong>{nombre}</strong> volverá a tener acceso a esta cuenta con los permisos del rol {rolTexto(rol)}.
+            {tieneAcceso ? ' Tendrás que volver a indicar los adultos mayores a los que accede.' : ''}
           </p>
         )}
       </Sheet>
 
       <Sheet
-        open={dialogo === 'eliminar'}
+        open={dialogo === 'cancelar'}
         onClose={cerrar}
-        title="Eliminar usuario"
+        title="Cancelar invitación"
         footer={
           <>
             <Button variant="light" onClick={cerrar}>
-              Cancelar
+              Volver
             </Button>
-            <Button variant="danger" onClick={eliminar}>
-              Eliminar
+            <Button variant="danger" onClick={cancelarInvitacion}>
+              Cancelar invitación
             </Button>
           </>
         }
       >
         <p>
-          ¿Seguro que deseas eliminar a <strong>{nombre}</strong>? Perderá el acceso a CuidaRed
-          {aCargo.length > 0 ? ` y dejará de estar asignado a ${aCargo.length} ${aCargo.length === 1 ? 'adulto mayor' : 'adultos mayores'}` : ''}.
+          ¿Seguro que deseas cancelar la invitación de <strong>{nombre}</strong>? Su código de activación dejará de servir.
         </p>
-        <p className="text-sm text-muted">Esta acción no se puede deshacer. Si solo quieres retirar el acceso, usa “Desactivar”. El registro de auditoría conserva su nombre.</p>
+        <p className="text-sm text-muted">Solo se eliminan las invitaciones que nunca se activaron. A quien ya tiene acceso se le desactiva: su historial se conserva.</p>
       </Sheet>
 
-      <SuccessOverlay open={eliminado} message="Usuario eliminado" onDone={() => navigate(volverALista, { replace: true })} />
+      <SuccessOverlay open={cancelada} message="Invitación cancelada" onDone={() => navigate(volverALista, { replace: true })} />
     </Page>
   )
 }
 
-/** Hoja «Editar datos y rol»: valida y guarda con actualizarUsuario (el cambio de rol se aplica de inmediato). */
-function EditarUsuario({ usuario, esYo, onClose }: { usuario: Usuario; esYo: boolean; onClose: () => void }) {
+/** Hoja «Editar datos»: valida y guarda con actualizarUsuario (el rol se cambia con «Cambiar rol»). */
+function EditarDatos({ usuario, onClose }: { usuario: Usuario; onClose: () => void }) {
   const yo = useUser()
   const toast = useToast()
   const enLinea = useEnLinea()
@@ -423,8 +427,8 @@ function EditarUsuario({ usuario, esYo, onClose }: { usuario: Usuario; esYo: boo
     email: usuario.email,
     telefono: usuario.telefono,
     cedula: usuario.cedula,
-    rol: usuario.rol,
-    adultoIds: usuario.rol === 'familiar' ? adultosVinculados(getDB().vinculos, usuario.id, 'familiar_responsable') : [],
+    rol: '',
+    adultoIds: [],
   })
   const [errores, setErrores] = useState<ErroresUsuario>({})
 
@@ -434,18 +438,13 @@ function EditarUsuario({ usuario, esYo, onClose }: { usuario: Usuario; esYo: boo
   }
 
   const guardar = () => {
-    // Solo el familiar responsable conserva adultos a cargo (al cambiar de rol se retiran sus vínculos).
-    const r = actualizarUsuario(yo, usuario.id, datos.rol === 'familiar' ? datos : { ...datos, adultoIds: [] })
+    const r = actualizarUsuario(yo, usuario.id, { nombre: datos.nombre, apellido: datos.apellido, email: datos.email, telefono: datos.telefono, cedula: datos.cedula })
     if (!r.ok) {
       setErrores((r.errores ?? {}) as ErroresUsuario)
       toast(r.error, 'error')
       return
     }
-    toast(
-      datos.rol !== usuario.rol
-        ? `Rol actualizado a ${rolTexto(r.valor.rol)}. Se abrió una membresía nueva y los permisos ya se aplican.`
-        : 'Cambios guardados',
-    )
+    toast('Cambios guardados')
     onClose()
   }
 
@@ -453,7 +452,7 @@ function EditarUsuario({ usuario, esYo, onClose }: { usuario: Usuario; esYo: boo
     <Sheet
       open
       onClose={onClose}
-      title="Editar datos y rol"
+      title="Editar datos"
       footer={
         <>
           <Button variant="light" onClick={onClose}>
@@ -466,11 +465,65 @@ function EditarUsuario({ usuario, esYo, onClose }: { usuario: Usuario; esYo: boo
       }
     >
       {!enLinea && <AvisoSinConexion />}
-      <UsuarioCampos datos={datos} errores={errores} onChange={cambiar} bloquearRol={esYo ? 'No puedes cambiar el rol de tu propia cuenta.' : undefined} />
-      {datos.rol !== usuario.rol && (
-        <p className="text-sm text-warning-700 font-semibold">
-          Cambiarás el rol de {rolTexto(usuario.rol)} a {datos.rol ? rolTexto(datos.rol) : '—'}. La persona solo podrá usar las funciones del nuevo rol.
-        </p>
+      <UsuarioCampos datos={datos} errores={errores} onChange={cambiar} modo="datos" />
+    </Sheet>
+  )
+}
+
+/** Hoja «Cambiar rol»: solo ofrece los roles del tipo de cuenta; al confirmar se abre una membresía nueva y se limpian los accesos del rol anterior. */
+function CambiarRol({ usuario, rolActual, adultosACargo, onClose }: { usuario: Usuario; rolActual: Rol; adultosACargo: number; onClose: () => void }) {
+  const yo = useUser()
+  const { org } = useSession()
+  const toast = useToast()
+  const enLinea = useEnLinea()
+  const [nuevo, setNuevo] = useState<Rol>(rolActual)
+  const [error, setError] = useState<string | undefined>()
+
+  const guardar = () => {
+    const r = cambiarRolMiembro(yo, usuario.id, nuevo)
+    if (!r.ok) {
+      setError(r.errores?.rol ?? r.error)
+      toast(r.error, 'error')
+      return
+    }
+    toast(`Rol actualizado a ${rolTexto(nuevo)}. Se abrió una membresía nueva y los permisos ya se aplican.`)
+    onClose()
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="Cambiar rol"
+      footer={
+        <>
+          <Button variant="light" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={guardar} disabled={!enLinea || nuevo === rolActual}>
+            Cambiar rol
+          </Button>
+        </>
+      }
+    >
+      {!enLinea && <AvisoSinConexion />}
+      <p className="text-sm text-ink-2">
+        Rol actual de <strong>{nombreCompleto(usuario)}</strong>: {rolTexto(rolActual)}.
+      </p>
+      <RolSelector
+        valor={nuevo}
+        roles={rolesDeTipo(tipoDeCuenta(org))}
+        error={error}
+        onChange={(r) => {
+          setNuevo(r)
+          setError(undefined)
+        }}
+      />
+      {nuevo !== rolActual && (
+        <Nota tono="warning">
+          Cambiarás el rol de {rolTexto(rolActual)} a {rolTexto(nuevo)}: la persona solo podrá usar las funciones del nuevo rol.
+          {adultosACargo > 0 ? ` Se quitarán sus ${adultosACargo} ${adultosACargo === 1 ? 'acceso' : 'accesos'} a adultos mayores; podrás asignarlos de nuevo.` : ''}
+        </Nota>
       )}
     </Sheet>
   )

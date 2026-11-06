@@ -6,6 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { PARAM } from './datosMaestros'
+import { excedeLimite, limitesDeCuenta } from './planes'
 import type {
   Adulto,
   Catalogos,
@@ -33,6 +34,18 @@ export const adultosVinculados = (vinculos: Vinculo[], usuarioId: string, tipo: 
   vinculos.filter((v) => v.usuarioId === usuarioId && v.tipoVinculoId === tipo).map((v) => v.adultoId)
 
 export const voluntariosDe = (vinculos: Vinculo[], adultoId: string) => usuariosVinculados(vinculos, adultoId, 'voluntario_asignado')
+export const cuidadoresDe = (vinculos: Vinculo[], adultoId: string) => usuariosVinculados(vinculos, adultoId, 'cuidador_asignado')
+/** Personal de campo asignado al adulto: cuidadores y voluntarios (pueden ser responsables de una visita). */
+export const asignadosDe = (vinculos: Vinculo[], adultoId: string) => [...new Set([...cuidadoresDe(vinculos, adultoId), ...voluntariosDe(vinculos, adultoId)])]
+
+/** Vínculo de asignación que corresponde a cada rol de campo (V2: todos los cuidadores tienen el mismo nivel). */
+export const VINCULO_DE_ROL: Partial<Record<Usuario['rol'], TipoVinculo>> = {
+  cuidador: 'cuidador_asignado',
+  voluntario: 'voluntario_asignado',
+  familiar: 'familiar_responsable',
+}
+/** ¿El rol hace trabajo de campo (puede ser responsable de una visita)? */
+export const esRolDeCampo = (rol: Usuario['rol']) => rol === 'cuidador' || rol === 'voluntario'
 export const familiaresDe = (vinculos: Vinculo[], adultoId: string) => usuariosVinculados(vinculos, adultoId, 'familiar_responsable')
 
 export const tieneVinculo = (vinculos: Vinculo[], usuarioId: string, adultoId: string, tipo: TipoVinculo) =>
@@ -131,16 +144,26 @@ export const membresiasDe = (membresias: Membresia[], usuarioId: string) =>
 export const cuidadorDeUsuario = (cuidadores: Cuidador[], usuarioId: string) => cuidadores.find((c) => c.usuarioId === usuarioId)
 
 /** Uso de los límites del plan (Limite_Envejecientes, Limite_Usuarios). */
-export function usoDelPlan(db: Pick<DB, 'adultos' | 'usuarios' | 'catalogos'>, org: Organizacion | null | undefined) {
+export function usoDelPlan(db: Pick<DB, 'adultos' | 'usuarios' | 'catalogos'> & Partial<Pick<DB, 'membresias'>>, org: Organizacion | null | undefined) {
   const plan = planDe(db.catalogos, org)
+  const limites = limitesDeCuenta(db.catalogos, org)
   const envejecientes = db.adultos.filter((a) => a.orgId === org?.id && a.estado === 'activo').length
-  const usuarios = db.usuarios.filter((u) => u.orgId === org?.id && u.estado !== 'inactivo').length
+  // Miembros de la cuenta según Membresia (un usuario puede pertenecer a varias cuentas).
+  // Los voluntarios ocasionales no cuentan para el límite de miembros: registran visitas sin plan propio (V2).
+  const miembros = db.membresias
+    ? new Set(db.membresias.filter((m) => m.orgId === org?.id && m.estado === 'activa' && m.rol !== 'voluntario').map((m) => m.usuarioId))
+    : new Set(db.usuarios.filter((u) => u.orgId === org?.id && u.rol !== 'voluntario').map((u) => u.id))
+  const usuarios = db.usuarios.filter((u) => miembros.has(u.id) && u.estado !== 'inactivo').length
+  const familiares = db.membresias ? db.membresias.filter((m) => m.orgId === org?.id && m.estado === 'activa' && m.rol === 'familiar').length : 0
   return {
     plan,
+    limites,
     envejecientes,
     usuarios,
-    excedeEnvejecientes: !!plan && envejecientes > plan.limiteEnvejecientes,
-    excedeUsuarios: !!plan && usuarios > plan.limiteUsuarios,
+    familiares,
+    excedeEnvejecientes: excedeLimite(envejecientes, limites.envejecientes),
+    excedeUsuarios: excedeLimite(usuarios, limites.usuarios),
+    excedeFamiliares: excedeLimite(familiares, limites.familiares),
   }
 }
 

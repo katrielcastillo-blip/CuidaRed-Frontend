@@ -24,19 +24,21 @@ import { ASPECTOS_VISITA } from '@/domain/catalogos'
 import { useEnLinea } from '@/domain/conectividad'
 import { hhmmA12, todayISO } from '@/domain/dates'
 import { alcanzaAdulto, puede } from '@/domain/permisos'
-import { voluntariosDe } from '@/domain/relaciones'
+import { asignadosDe } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Adulto, EstadoAdultoVisita, Usuario, Visita } from '@/domain/types'
 import { hayErrores } from '@/domain/validacion'
-import { Button, ButtonLink, Card, CheckboxGroup, EmptyState, SelectField, SuccessOverlay, TextareaAbreviado, TextField, useToast } from '@/components/ui'
+import { AvisoBorrador, Button, ButtonLink, Card, CheckboxGroup, EmptyState, HelpTip, SelectField, SuccessOverlay, TextareaAbreviado, TextField, useToast } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
-import { useBorrador } from '@/lib/useBorrador'
+import { useBorradorCompleto } from '@/lib/useBorrador'
 import { AdultoHeader } from '../components/AdultoHeader'
 import { EstadoPunto, NoEncontrado, SyncBadge } from '../components/Comun'
+import { AdjuntarArchivo } from '../components/AdjuntarArchivo'
 import { EvidenciasLista } from '../components/EvidenciasLista'
 import { TileSelect } from '../components/TileSelect'
 import { ESTADOS_ADULTO, hhmm, MAX_ADICIONALES, mismoHogar, RAZON_OTRA, RAZON_POR_DEFECTO, RAZONES_VISITA, useAdultosElegibles } from '../lib/dominio'
-import { MAX_EVIDENCIAS, procesarEvidencias } from '../lib/evidencias'
+import { MAX_EVIDENCIAS } from '../lib/evidencias'
+import { enfocarPrimerInvalido } from '../lib/formularios'
 
 const TITULO = 'Registrar visita'
 const DETALLE_OFFLINE = 'Guardada en el dispositivo · Pendiente de sincronización'
@@ -119,7 +121,14 @@ function Formulario({
   const razonProgramada = visita?.razon?.trim() || ''
   const razonExtra = razonProgramada && !RAZONES_VISITA.includes(razonProgramada) ? razonProgramada : ''
 
-  const [d, setD, descartar] = useBorrador<Borrador>(clave, {
+  const {
+    valor: d,
+    setValor: setD,
+    descartar,
+    recuperado: borradorRecuperado,
+    cerrarAviso: cerrarAvisoBorrador,
+    reiniciar: reiniciarBorrador,
+  } = useBorradorCompleto<Borrador>(clave, {
     adultoId: adultoFijo?.id ?? '',
     fecha: todayISO(),
     hora: hhmm(new Date()),
@@ -152,7 +161,7 @@ function Formulario({
 
   // Responsables posibles (coordinador): él mismo y los voluntarios con vínculo «voluntario asignado» con el adulto.
   const responsables = useMemo(() => {
-    const ids = new Set([user.id, ...(adulto ? voluntariosDe(vinculos, adulto.id) : []), ...(visita ? [visita.cuidadorId] : [])])
+    const ids = new Set([user.id, ...(adulto ? asignadosDe(vinculos, adulto.id) : []), ...(visita ? [visita.cuidadorId] : [])])
     return usuarios
       .filter((u) => ids.has(u.id) && u.estado === 'activo')
       .map((u) => ({ value: u.id, label: u.id === user.id ? `${nombreCompleto(u)} (yo)` : nombreCompleto(u) }))
@@ -192,18 +201,18 @@ function Formulario({
     setErroresFilas((x) => x.filter((_, j) => j !== i))
   }
 
-  async function adjuntar(files: FileList | null) {
-    if (!files || files.length === 0) return
-    setSubiendo(true)
-    const nuevas = await procesarEvidencias(files)
-    setD((x) => ({ ...x, evidencias: [...x.evidencias, ...nuevas].slice(0, MAX_EVIDENCIAS) }))
-    setSubiendo(false)
-  }
-
   function mostrarErrores(errs: Errores, deFilas: ErrorFila[] = []) {
     setErrores(errs)
     setErroresFilas(deFilas)
-    requestAnimationFrame(() => document.querySelector('form [role="alert"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    // Cuando React ya pintó los errores: foco en el primer campo inválido y desplazamiento hasta él.
+    requestAnimationFrame(() => enfocarPrimerInvalido())
+  }
+
+  /** "Descartar" del aviso de borrador: vuelve a los valores iniciales y quita los errores. */
+  function descartarBorrador() {
+    reiniciarBorrador()
+    setErrores({})
+    setErroresFilas([])
   }
 
   async function registrar(e: FormEvent) {
@@ -252,7 +261,8 @@ function Formulario({
 
   return (
     <Page title={TITULO} back>
-      <form className="flex flex-col gap-4" onSubmit={registrar} noValidate aria-label="Registro de visita">
+      <form className="flex flex-col gap-2.5" onSubmit={registrar} noValidate aria-label="Registro de visita">
+        <AvisoBorrador formulario={{ borradorRecuperado, descartarBorrador, cerrarAvisoBorrador }} />
         {adultoFijo ? (
           <AdultoHeader adulto={adultoFijo} compacto>
             {visita && (
@@ -342,7 +352,7 @@ function Formulario({
         />
 
         {/* Dos columnas también en móvil para que el formulario quepa en un desplazamiento (RF-06). */}
-        <div className="[&_fieldset>div]:grid-cols-2 [&_legend]:mb-0">
+        <div className="[&_fieldset>div]:grid-cols-2 [&_legend]:mb-0 [&_label]:gap-2 [&_label]:px-2">
           <CheckboxGroup
             label="Aspectos verificados"
             options={ASPECTOS_VISITA}
@@ -354,14 +364,15 @@ function Formulario({
         </div>
 
         {/* Área de texto algo más baja (crece al escribir con el tirador) para caber en un desplazamiento (RF-06). */}
-        <div className="[&_textarea]:min-h-[88px]">
+        <div className="[&_textarea]:min-h-[72px]">
           <TextareaAbreviado
             label="Observaciones"
             required
             rows={2}
             maxLength={1000}
             placeholder="Ej.: sn, tomó sus meds, buen ánimo"
-            hint="Admite abreviaturas (toca ? para verlas)."
+            hint="Admite abreviaturas."
+            botonProcesar={false}
             value={d.observaciones}
             onValueChange={(v) => set('observaciones', v)}
             error={errores.observaciones}
@@ -379,7 +390,7 @@ function Formulario({
                 onClick={agregarFila}
               >
                 <span>
-                  ¿Visitaste a otro adulto del mismo hogar? <span className="text-muted text-sm font-normal">(opcional)</span>
+                  ¿Visitaste a otro adulto del hogar? <span className="sr-only">(opcional)</span>
                 </span>
                 <UsersRound size={22} className="flex-none" aria-hidden />
               </button>
@@ -443,29 +454,23 @@ function Formulario({
           </section>
         )}
 
-        <div className="flex flex-col gap-3">
-          <label
-            className={
-              'flex items-center justify-between gap-3 min-h-12 px-4 rounded-sm border border-line-soft bg-surface-2 text-ink-2 cursor-pointer ' +
-              'hover:border-navy hover:text-navy has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-blue has-[:disabled]:opacity-55 has-[:disabled]:cursor-not-allowed'
-            }
-          >
+        <div className="flex flex-col gap-2">
+          <p className="flex items-center gap-1 text-base font-semibold text-ink">
+            <Paperclip size={20} className="text-navy" aria-hidden />
             <span>
-              {subiendo ? 'Procesando…' : 'Adjuntar evidencias'} <span className="text-muted text-sm">(opcional · máx. {MAX_EVIDENCIAS})</span>
+              Evidencias <span className="text-muted text-sm font-normal">(opcional · máx. {MAX_EVIDENCIAS})</span>
             </span>
-            <Paperclip size={22} aria-hidden />
-            <input
-              type="file"
-              multiple
-              accept="image/*,application/pdf"
-              className="sr-only"
-              disabled={d.evidencias.length >= MAX_EVIDENCIAS}
-              onChange={(e) => {
-                void adjuntar(e.target.files)
-                e.target.value = ''
-              }}
-            />
-          </label>
+            <HelpTip label="Ayuda: evidencias">Fotos JPG, PNG o WEBP y documentos PDF de hasta 5 MB. Las fotos se reducen automáticamente para ahorrar espacio.</HelpTip>
+          </p>
+          <AdjuntarArchivo
+            compacto
+            multiple
+            restantes={MAX_EVIDENCIAS - d.evidencias.length}
+            disabled={d.evidencias.length >= MAX_EVIDENCIAS}
+            motivoDeshabilitado={d.evidencias.length >= MAX_EVIDENCIAS ? `Ya adjuntaste el máximo de ${MAX_EVIDENCIAS} evidencias.` : undefined}
+            onProcesando={setSubiendo}
+            onArchivos={(nuevas) => setD((x) => ({ ...x, evidencias: [...x.evidencias, ...nuevas.map((n) => n.archivo)].slice(0, MAX_EVIDENCIAS) }))}
+          />
           <EvidenciasLista compacta items={d.evidencias} onQuitar={(i) => set('evidencias', d.evidencias.filter((_, j) => j !== i))} />
         </div>
 
@@ -479,10 +484,13 @@ function Formulario({
           <Button type="submit" variant={eligeResponsable ? 'primary' : 'soft'} fullWidth loading={enviando} disabled={subiendo}>
             Registrar visita
           </Button>
+          {/* En móvil se vuelve con la flecha de la barra superior: el botón solo aparece desde tablet (ahorra altura). */}
           {eligeResponsable && (
-            <Button variant="outline" fullWidth onClick={() => navigate(-1)}>
-              Cancelar
-            </Button>
+            <div className="hidden md:block">
+              <Button variant="outline" fullWidth onClick={() => navigate(-1)}>
+                Cancelar
+              </Button>
+            </div>
           )}
         </div>
       </form>

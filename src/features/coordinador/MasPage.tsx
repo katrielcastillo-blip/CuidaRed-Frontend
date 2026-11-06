@@ -1,13 +1,32 @@
 /*
- * MasPage.tsx — "Más" del coordinador: Agenda de cuidado (Tarea_agenda · Evidencias), Resumen de seguimiento
- * (RF-07), Reportes (RF-08), Alertas (CU-09/CU-10), Conexión y sincronización (RF-10 · CU-14), Ayuda en línea, Acerca de CuidaRed,
- * avisos legales (SRS §18.3), Mi perfil y Cerrar sesión. Las opciones se muestran según puede() (RF-09).
+ * MasPage.tsx — "Más opciones" del coordinador (HU-08): Alertas (CU-09/CU-10), Resumen de seguimiento (RF-07),
+ * Reportes y estadísticas (RF-08), Agenda de cuidado (Tarea_agenda · Evidencias), Solicitudes de visita (V2),
+ * Conexión y sincronización (RF-10 · CU-14), Ayuda en línea, Acerca de CuidaRed, avisos legales (SRS §18.3),
+ * Mi perfil y Cerrar sesión. Cada entrada se muestra según puede() (RF-09): en una cuenta Familia, donde el
+ * Coordinador gestiona la cuenta, se suman Miembros, Suscripción y plan y Configuración de la cuenta.
  * Módulo: coordinador.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BellRing, CalendarCheck, ChartColumn, ChevronRight, CircleHelp, FileText, Info, ListOrdered, LogOut, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
+import {
+  BellRing,
+  CalendarCheck,
+  ChartColumn,
+  ChevronRight,
+  CircleHelp,
+  CreditCard,
+  FileText,
+  Info,
+  ListOrdered,
+  LogOut,
+  RefreshCw,
+  Settings,
+  ShieldCheck,
+  UserRound,
+  UserRoundPlus,
+  Users,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useToast } from '@/components/ui'
 import { logout } from '@/domain/auth'
@@ -16,6 +35,7 @@ import { pendientesDelUsuario, usePendientes } from '@/domain/sync'
 import { Page, useShell } from '@/layouts/AppShell'
 import { useAgenda } from '@/features/agenda/lib/agenda'
 import { esAlertaAbierta, useOrgData } from './lib/datos'
+import { useSolicitudes } from './solicitudes/lib/solicitudes'
 
 interface Opcion {
   to: string
@@ -32,6 +52,7 @@ export function MasPage() {
   const { user, alertas } = useOrgData()
   const pendientesSync = usePendientes().length
   const abiertas = useMemo(() => alertas.filter(esAlertaAbierta).length, [alertas])
+  const { pendientes: solicitudesPendientes } = useSolicitudes()
   const { evidencias } = useAgenda()
   const porValidar = useMemo(() => evidencias.filter((e) => e.estadoValidacion === 'pendiente').length, [evidencias])
 
@@ -44,20 +65,6 @@ export function MasPage() {
   }
 
   const seguimiento: Opcion[] = [
-    ...(puede(user, 'agenda:ver')
-      ? [
-          {
-            to: `${base}/agenda`,
-            icon: CalendarCheck,
-            titulo: 'Agenda de cuidado',
-            texto: 'Tareas asignadas a los cuidadores y evidencias por validar.',
-            extra: porValidar > 0 ? <Contador n={porValidar} etiqueta={`${porValidar} evidencias por validar`} tono="warning" /> : null,
-          },
-        ]
-      : []),
-    ...(puede(user, 'resumen:ver')
-      ? [{ to: `${base}/resumen`, icon: ListOrdered, titulo: 'Resumen de seguimiento', texto: 'Casos activos ordenados por prioridad, estado o última visita.' }]
-      : []),
     ...(puede(user, 'alertas:ver')
       ? [
           {
@@ -69,19 +76,65 @@ export function MasPage() {
           },
         ]
       : []),
+    ...(puede(user, 'resumen:ver')
+      ? [{ to: `${base}/resumen`, icon: ListOrdered, titulo: 'Resumen de seguimiento', texto: 'Casos activos ordenados por prioridad, estado o última visita.' }]
+      : []),
     ...(puede(user, 'reportes:ver')
-      ? [{ to: `${base}/reportes`, icon: ChartColumn, titulo: 'Reportes', texto: 'Adultos registrados, visitas, necesidades frecuentes y casos prioritarios.' }]
+      ? [{ to: `${base}/reportes`, icon: ChartColumn, titulo: 'Reportes y estadísticas', texto: 'Adultos registrados, visitas, necesidades frecuentes y casos prioritarios.' }]
+      : []),
+    ...(puede(user, 'agenda:ver')
+      ? [
+          {
+            to: `${base}/agenda`,
+            icon: CalendarCheck,
+            titulo: 'Agenda de cuidado',
+            texto: 'Tareas asignadas a los cuidadores y evidencias por validar.',
+            extra: porValidar > 0 ? <Contador n={porValidar} etiqueta={`${porValidar} evidencias por validar`} tono="warning" /> : null,
+          },
+        ]
+      : []),
+    ...(puede(user, 'visitas:autorizar')
+      ? [
+          {
+            to: `${base}/solicitudes`,
+            icon: UserRoundPlus,
+            titulo: 'Solicitudes de visita',
+            texto: 'Personas externas que piden visitar a un adulto mayor: autoriza o rechaza.',
+            extra:
+              solicitudesPendientes.length > 0 ? (
+                <Contador n={solicitudesPendientes.length} etiqueta={`${solicitudesPendientes.length} solicitudes por autorizar`} tono="warning" />
+              ) : null,
+          },
+        ]
+      : []),
+  ]
+
+  // Administración de la cuenta: en Familia no hay Administrador y el Coordinador la gestiona (permisos por tipo de cuenta).
+  const cuenta: Opcion[] = [
+    ...(puede(user, 'usuarios:gestionar')
+      ? [{ to: `${base}/miembros`, icon: Users, titulo: 'Miembros', texto: 'Personas con acceso a la cuenta: agrégalas, cambia su rol o desactívalas.' }]
+      : []),
+    ...(puede(user, 'cuenta:suscripcion')
+      ? [{ to: `${base}/suscripcion`, icon: CreditCard, titulo: 'Suscripción y plan', texto: 'Plan contratado, uso de la cuenta y pagos.' }]
+      : []),
+    ...(puede(user, 'organizacion:configurar')
+      ? [{ to: `${base}/configuracion`, icon: Settings, titulo: 'Configuración de la cuenta', texto: 'Datos de la cuenta y parámetros de seguimiento.' }]
       : []),
   ]
 
   const sistema: Opcion[] = [
-    {
-      to: `${base}/sincronizacion`,
-      icon: RefreshCw,
-      titulo: 'Conexión y sincronización',
-      texto: 'Estado de la conexión y registros guardados en este dispositivo.',
-      extra: pendientesSync > 0 ? <Contador n={pendientesSync} etiqueta={`${pendientesSync} registros pendientes de sincronización`} tono="warning" /> : null,
-    },
+    ...(puede(user, 'sync:usar')
+      ? [
+          {
+            to: `${base}/sincronizacion`,
+            icon: RefreshCw,
+            titulo: 'Conexión y sincronización',
+            texto: 'Estado de la conexión y registros guardados en este dispositivo.',
+            extra:
+              pendientesSync > 0 ? <Contador n={pendientesSync} etiqueta={`${pendientesSync} registros pendientes de sincronización`} tono="warning" /> : null,
+          },
+        ]
+      : []),
     { to: perfilPath, icon: UserRound, titulo: 'Mi perfil', texto: 'Consulta y edita los datos de tu cuenta.' },
     { to: `${base}/ayuda`, icon: CircleHelp, titulo: 'Ayuda', texto: 'Guía rápida de uso para tu rol.' },
     { to: `${base}/acerca`, icon: Info, titulo: 'Acerca de CuidaRed', texto: 'Versión, equipo y créditos del proyecto (INTEC).' },
@@ -95,6 +148,7 @@ export function MasPage() {
   return (
     <Page title="Más" wide>
       <Grupo id="mas-seguimiento" titulo="Seguimiento" opciones={seguimiento} />
+      <Grupo id="mas-administracion" titulo="Administración de la cuenta" opciones={cuenta} />
       <Grupo id="mas-cuenta" titulo="Cuenta y sistema" opciones={sistema} />
       <Grupo id="mas-legal" titulo="Información legal" opciones={legal} />
 

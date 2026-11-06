@@ -5,11 +5,12 @@
  *
  * Formulario de perfil en tres pasos (modelo V3.0): 1 · Identificación; 2 · Ubicación (provincia → municipio,
  * sector y dirección) y contacto de emergencia principal (Contacto_emergencia); 3 · Condición, nivel de
- * riesgo social + motivo (Env_Riesgo) y consentimiento informado.
+ * riesgo social + motivo (Env_Riesgo) y consentimiento informado. Reglas de Negocio V2: el perfil pertenece a la
+ * cuenta activa (Organización o Familia) y el formulario avisa cuando recupera un borrador.
  */
 import { expect, test, type Page } from '@playwright/test'
 import type { Riesgo } from '../../src/domain/types'
-import { contactoPrincipal, CUENTAS, iniciarSesion, leerDB, limpiarDatos, sesionDirecta } from './fixtures'
+import { contactoPrincipal, CUENTA_FAMILIA, CUENTAS, iniciarSesion, leerDB, limpiarDatos, sesionDirecta } from './fixtures'
 
 const NUEVO = { nombre: 'Mercedes', apellido: 'Paulino', cedula: '001-4567890-1', telefono: '809 555 1234', nacimiento: '1950-03-15' }
 const UBICACION = { provincia: 'Santo Domingo', municipio: 'Santo Domingo Este', sector: 'Los Mina', direccion: 'Calle Respaldo 5 #20' }
@@ -51,9 +52,21 @@ async function llenarCondicion(page: Page, riesgo: Riesgo) {
   await page.getByRole('checkbox', { name: /Se informó y se obtuvo la autorización/ }).check()
 }
 
+
+/**
+ * Reglas de Negocio V2: la primera vez que una persona entra con un rol, la app muestra una guía de bienvenida
+ * (diálogo de un solo uso, clave `cuidared:onboarding:<userId>:<rol>`). Estas pruebas no la verifican, así que se
+ * marca como vista (para los usuarios demo) antes de entrar.
+ */
+async function omitirOnboarding(page: Page) {
+  const claves = [...Object.entries(CUENTAS).map(([rol, c]) => `${c.id}:${rol}`), `${CUENTA_FAMILIA.id}:coordinador`].map((k) => `cuidared:onboarding:${k}`)
+  await page.evaluate((ks) => ks.forEach((k) => localStorage.setItem(k, new Date().toISOString())), claves)
+}
+
 test.describe('E2E-CU02-PERFIL-CREATE · Registrar perfil de adulto mayor', () => {
   test.beforeEach(async ({ page }) => {
     await limpiarDatos(page)
+    await omitirOnboarding(page)
   })
 
   test('Escenario: Registrar correctamente un adulto mayor', async ({ page }) => {
@@ -91,6 +104,8 @@ test.describe('E2E-CU02-PERFIL-CREATE · Registrar perfil de adulto mayor', () =
       condicionGeneral: { autonomia: 'parcial', condiciones: ['vive_solo'] },
     })
     expect(a?.consentimiento?.otorgado).toBe(true)
+    // (al registrar con éxito el borrador del formulario se descarta)
+    expect(await page.evaluate(() => sessionStorage.getItem('cuidared:borrador:adulto:nuevo'))).toBeNull()
     // (contacto de emergencia principal en Contacto_emergencia y clasificación de riesgo en Env_Riesgo)
     expect(contactoPrincipal(db, a!.id)).toMatchObject(CONTACTO)
     expect(db.riesgos.filter((r) => r.adultoId === a!.id && r.estado === 'vigente')).toEqual([
@@ -168,5 +183,52 @@ test.describe('E2E-CU02-PERFIL-CREATE · Registrar perfil de adulto mayor', () =
     await page.getByRole('link', { name: new RegExp(`${NUEVO.nombre} ${NUEVO.apellido}`) }).click()
     await expect(page).toHaveURL(new RegExp(`/admin/adultos/${a.id}$`))
     await expect(page.getByRole('region', { name: 'Resumen del adulto mayor' })).toContainText('Riesgo ALTO')
+  })
+
+  test('Escenario: Recuperar lo escrito al volver al formulario de registro', async ({ page }) => {
+    // Dado que el usuario escribió parte de los datos y salió del formulario sin registrar
+    await sesionDirecta(page, CUENTAS.coordinador.id, '/coordinador/adultos/nuevo')
+    await page.getByRole('textbox', { name: /^Nombre/ }).fill(NUEVO.nombre)
+    await page.getByRole('textbox', { name: /^Apellido/ }).fill(NUEVO.apellido)
+    await page.getByRole('textbox', { name: /^Cédula/ }).fill(NUEVO.cedula)
+    await page.goto('/coordinador/adultos')
+    // Cuando vuelve a abrir el formulario
+    await page.goto('/coordinador/adultos/nuevo')
+    // Entonces el sistema le avisa que recuperó el borrador y conserva lo que había escrito
+    await expect(page.getByText('Recuperamos lo que estabas escribiendo.')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: /^Nombre/ })).toHaveValue(NUEVO.nombre)
+    await expect(page.getByRole('textbox', { name: /^Cédula/ })).toHaveValue(NUEVO.cedula)
+    // Y puede descartarlo para empezar de nuevo
+    await page.getByRole('button', { name: 'Descartar el borrador y empezar de nuevo' }).click()
+    await expect(page.getByText('Recuperamos lo que estabas escribiendo.')).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: /^Nombre/ })).toHaveValue('')
+    await expect(page.getByRole('textbox', { name: /^Cédula/ })).toHaveValue('')
+    expect(await page.evaluate(() => sessionStorage.getItem('cuidared:borrador:adulto:nuevo'))).toBeNull()
+  })
+
+  test('Escenario: La coordinadora de una cuenta Familia registra un adulto mayor en su propia cuenta', async ({ page }) => {
+    // Dado que la coordinadora de Familia Méndez (prueba gratuita) tiene 2 adultos mayores en su cuenta
+    await sesionDirecta(page, CUENTA_FAMILIA.id, '/coordinador/adultos')
+    const lista = page.getByRole('list', { name: 'Adultos mayores' })
+    await expect(lista.getByRole('listitem')).toHaveCount(2)
+    await expect(lista).toContainText('Rosa Méndez')
+    await expect(lista).toContainText('Ramón Méndez')
+    const antes = (await leerDB(page)).adultos.filter((a) => a.orgId === 'org-1').length
+    // Cuando registra un perfil nuevo
+    await page.getByRole('link', { name: 'Nuevo perfil' }).filter({ visible: true }).click()
+    await llenarIdentificacion(page)
+    await llenarUbicacionYContacto(page)
+    await llenarCondicion(page, 'bajo')
+    await page.getByRole('button', { name: 'Registrar' }).click()
+    // Entonces el perfil queda en la cuenta Familia, a nombre de la coordinadora
+    await expect(page.getByText('Perfil registrado correctamente')).toBeVisible()
+    const db = await leerDB(page)
+    expect(db.adultos.find((x) => x.cedula === NUEVO.cedula)).toMatchObject({ orgId: CUENTA_FAMILIA.orgId, registradoPor: CUENTA_FAMILIA.id, riesgo: 'bajo', estado: 'activo' })
+    // Y no se mezcla con los adultos de la Fundación
+    expect(db.adultos.filter((a) => a.orgId === 'org-1').length).toBe(antes)
+    await page.waitForURL('**/coordinador/adultos')
+    await expect(lista.getByRole('listitem')).toHaveCount(3)
+    await expect(lista).toContainText(`${NUEVO.nombre} ${NUEVO.apellido}`)
+    await expect(lista).not.toContainText('Elena Rodríguez')
   })
 })

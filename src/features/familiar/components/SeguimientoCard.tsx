@@ -1,63 +1,50 @@
 /*
- * SeguimientoCard.tsx — Estado del seguimiento de un adulto mayor para su familiar responsable: tipo de
- * vínculo (Tipo_vinculo), última visita y días transcurridos (RF-05), próxima visita con su motivo (Visit_razon)
- * y necesidades abiertas con estado y prioridad (CU-06 · CU-08). Solo lectura. El nivel de riesgo solo se
- * muestra si el usuario puede ver datos sensibles.
+ * SeguimientoCard.tsx — Tarjeta de seguimiento de un envejeciente autorizado (Mis envejecientes): tipo de
+ * vínculo, estado general del seguimiento (días sin visita · RF-05), última visita realizada con el estado en
+ * que encontraron al adulto, próxima visita con su motivo y necesidades abiertas con estado y prioridad
+ * (CU-06 · CU-08). Solo lectura; no muestra riesgo ni datos sensibles (la familia no tiene `adultos:ver-sensible`).
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { CalendarCheck, CalendarClock, CircleAlert, CircleCheck } from 'lucide-react'
-import { Badge, IconTile, LinkCard, RiesgoBadge } from '@/components/ui'
-import { nombreCompleto, useUser } from '@/domain/auth'
-import { edad, fechaCorta, hhmmA12 } from '@/domain/dates'
-import { puede } from '@/domain/permisos'
-import type { Adulto, Necesidad, Visita } from '@/domain/types'
+import { Badge, IconTile, LinkCard } from '@/components/ui'
+import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import { useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
-import { ESTADO_NECESIDAD, etiquetaDia, haceDias, PRIORIDAD, TIPO_NECESIDAD } from '../lib'
+import { ESTADO_ADULTO_VISITA, ESTADO_NECESIDAD, etiquetaDia, haceDias, PRIORIDAD, TIPO_NECESIDAD } from '../lib/etiquetas'
+import type { EnvejecienteTarjeta } from '../lib/modelos'
 
-export interface Seguimiento {
-  adulto: Adulto
-  ultima?: Visita
-  /** Días calendario desde la última visita (o desde el registro si no hay visitas). */
-  dias: number
-  conVisitas: boolean
-  proxima?: Visita
-  abiertas: Necesidad[]
-}
-
-export function SeguimientoCard({ s, umbral, vinculo }: { s: Seguimiento; umbral: number; vinculo?: string }) {
+export function SeguimientoCard({ e }: { e: EnvejecienteTarjeta }) {
   const { base } = useShell()
-  const user = useUser()
-  const { adulto, ultima, dias, conVisitas, proxima, abiertas } = s
-  const atrasado = dias > umbral
+  const { seguimiento: s, necesidadesAbiertas: abiertas } = e
+  const { ultimaVisita: ultima, proximaVisita: proxima } = s
+  const estadoUltima = ultima?.estadoAdulto ? ESTADO_ADULTO_VISITA[ultima.estadoAdulto] : undefined
 
   return (
-    <LinkCard to={`${base}/adultos/${adulto.id}`} footer="Ver historial y necesidades">
+    <LinkCard to={`${base}/adultos/${e.id}`} footer="Ver perfil y seguimiento">
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <IconTile />
           <div className="flex flex-col flex-1 min-w-0">
-            <h3 className="text-xl font-semibold leading-tight text-ink wrap-anywhere">{nombreCompleto(adulto)}</h3>
+            <h3 className="text-xl font-semibold leading-tight text-ink wrap-anywhere">{e.nombre}</h3>
             <span className="text-sm text-muted">
-              {edad(adulto.fechaNacimiento)} años{vinculo ? ` · Tu vínculo: ${vinculo}` : ''}
+              {e.edad} años{e.vinculo ? ` · Tu vínculo: ${e.vinculo}` : ''}
             </span>
           </div>
-          {puede(user, 'adultos:ver-sensible', adulto) && <RiesgoBadge riesgo={adulto.riesgo} />}
         </div>
 
         {/* Estado general del seguimiento */}
         <p
           className={cn(
             'flex items-start gap-2 px-3 py-2 rounded-sm text-sm font-semibold',
-            atrasado ? 'bg-danger-100 text-danger' : 'bg-success-100 text-success-700',
+            s.atrasado ? 'bg-danger-100 text-danger' : 'bg-success-100 text-success-700',
           )}
         >
-          {atrasado ? <CircleAlert size={18} className="flex-none mt-px" aria-hidden /> : <CircleCheck size={18} className="flex-none mt-px" aria-hidden />}
+          {s.atrasado ? <CircleAlert size={18} className="flex-none mt-px" aria-hidden /> : <CircleCheck size={18} className="flex-none mt-px" aria-hidden />}
           <span>
-            {atrasado
-              ? `${dias} días sin visita. La organización ya fue avisada para programar una.`
-              : conVisitas
+            {s.atrasado
+              ? `${s.diasSinContacto} días sin visita. El equipo de la cuenta ya fue avisado para programar una.`
+              : s.conVisitas
                 ? 'Seguimiento al día: recibió visita recientemente.'
                 : 'Aún no tiene visitas registradas.'}
           </span>
@@ -67,9 +54,10 @@ export function SeguimientoCard({ s, umbral, vinculo }: { s: Seguimiento; umbral
           <div className="flex gap-2 min-w-0">
             <CalendarCheck size={20} className="flex-none mt-0.5 text-navy" aria-hidden />
             <div className="min-w-0">
-              <dt className="text-xs text-ink">Última visita</dt>
+              <dt className="text-xs text-ink">Última visita realizada</dt>
               <dd className="text-base font-bold text-ink">{ultima ? etiquetaDia(ultima.fecha) : 'Sin visitas'}</dd>
-              {ultima && <dd className="text-xs text-muted">{haceDias(dias)}</dd>}
+              {ultima && <dd className="text-xs text-muted">{haceDias(s.diasSinContacto)}</dd>}
+              {ultima?.visitante && <dd className="text-xs text-ink-2 wrap-anywhere">Visitante: {ultima.visitante}</dd>}
             </div>
           </div>
           <div className="flex gap-2 min-w-0">
@@ -83,9 +71,16 @@ export function SeguimientoCard({ s, umbral, vinculo }: { s: Seguimiento; umbral
           </div>
         </dl>
 
+        {estadoUltima && (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            Estado en la última visita:
+            <Badge tone={estadoUltima.tono}>{estadoUltima.label}</Badge>
+          </p>
+        )}
+
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-ink">
-            Necesidades abiertas <span className="text-muted font-normal">({abiertas.length})</span>
+            Necesidades abiertas <span className="text-muted font-normal">({s.necesidadesAbiertasTotal})</span>
           </p>
           {abiertas.length === 0 ? (
             <p className="text-sm text-muted">No hay necesidades pendientes.</p>
@@ -105,7 +100,7 @@ export function SeguimientoCard({ s, umbral, vinculo }: { s: Seguimiento; umbral
                   </li>
                 )
               })}
-              {abiertas.length > 3 && <li className="text-xs text-muted">y {abiertas.length - 3} más…</li>}
+              {s.necesidadesAbiertasTotal > 3 && <li className="text-xs text-muted">y {s.necesidadesAbiertasTotal - 3} más…</li>}
             </ul>
           )}
         </div>

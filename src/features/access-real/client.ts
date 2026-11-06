@@ -117,9 +117,30 @@ export interface Profile {
   telefono: string | null
   estado: 'activo'
 }
+/**
+ * Membresía de la persona en una cuenta, tal como la propone el contrato ampliado de GET /me (CR-164, pendiente de
+ * backend fase 2). Campos en snake_case según CR-162. Todo es informativo para la interfaz: el servidor valida.
+ */
+export interface CuentaMe {
+  cuenta_id: string
+  nombre: string
+  tipo: 'familia' | 'organizacion'
+  rol: 'administrador' | 'coordinador' | 'cuidador' | 'familiar' | 'voluntario'
+  estado_membresia: 'activa' | 'inactiva'
+  /** Acciones permitidas para el rol en esa cuenta (p. ej. "visitas:registrar"). */
+  permisos: string[]
+  estado_suscripcion: 'prueba' | 'activa' | 'vencida' | 'cancelada'
+  /** Funcionalidades del plan (feature gating, CR-157/CR-187). */
+  funcionalidades?: string[]
+  es_titular?: boolean
+}
 export interface CurrentUser {
   identity: { id: string; email: string }
   profile: Profile
+  /** [CR-164] Cuentas y roles. Ausente mientras el backend solo publique la fase 1. */
+  cuentas?: CuentaMe[]
+  /** [CR-164] Cuenta sugerida por el servidor (la última usada). */
+  cuenta_activa_id?: string | null
 }
 
 export function passwordError(value: string) {
@@ -143,6 +164,7 @@ export async function logout() {
     await client.auth.signOut({ scope: 'local' })
   } finally {
     window.sessionStorage.removeItem(STORAGE_KEY)
+    window.sessionStorage.removeItem('cuidared.cuenta.activa')
     window.location.assign(revoked ? '/inicio' : '/inicio?cierre=pendiente')
   }
 }

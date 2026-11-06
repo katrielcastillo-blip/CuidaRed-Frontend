@@ -1,40 +1,54 @@
 /*
- * ReportesPage.tsx — Reportes estadísticos básicos (RF-08 · CU-12): el usuario elige el tipo de reporte
- * (adultos mayores registrados, visitas realizadas, necesidades frecuentes, casos prioritarios), aplica
- * filtros opcionales de fecha (rango predefinido o desde/hasta), municipio, sector, riesgo y categoría, y consulta KPIs, gráficos
- * accesibles (barras con texto) y una tabla. Exporta a CSV y a una versión imprimible (PDF con
- * window.print()). Sin datos: "No existen datos disponibles para este reporte con los filtros seleccionados".
+ * ReportesPage.tsx — Reportes y estadísticas (RF-08 · CU-12): el usuario elige el tipo de reporte (adultos mayores
+ * registrados, visitas realizadas, necesidades frecuentes, casos prioritarios), aplica filtros de fecha (rango
+ * predefinido o desde/hasta), municipio, sector, riesgo y categoría de necesidad, y consulta indicadores, gráficos
+ * de Chart.js (cada uno con aria-label y tabla de datos) y una tabla de detalle. Exporta a CSV, PDF (jsPDF) e imprime
+ * (window.print()); con el plan «reportes_avanzados» también exporta a Excel y muestra el comparativo por zona y las
+ * tendencias; si el plan no los incluye, lo explica en línea. Cada exportación queda en auditoría.
+ * Sin datos: "No existen datos disponibles para este reporte con los filtros seleccionados".
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { CalendarDays, FileSpreadsheet, HandHelping, Map as MapaIcono, MapPin, PersonStanding, Printer, ShieldAlert, Tags, TriangleAlert, BriefcaseMedical, SearchX } from 'lucide-react'
+import { BriefcaseMedical, CalendarDays, FileDown, FileSpreadsheet, FileText, HandHelping, Map as MapaIcono, MapPin, PersonStanding, Printer, SearchX, ShieldAlert, Tags, TriangleAlert } from 'lucide-react'
 import { Button, RiesgoBadge, TextField, useToast } from '@/components/ui'
 import { auditarExportacion } from '@/domain/api'
-import { useSession, useUser } from '@/domain/auth'
-import { fechaHora, fechaLarga, todayISO } from '@/domain/dates'
+import { nombreCompleto, ROL_LABEL, useUser } from '@/domain/auth'
+import { fechaHora, todayISO } from '@/domain/dates'
 import { adultosVisibles } from '@/domain/permisos'
+import { TIPO_CUENTA_LABEL } from '@/domain/planes'
 import { useDB } from '@/domain/store'
-import type { Catalogos, Riesgo, TipoNecesidad } from '@/domain/types'
+import type { Riesgo, TipoNecesidad } from '@/domain/types'
+import { useFuncionalidad, usePlanCuenta } from '@/domain/usePlan'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
 import { FilaFiltros, FilterChip } from '../components/FilterChip'
+import { AvisoPlan } from '../components/reportes/AvisoPlan'
+import { HojaImpresa } from '../components/reportes/HojaImpresa'
+import { PanelGrafico } from '../components/reportes/PanelGrafico'
+import { SeccionAvanzada } from '../components/reportes/SeccionAvanzada'
+import type { ContextoExportacion, ImagenGrafico } from '../components/reportes/tipos'
+import { useAvisoPlan } from '../components/reportes/useAvisoPlan'
+import { useActualizadoEn } from '../components/reportes/useActualizadoEn'
+import { useImagenesGraficos } from '../components/reportes/useImagenesGraficos'
 import { TIPO_NECESIDAD_TEXTO } from '../lib/formato'
 import { useVolver } from '../lib/navegacion'
 import {
+  analisisAvanzado,
   descargarArchivo,
   describirFiltros,
   errorRango,
   FILTROS_INICIALES,
   generarReporte,
+  graficosDelReporte,
+  hayFiltrosReporte,
   RANGOS,
   reporteCSV,
   SIN_DATOS,
   TIPOS_REPORTE,
   type FiltrosReporte,
-  type Grafico,
   type Rango,
   type Reporte,
   type TipoReporte,
@@ -46,81 +60,6 @@ const ICONO_TIPO: Record<TipoReporte, typeof PersonStanding> = {
   visitas: BriefcaseMedical,
   necesidades: HandHelping,
   prioritarios: TriangleAlert,
-}
-
-const COLOR_RIESGO: Record<Riesgo, string> = { alto: 'bg-riesgo-alto', medio: 'bg-riesgo-medio', bajo: 'bg-riesgo-bajo' }
-
-/** Barras horizontales: cada fila muestra etiqueta, total y porcentaje en texto (accesible sin ver el color). */
-function BarrasH({ g }: { g: Grafico }) {
-  const max = Math.max(1, ...g.barras.map((b) => b.valor))
-  if (g.barras.every((b) => b.valor === 0)) return <p className="text-sm text-muted">Sin registros para mostrar.</p>
-  return (
-    <ul className="flex flex-col gap-3">
-      {g.barras.map((b) => (
-        <li key={b.etiqueta} className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="inline-flex items-center gap-2 min-w-0 font-semibold text-ink">
-              {b.riesgo ? <RiesgoBadge riesgo={b.riesgo} /> : <span className="wrap-anywhere">{b.etiqueta}</span>}
-            </span>
-            <span className="flex-none text-ink-2">
-              <b className="text-ink">{b.valor}</b> {b.valor === 1 ? g.unidad[0] : g.unidad[1]} · {b.pct}%
-            </span>
-          </div>
-          <div className="h-3 rounded-pill bg-surface-2 overflow-hidden" aria-hidden>
-            <span className={cn('block h-full rounded-pill', b.riesgo ? COLOR_RIESGO[b.riesgo] : 'bg-navy')} style={{ width: `${(b.valor / max) * 100}%` }} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-/** Columnas por mes con el valor escrito encima de cada barra. */
-function BarrasV({ g }: { g: Grafico }) {
-  const max = Math.max(1, ...g.barras.map((b) => b.valor))
-  return (
-    <div className="flex flex-col gap-1.5">
-      <ul
-        className="grid gap-1 h-44 border-b border-line-soft bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_calc(25%-1px),#e3e8f0_calc(25%-1px),#e3e8f0_25%)]"
-        style={{ gridTemplateColumns: `repeat(${g.barras.length}, minmax(0, 1fr))` }}
-      >
-        {g.barras.map((b, i) => {
-          const actual = i === g.barras.length - 1
-          const p = (b.valor / max) * 82
-          return (
-            <li key={b.etiqueta + i} className="relative flex items-end justify-center h-full">
-              <span className="sr-only">
-                {b.etiqueta}: {b.valor} {b.valor === 1 ? g.unidad[0] : g.unidad[1]}
-              </span>
-              <span aria-hidden className={cn('absolute left-1/2 -translate-x-1/2 text-xs', actual ? 'font-bold text-navy' : 'text-ink-2')} style={{ bottom: `calc(${p}% + 4px)` }}>
-                {b.valor}
-              </span>
-              <span aria-hidden className={cn('block w-[min(34px,72%)] rounded-t-[5px]', actual ? 'bg-navy' : 'bg-blue')} style={{ height: `${b.valor > 0 ? Math.max(p, 3) : 0}%` }} />
-            </li>
-          )
-        })}
-      </ul>
-      <div className="grid gap-1 text-center text-[11px] text-muted" style={{ gridTemplateColumns: `repeat(${g.barras.length}, minmax(0, 1fr))` }} aria-hidden>
-        {g.barras.map((b, i) => (
-          <span key={b.etiqueta + i} className={cn('truncate', i === g.barras.length - 1 && 'font-bold text-navy')}>
-            {b.etiqueta}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function PanelGrafico({ g }: { g: Grafico }) {
-  return (
-    <figure className="flex flex-col gap-4 min-w-0 m-0 p-4 rounded-md bg-surface shadow-1">
-      <figcaption>
-        <h3 className="text-lg font-bold text-ink">{g.titulo}</h3>
-        {g.descripcion && <p className="text-sm text-muted">{g.descripcion}</p>}
-      </figcaption>
-      {g.forma === 'v' ? <BarrasV g={g} /> : <BarrasH g={g} />}
-    </figure>
-  )
 }
 
 function TablaReporte({ r, base }: { r: Reporte; base: string }) {
@@ -169,83 +108,17 @@ function TablaReporte({ r, base }: { r: Reporte; base: string }) {
   )
 }
 
-/** Hoja imprimible (PDF): solo visible al imprimir; el resto de la app se oculta con print:hidden. */
-function HojaImpresa({ r, filtros, cat, organizacion }: { r: Reporte; filtros: FiltrosReporte; cat: Pick<Catalogos, 'municipios'>; organizacion: string }) {
-  return (
-    <div className="hidden print:block p-6 text-[12px] text-black bg-white" aria-hidden>
-      <h1 className="text-xl font-bold">CuidaRed · {r.titulo}</h1>
-      <p>
-        {organizacion} · Generado el {fechaLarga()} · {fechaHora(new Date().toISOString())}
-      </p>
-      <p className="mt-1 text-[11px]">{describirFiltros(filtros, cat).join(' · ')}</p>
-      {r.vacio ? (
-        <p className="mt-4 font-semibold">{SIN_DATOS}</p>
-      ) : (
-        <>
-          <h2 className="mt-4 mb-1 text-sm font-bold">Indicadores</h2>
-          <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
-            <tbody>
-              {r.kpis.map((k) => (
-                <tr key={k.etiqueta}>
-                  <th className="text-left">{k.etiqueta}</th>
-                  <td>
-                    {k.valor} {k.nota ? `(${k.nota})` : ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="grid grid-cols-2 gap-4">
-            {r.graficos.map((g) => (
-              <div key={g.id} className="break-inside-avoid">
-                <h2 className="mt-4 mb-1 text-sm font-bold">{g.titulo}</h2>
-                <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
-                  <tbody>
-                    {g.barras.map((b) => (
-                      <tr key={b.etiqueta}>
-                        <th className="text-left">{b.etiqueta}</th>
-                        <td>
-                          {b.valor} ({b.pct}%)
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </div>
-          <h2 className="mt-4 mb-1 text-sm font-bold">{r.tabla.titulo}</h2>
-          <table className="w-full border-collapse [&_td]:border [&_th]:border [&_td]:border-gray-400 [&_th]:border-gray-400 [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1">
-            <thead>
-              <tr>
-                {r.tabla.columnas.map((c) => (
-                  <th key={c.etiqueta} className="text-left">
-                    {c.etiqueta}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {r.tabla.filas.map((f) => (
-                <tr key={f.id} className="break-inside-avoid">
-                  {f.celdas.map((v, i) => (
-                    <td key={i}>{v}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-      <p className="mt-6 text-[10px]">© 2026 Equipo CuidaRed – INTEC. Documento de uso interno: contiene datos personales protegidos por la Ley 172-13.</p>
-    </div>
-  )
-}
+/** Deja que React pinte (imágenes de los gráficos en la hoja) antes de abrir el diálogo de impresión. */
+const siguienteCuadro = () => new Promise<void>((ok) => requestAnimationFrame(() => requestAnimationFrame(() => ok())))
+
+type Exportacion = 'pdf' | 'excel' | 'imprimir'
 
 export default function ReportesPage() {
   const { base } = useShell()
   const user = useUser()
-  const { org } = useSession()
+  const { org, plan, enPrueba, tipo: tipoCuenta } = usePlanCuenta()
+  const incluyeAvanzados = useFuncionalidad('reportes_avanzados')
+  const avisoPlan = useAvisoPlan('reportes_avanzados')
   const toast = useToast()
   const { back } = useVolver(`${base}/mas`)
   const adultos = useDB((s) => s.adultos)
@@ -256,20 +129,38 @@ export default function ReportesPage() {
   const vinculos = useDB((s) => s.vinculos)
   const catalogos = useDB((s) => s.catalogos)
   const [filtros, setFiltros] = useState<FiltrosReporte>(FILTROS_INICIALES)
+  const [ocupado, setOcupado] = useState<Exportacion | null>(null)
   const set = <K extends keyof FiltrosReporte>(k: K, v: FiltrosReporte[K]) => setFiltros((f) => ({ ...f, [k]: v }))
 
+  // Solo los adultos de la cuenta activa que el usuario puede consultar (rol + alcance).
   const visibles = useMemo(() => adultosVisibles(user, adultos), [user, adultos])
   const municipios = useMemo(() => municipiosEnUso(catalogos, visibles), [catalogos, visibles])
   const sectores = useMemo(() => sectoresEnUso(visibles, filtros.municipio || undefined), [visibles, filtros.municipio])
   const errorFechas = errorRango(filtros)
   // Si el rango personalizado es incoherente, se mantiene el último reporte válido (sin filtrar por fecha).
   const efectivos = useMemo(() => (errorFechas ? { ...filtros, desde: '', hasta: '' } : filtros), [errorFechas, filtros])
-  const r = useMemo(
-    () => generarReporte({ visitas, necesidades, alertas, usuarios, vinculos, catalogos }, visibles, efectivos),
-    [visitas, necesidades, alertas, usuarios, vinculos, catalogos, visibles, efectivos],
-  )
+  const datos = useMemo(() => ({ visitas, necesidades, alertas, usuarios, vinculos, catalogos }), [visitas, necesidades, alertas, usuarios, vinculos, catalogos])
+  const r = useMemo(() => generarReporte(datos, visibles, efectivos), [datos, visibles, efectivos])
+  const avanzado = useMemo(() => analisisAvanzado(datos, visibles, efectivos), [datos, visibles, efectivos])
+  // Los extras del plan «reportes_avanzados» entran en pantalla, PDF, Excel e impresión solo si el plan los incluye.
+  const avanzadoIncluido = incluyeAvanzados ? avanzado : null
+  const graficos = useMemo(() => graficosDelReporte(r, avanzadoIncluido), [r, avanzadoIncluido])
+  const { imagenes, asegurar } = useImagenesGraficos(graficos)
+
   const orgNombre = org?.nombre ?? 'CuidaRed'
-  const generado = useMemo(() => (r ? new Date().toISOString() : ''), [r])
+  const generado = useActualizadoEn(r)
+  const filtrosTexto = useMemo(() => describirFiltros(efectivos, catalogos), [efectivos, catalogos])
+  const cuenta = `${orgNombre} · Cuenta ${TIPO_CUENTA_LABEL[tipoCuenta]} · ${plan ? `Plan ${plan.nombre}` : enPrueba ? 'Prueba gratuita' : 'Sin plan'}`
+  const contexto = (imgs: Record<string, ImagenGrafico>, cuando: Date): ContextoExportacion => ({
+    reporte: r,
+    filtros: filtrosTexto,
+    cuenta,
+    generadoPor: `${nombreCompleto(user)} (${ROL_LABEL[user.rol]})`,
+    generado: cuando,
+    avanzado: avanzadoIncluido,
+    avisoAvanzado: avisoPlan.texto,
+    imagenes: imgs,
+  })
 
   // Al imprimir solo se ve la hoja del reporte: se oculta la app mientras esta pantalla está abierta.
   useEffect(() => {
@@ -278,23 +169,59 @@ export default function ReportesPage() {
     return () => root?.classList.remove('print:hidden')
   }, [])
 
-  const imprimir = () => {
-    const titulo = document.title
-    document.title = `Reporte CuidaRed - ${r.titulo} - ${todayISO()}`
-    auditarExportacion(user, `Reporte "${r.titulo}" (impresión/PDF)`)
-    window.print()
-    document.title = titulo
+  const hoy = todayISO()
+  const imprimir = async () => {
+    setOcupado('imprimir')
+    try {
+      await asegurar()
+      await siguienteCuadro()
+      const titulo = document.title
+      document.title = `Reporte CuidaRed - ${r.titulo} - ${hoy}`
+      auditarExportacion(user, `Reporte "${r.titulo}" (impresión)`)
+      window.print()
+      document.title = titulo
+    } finally {
+      setOcupado(null)
+    }
   }
   const exportarCSV = () => {
-    descargarArchivo(`reporte-${filtros.tipo}-${todayISO()}.csv`, reporteCSV(r, efectivos, catalogos, orgNombre))
+    descargarArchivo(`reporte-${filtros.tipo}-${hoy}.csv`, reporteCSV(r, efectivos, catalogos, orgNombre, new Date(), avanzadoIncluido))
     auditarExportacion(user, `Reporte "${r.titulo}" (CSV)`)
     toast('Reporte descargado en formato CSV')
+  }
+  const exportarPDF = async () => {
+    setOcupado('pdf')
+    try {
+      const imgs = await asegurar()
+      const { exportarPdf } = await import('../components/reportes/exportarPdf')
+      await exportarPdf(contexto(imgs, new Date()), `reporte-${filtros.tipo}-${hoy}.pdf`)
+      auditarExportacion(user, `Reporte "${r.titulo}" (PDF)`)
+      toast('Reporte descargado en formato PDF')
+    } catch {
+      toast('No se pudo generar el PDF. Intenta de nuevo.', 'error')
+    } finally {
+      setOcupado(null)
+    }
+  }
+  const exportarExcel = async () => {
+    if (!incluyeAvanzados) return
+    setOcupado('excel')
+    try {
+      const { exportarExcel: generarExcel } = await import('../components/reportes/exportarExcel')
+      await generarExcel(contexto({}, new Date()), `reporte-${filtros.tipo}-${hoy}.xlsx`)
+      auditarExportacion(user, `Reporte "${r.titulo}" (Excel)`)
+      toast('Reporte descargado en formato Excel')
+    } catch {
+      toast('No se pudo generar el archivo de Excel. Intenta de nuevo.', 'error')
+    } finally {
+      setOcupado(null)
+    }
   }
 
   return (
     <Page title="Reportes y estadísticas" back={back} hideAvatar wide>
       {/* 1 · Tipo de reporte */}
-      <section className="flex flex-col gap-2" aria-labelledby="tipo-reporte">
+      <section className="flex flex-col gap-2 no-print" aria-labelledby="tipo-reporte">
         <h2 id="tipo-reporte" className="text-base font-semibold text-ink">
           Tipo de reporte
         </h2>
@@ -323,7 +250,7 @@ export default function ReportesPage() {
       </section>
 
       {/* 2 · Filtros opcionales */}
-      <section className="flex flex-col gap-3 min-w-0" aria-label="Filtros del reporte">
+      <section className="flex flex-col gap-3 min-w-0 no-print" aria-label="Filtros del reporte">
         <FilaFiltros>
           <FilterChip<Rango>
             etiqueta="Período"
@@ -367,7 +294,7 @@ export default function ReportesPage() {
               opciones={[{ value: '', label: 'Todas' }, ...(Object.keys(TIPO_NECESIDAD_TEXTO) as TipoNecesidad[]).map((t) => ({ value: t, label: TIPO_NECESIDAD_TEXTO[t] }))]}
             />
           )}
-          {(filtros.rango !== 'todo' || filtros.municipio || filtros.sector || filtros.riesgo || filtros.categoria) && (
+          {hayFiltrosReporte(filtros) && (
             <button type="button" className="min-h-12 px-2 text-sm font-semibold text-navy underline underline-offset-2" onClick={() => setFiltros((f) => ({ ...FILTROS_INICIALES, tipo: f.tipo }))}>
               Quitar filtros
             </button>
@@ -383,23 +310,40 @@ export default function ReportesPage() {
 
       {/* 3 · Reporte */}
       <section className="flex flex-col gap-5 min-w-0" aria-labelledby="titulo-reporte" aria-live="polite">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h2 id="titulo-reporte" className="text-xl font-bold text-navy">
               {r.titulo}
             </h2>
             <p className="text-sm text-ink-2">{r.descripcion}</p>
             <p className="text-xs text-muted">
-              {describirFiltros(efectivos, catalogos).join(' · ')} · Datos actualizados: {fechaHora(generado)}
+              {filtrosTexto.join(' · ')} · Datos actualizados: {fechaHora(generado.toISOString())}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-none [&_button]:whitespace-nowrap">
-            <Button size="sm" variant="outline" icon={<FileSpreadsheet size={18} aria-hidden />} onClick={exportarCSV} disabled={r.vacio}>
-              Exportar CSV
-            </Button>
-            <Button size="sm" variant="outline" icon={<Printer size={18} aria-hidden />} onClick={imprimir} disabled={r.vacio}>
-              Imprimir / PDF
-            </Button>
+          <div className="flex flex-col gap-2 no-print xl:items-end">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&_button]:whitespace-nowrap" role="group" aria-label="Exportar el reporte">
+              <Button size="sm" variant="outline" icon={<FileDown size={18} aria-hidden />} onClick={exportarCSV} disabled={r.vacio}>
+                Exportar CSV
+              </Button>
+              <Button size="sm" variant="outline" icon={<FileText size={18} aria-hidden />} onClick={exportarPDF} disabled={r.vacio} loading={ocupado === 'pdf'}>
+                Exportar PDF
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<FileSpreadsheet size={18} aria-hidden />}
+                onClick={exportarExcel}
+                disabled={r.vacio || !incluyeAvanzados}
+                loading={ocupado === 'excel'}
+                aria-describedby={incluyeAvanzados ? undefined : 'aviso-plan-excel'}
+              >
+                Exportar Excel
+              </Button>
+              <Button size="sm" variant="outline" icon={<Printer size={18} aria-hidden />} onClick={imprimir} disabled={r.vacio} loading={ocupado === 'imprimir'}>
+                Imprimir
+              </Button>
+            </div>
+            {!incluyeAvanzados && <AvisoPlan funcionalidad="reportes_avanzados" que="Exportar a Excel" id="aviso-plan-excel" className="max-w-md" />}
           </div>
         </div>
 
@@ -424,7 +368,7 @@ export default function ReportesPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2 md:items-start">
               {r.graficos.map((g) => (
-                <PanelGrafico key={g.id} g={g} />
+                <PanelGrafico key={`${r.tipo}-${g.id}`} g={g} />
               ))}
             </div>
             <TablaReporte r={r} base={base} />
@@ -432,7 +376,10 @@ export default function ReportesPage() {
         )}
       </section>
 
-      {createPortal(<HojaImpresa r={r} filtros={efectivos} cat={catalogos} organizacion={orgNombre} />, document.body)}
+      {/* 4 · Análisis avanzado (plan «reportes_avanzados») */}
+      <SeccionAvanzada incluido={incluyeAvanzados} analisis={avanzado} sinDatos={r.vacio} />
+
+      {createPortal(<HojaImpresa ctx={contexto(imagenes, generado)} />, document.body)}
     </Page>
   )
 }

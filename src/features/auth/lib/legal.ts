@@ -51,13 +51,13 @@ const PASOS_INCIDENTE = [
 export const TERMINOS: Documento = {
   titulo: 'Términos y Condiciones',
   resumen:
-    'Estas son las reglas para usar **CuidaRed**. Al activar tu cuenta o registrar una organización declaras que las leíste y las aceptas. Léelas junto con la Política de Privacidad, que explica cómo se tratan los datos personales.',
+    'Estas son las reglas para usar **CuidaRed**. Al activar tu cuenta o al crear una cuenta (de Familia o de Organización) declaras que las leíste y las aceptas. Léelas junto con la Política de Privacidad, que explica cómo se tratan los datos personales.',
   secciones: [
     {
       id: 'que-es',
       titulo: '1. Qué es CuidaRed',
       bloques: [
-        `CuidaRed es una aplicación web progresiva (PWA) para que organizaciones comunitarias de la República Dominicana den seguimiento a adultos mayores en situación de vulnerabilidad: perfiles, visitas comunitarias, necesidades pendientes, alertas, resumen de seguimiento y reportes básicos.`,
+        `CuidaRed es una aplicación web progresiva (PWA) para que familias y organizaciones comunitarias de la República Dominicana den seguimiento a adultos mayores en situación de vulnerabilidad: perfiles, visitas comunitarias, necesidades pendientes, alertas, resumen de seguimiento y reportes básicos.`,
         `Ha sido desarrollada por el ${PRODUCTO.equipo} en el marco del curso ${PRODUCTO.curso} del ${PRODUCTO.institucion}. La versión ${PRODUCTO.version} es un **producto mínimo viable (MVP) académico**.`,
       ],
     },
@@ -65,7 +65,7 @@ export const TERMINOS: Documento = {
       id: 'aceptacion',
       titulo: '2. Aceptación de estos términos',
       bloques: [
-        'Usar CuidaRed implica aceptar estos Términos y la Política de Privacidad. La aceptación se pide de forma expresa al activar una cuenta o al registrar una organización. Si no estás de acuerdo, no utilices la plataforma.',
+        'Usar CuidaRed implica aceptar estos Términos y la Política de Privacidad. La aceptación se pide de forma expresa al activar una cuenta o al crear una cuenta nueva. Si no estás de acuerdo, no utilices la plataforma.',
       ],
     },
     {
@@ -83,10 +83,12 @@ export const TERMINOS: Documento = {
       bloques: [
         {
           lista: [
-            'Una organización se incorpora registrándose con una cuenta de **Administrador**.',
-            'Las cuentas personales (coordinadores, voluntarios y familiares responsables) **las crea el administrador** de la organización. La persona invitada activa su cuenta eligiendo su propia contraseña; el administrador nunca la conoce.',
+            'Una cuenta puede ser de tipo **Familia** o de tipo **Organización** (iglesia, fundación, asilo, universidad…). Se crea registrándose: la persona que la crea queda como **titular** (Administrador en una Organización; Coordinador en una Familia).',
+            'Toda cuenta nueva empieza con una **prueba gratuita de 14 días**, sin tarjeta y con funciones limitadas. Cuando esté por terminar podrás elegir un plan; sin plan, al vencer la prueba la cuenta deja de estar disponible para operar.',
+            'Las demás cuentas personales (coordinadores, cuidadores, voluntarios y familiares responsables) **las crea quien gestiona la cuenta**: el administrador en una Organización o el coordinador en una Familia. La persona invitada activa su cuenta eligiendo su propia contraseña; quien la invitó nunca la conoce.',
+            'Una misma persona puede tener acceso a varias cuentas, con el rol que le corresponda en cada una.',
             'Tu cuenta es **personal e intransferible**. No compartas tu contraseña ni dejes la sesión abierta en dispositivos de otras personas.',
-            'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.',
+            'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (por ejemplo ! @ # $).',
             'Por seguridad, tras 5 intentos fallidos el acceso se bloquea temporalmente 5 minutos, y la sesión se cierra tras 30 minutos sin actividad o 12 horas de uso.',
             'Si olvidas tu contraseña, puedes restablecerla con un código de un solo uso que caduca a los 15 minutos.',
           ],
@@ -98,10 +100,12 @@ export const TERMINOS: Documento = {
       titulo: '5. Roles y responsabilidades',
       bloques: [
         'Cada persona solo puede usar las funciones y ver los datos que corresponden a su rol (control de acceso basado en roles y principio de mínimo privilegio):',
-        { sub: 'Administrador', texto: 'Gestiona usuarios, roles y la configuración de la organización; consulta perfiles, alertas, resumen, reportes y el registro de actividades. Es responsable de dar de baja a tiempo las cuentas de quienes dejan la organización.' },
-        { sub: 'Coordinador', texto: 'Registra y mantiene los perfiles, evalúa el riesgo, asigna voluntarios, programa visitas, atiende alertas y consulta el resumen y los reportes.' },
-        { sub: 'Voluntario', texto: 'Registra de forma veraz las visitas y necesidades de los adultos mayores que tiene asignados, incluso sin conexión, y sincroniza esos registros en cuanto recupere internet.' },
-        { sub: 'Familiar responsable', texto: 'Consulta el historial de visitas y el estado de las necesidades del adulto mayor a su cargo. Su acceso es solo de consulta y debe mantener actualizados sus datos de contacto.' },
+        { sub: 'Administrador (solo en cuentas Organización)', texto: 'Gestiona usuarios, roles y la configuración de la organización y su suscripción; consulta perfiles, alertas, resumen, reportes y el registro de actividades. Es responsable de dar de baja a tiempo las cuentas de quienes dejan la organización.' },
+        { sub: 'Coordinador', texto: 'Registra y mantiene los perfiles, evalúa el riesgo, asigna cuidadores y voluntarios, programa visitas, autoriza las solicitudes de visita de personas externas, atiende alertas y consulta el resumen y los reportes. En una cuenta Familia también es el titular: gestiona los accesos y la suscripción.' },
+        { sub: 'Cuidador', texto: 'Registra de forma veraz las visitas, necesidades e indicaciones médicas de los adultos mayores que tiene asignados, completa sus tareas con evidencia y puede cerrar alertas. Trabaja incluso sin conexión y sincroniza esos registros en cuanto recupere internet.' },
+        { sub: 'Voluntario (solo en cuentas Organización)', texto: 'Registra que la visita ocurrió y deja una observación sobre los adultos mayores que tiene asignados. No ve información médica ni necesidades.' },
+        { sub: 'Familiar responsable', texto: 'Consulta las visitas, las necesidades y las indicaciones de los adultos mayores para los que recibió permiso explícito. Su acceso es solo de consulta y debe mantener actualizados sus datos de contacto.' },
+        { sub: 'Visitantes externos', texto: 'No son un rol ni tienen cuenta: piden una visita desde la página de bienvenida y reciben un código de seguimiento. Una persona responsable de la organización debe autorizar la solicitud. Con el código solo consultan el estado de su solicitud y dejan su observación; nunca ven perfiles de adultos mayores.' },
       ],
     },
     {
@@ -141,7 +145,7 @@ export const TERMINOS: Documento = {
       id: 'organizacion',
       titulo: '8. Obligaciones de la organización',
       bloques: [
-        'La organización que usa CuidaRed es responsable de los datos que registra. En particular, debe:',
+        'La organización o familia que usa CuidaRed es responsable de los datos que registra. En particular, debe:',
         {
           lista: [
             'Obtener y registrar el **consentimiento informado** del adulto mayor (o de su representante) antes de crear su perfil.',
@@ -172,7 +176,7 @@ export const TERMINOS: Documento = {
       id: 'terminacion',
       titulo: '11. Suspensión y terminación de la cuenta',
       bloques: [
-        'El administrador puede desactivar o eliminar cuentas de su organización; una cuenta desactivada pierde el acceso de inmediato. Los voluntarios y familiares responsables pueden eliminar su propia cuenta desde **Mi perfil → Editar perfil**, previa confirmación. Los administradores y coordinadores deben solicitarlo a su organización. Los registros históricos (visitas, necesidades y registro de actividades) se conservan según la política de retención.',
+        'El administrador (o el coordinador en una cuenta Familia) puede desactivar cuentas de su organización o familia; una cuenta desactivada pierde el acceso de inmediato. Cualquier persona puede desactivar su propia cuenta desde **Mi perfil → Desactivar mi cuenta**, con su contraseña. El historial (visitas, necesidades y auditoría) se conserva y solo la persona responsable de la cuenta puede reactivarla; el titular de una cuenta debe transferir la titularidad antes.',
       ],
     },
     {
@@ -202,7 +206,7 @@ export const TERMINOS: Documento = {
       id: 'contacto',
       titulo: '14. Contacto',
       bloques: [
-        `Para dudas sobre tu cuenta o tus datos, comunícate primero con el administrador de tu organización. Para asuntos sobre la plataforma, contacta al ${PRODUCTO.equipo} a través del ${PRODUCTO.institucion}.`,
+        `Para dudas sobre tu cuenta o tus datos, comunícate primero con quien gestiona tu cuenta (el administrador de tu organización o la persona coordinadora de tu familia). Para asuntos sobre la plataforma, contacta al ${PRODUCTO.equipo} a través del ${PRODUCTO.institucion}.`,
       ],
     },
   ],
@@ -219,8 +223,8 @@ export const POLITICA: Documento = {
       id: 'alcance',
       titulo: '1. Alcance y responsables',
       bloques: [
-        'Esta política se aplica a los datos de las personas usuarias (administradores, coordinadores, voluntarios y familiares responsables) y de los adultos mayores registrados en CuidaRed.',
-        'Cada **organización** que usa CuidaRed es responsable de los datos que registra y de atender a los titulares. El equipo de CuidaRed provee la herramienta y aplica las medidas técnicas descritas aquí.',
+        'Esta política se aplica a los datos de las personas usuarias (administradores, coordinadores, cuidadores, voluntarios y familiares responsables), de los visitantes que solicitan una visita y de los adultos mayores registrados en CuidaRed.',
+        'Cada **organización o familia** que usa CuidaRed es responsable de los datos que registra y de atender a los titulares. El equipo de CuidaRed provee la herramienta y aplica las medidas técnicas descritas aquí.',
         {
           aviso: `Versión de demostración ${PRODUCTO.version}: en este MVP académico no existe todavía un servidor central. Los datos se guardan solo en el navegador del dispositivo donde se usa la aplicación. No registres datos reales de personas en esta versión.`,
           tono: 'warning',
@@ -253,6 +257,7 @@ export const POLITICA: Documento = {
           texto:
             'Datos de identificación y contacto (nombre, cédula, fecha de nacimiento, sexo, teléfono, zona y municipio), contacto de emergencia, condición general (grado de autonomía y condiciones elegidas de una lista predefinida, con una nota breve opcional), nivel de riesgo social, constancia del consentimiento, y el historial de visitas, necesidades y alertas.',
         },
+        { sub: 'De los visitantes externos', texto: 'Al solicitar una visita: nombre, apellidos, cédula, teléfono, correo (opcional), organización elegida, persona que desea visitar, fecha y hora propuestas y motivo. El código de seguimiento que recibes solo se guarda como una huella cifrada (hash); por eso no se puede recuperar. Solo la organización elegida ve estos datos.' },
         { sub: 'Registro de actividades', texto: 'Quién hizo cada operación relevante, cuándo, sobre qué registro y con qué resultado.' },
         {
           sub: 'Lo que NO recopilamos',
@@ -290,15 +295,16 @@ export const POLITICA: Documento = {
       id: 'acceso',
       titulo: '6. Quién puede ver qué',
       bloques: [
-        'CuidaRed aplica control de acceso basado en roles (RBAC). La autorización se comprueba en la interfaz y otra vez en los servicios antes de leer o modificar cualquier dato; ocultar un botón no se considera suficiente. Todo usuario solo ve datos de su propia organización.',
+        'CuidaRed aplica control de acceso basado en roles (RBAC). La autorización se comprueba en la interfaz y otra vez en los servicios antes de leer o modificar cualquier dato; ocultar un botón no se considera suficiente. Todo usuario solo ve los datos de la cuenta (organización o familia) en la que actúa.',
         {
           tabla: {
             cabecera: ['Rol', 'Acceso'],
             filas: [
               ['Administrador', 'Usuarios y configuración de su organización, todos los perfiles, alertas, resumen, reportes y registro de actividades. Es el único que puede anonimizar perfiles.'],
-              ['Coordinador', 'Todos los perfiles de su organización, visitas, necesidades, alertas, resumen y reportes. No gestiona usuarios ni ve el registro de actividades.'],
-              ['Voluntario', 'Solo los adultos mayores que tiene asignados y la información necesaria para visitarlos y registrar sus necesidades.'],
-              ['Familiar responsable', 'Solo los adultos mayores a su cargo (vínculo de familiar responsable): historial de visitas y estado de las necesidades. Únicamente consulta.'],
+              ['Coordinador', 'Todos los perfiles de su cuenta, visitas, necesidades, alertas, resumen y reportes. En una Organización no gestiona usuarios ni ve el registro de actividades; en una cuenta Familia sí, porque es su titular.'],
+              ['Cuidador', 'Solo los adultos mayores que tiene asignados: visitas, necesidades, indicaciones médicas, tareas y evidencias. Consulta el riesgo sin modificarlo.'],
+              ['Voluntario', 'Solo los adultos mayores que tiene asignados y lo necesario para registrar que la visita ocurrió y su observación. No ve información médica ni necesidades.'],
+              ['Familiar responsable', 'Solo los adultos mayores para los que recibió permiso explícito: visitas, necesidades e indicaciones. Únicamente consulta.'],
             ],
           },
         },
@@ -310,7 +316,7 @@ export const POLITICA: Documento = {
         {
           sub: 'Datos sensibles con acceso superior',
           texto:
-            'La evaluación de riesgo, la condición general y la situación socioeconómica, así como cualquier información sobre salud, vulnerabilidad, abandono, maltrato o ubicación, tienen controles más estrictos: solo pueden verlas el administrador, el coordinador y el voluntario asignado al caso. El familiar responsable no accede a esos detalles.',
+            'La evaluación de riesgo, la condición general y la situación socioeconómica, así como cualquier información sobre salud, vulnerabilidad, abandono, maltrato o ubicación, tienen controles más estrictos: solo pueden verlas el administrador, el coordinador y el cuidador asignado al caso. El voluntario y el familiar responsable no acceden a esos detalles.',
         },
       ],
     },
@@ -336,7 +342,7 @@ export const POLITICA: Documento = {
       titulo: '8. Registro de actividades (auditoría)',
       bloques: [
         'Las operaciones relevantes quedan registradas con: **usuario** que la realizó, **fecha y hora**, **tipo de operación**, **registro afectado** y **resultado** (éxito, fallo o acceso denegado). Se registran, entre otras, los inicios y cierres de sesión, los intentos fallidos, la creación y edición de perfiles y usuarios, las visitas, las necesidades, las alertas y la sincronización.',
-        'El registro no guarda contraseñas ni información clínica, no puede modificarse ni borrarse desde la aplicación y solo el administrador puede consultarlo. Sirve para la trazabilidad y para investigar accesos o cambios no autorizados.',
+        'El registro no guarda contraseñas ni información clínica, no puede modificarse ni borrarse desde la aplicación y solo el administrador (o el coordinador en una cuenta Familia) puede consultarlo. Sirve para la trazabilidad y para investigar accesos o cambios no autorizados.',
       ],
     },
     {
@@ -362,11 +368,12 @@ export const POLITICA: Documento = {
           tabla: {
             cabecera: ['Información', 'Plazo y destino'],
             filas: [
-              ['Cuentas de usuario', 'Mientras la persona colabore con la organización. Al eliminarse la cuenta se borran sus datos personales.'],
+              ['Cuentas de usuario', 'Mientras la persona colabore con la organización o la familia. Al desactivar la cuenta se bloquea el acceso y el historial (visitas, necesidades y auditoría) se conserva.'],
               ['Perfiles de adultos mayores activos', 'Mientras se mantenga el seguimiento y el consentimiento.'],
               ['Perfiles inactivos', 'Si un perfil permanece inactivo por **más de 24 meses**, se anonimiza: se eliminan nombre, cédula, teléfono, dirección, contacto de emergencia y foto, y solo se conservan datos estadísticos sin identificar a la persona.'],
               ['Registro de actividades (auditoría)', 'Se conserva **5 años** desde la fecha de cada entrada y luego se elimina.'],
               ['Datos guardados sin conexión', 'Se eliminan del dispositivo **al sincronizarse** con el servidor.'],
+              ['Solicitudes de visita de visitantes', 'Mientras la organización las necesite para el seguimiento de la visita; el código de seguimiento solo existe como hash.'],
               ['Códigos de recuperación de contraseña', 'Caducan a los 15 minutos, son de un solo uso y se eliminan en un plazo máximo de 24 horas.'],
               ['Borradores de formularios', 'Se guardan solo durante la sesión del navegador y se borran al cerrarlo o al guardar.'],
             ],
@@ -387,7 +394,7 @@ export const POLITICA: Documento = {
             '**Oposición:** oponerse a un tratamiento concreto por motivos legítimos.',
           ],
         },
-        { sub: 'Si tienes una cuenta', texto: 'Consulta y corrige tus datos en **Mi perfil**. Los voluntarios y familiares responsables pueden eliminar su propia cuenta desde **Editar perfil**. Para todo lo demás, dirígete al administrador de tu organización.' },
+        { sub: 'Si tienes una cuenta', texto: 'Consulta y corrige tus datos en **Mi perfil**. Puedes desactivar tu cuenta desde **Mi perfil → Desactivar mi cuenta**; tus registros históricos se conservan. Para todo lo demás, dirígete a quien gestiona tu cuenta (el administrador de tu organización o la persona coordinadora de tu familia).' },
         {
           sub: 'Si eres un adulto mayor registrado o su representante',
           texto:
@@ -400,7 +407,7 @@ export const POLITICA: Documento = {
       id: 'incidentes',
       titulo: '12. Procedimiento ante incidentes de privacidad',
       bloques: [
-        'Si detectas o sospechas un acceso no autorizado, una pérdida, una exposición o una modificación indebida de información (por ejemplo, un teléfono perdido con la sesión abierta), **avisa de inmediato al administrador de tu organización**. Se activará este procedimiento:',
+        'Si detectas o sospechas un acceso no autorizado, una pérdida, una exposición o una modificación indebida de información (por ejemplo, un teléfono perdido con la sesión abierta), **avisa de inmediato a quien gestiona tu cuenta (el administrador de tu organización o la persona coordinadora de tu familia)**. Se activará este procedimiento:',
         { lista: PASOS_INCIDENTE, ordenada: true },
       ],
     },

@@ -147,7 +147,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {createPortal(
         <div
-          className="fixed z-[70] left-1/2 -translate-x-1/2 bottom-[calc(var(--bottomnav-h)+16px+var(--safe-bottom))] flex flex-col gap-2 w-[min(92vw,420px)] pointer-events-none md:bottom-6"
+          className="no-print fixed z-[70] left-1/2 -translate-x-1/2 bottom-[calc(var(--bottomnav-h)+16px+var(--safe-bottom))] flex flex-col gap-2 w-[min(92vw,420px)] pointer-events-none md:bottom-6"
           aria-live="polite"
           role="status"
         >

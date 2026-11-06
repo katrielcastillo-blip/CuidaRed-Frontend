@@ -49,20 +49,26 @@ El dominio reproduce el modelo de base de datos del equipo (ver `docs/MAPEO-BD.m
     - necesidades (offline): `registrarNecesidad` (async), `cambiarEstadoNecesidad` (async), `validarNecesidad`.
     - alertas: `gestionarAlerta`, `alertasVisibles`, `notificacionesSinLeer`, `marcarLeidas`.
     - usuarios: `crearUsuario` (async), `actualizarUsuario`, `cambiarEstadoUsuario`, `eliminarUsuario`, `cambiarPassword` (async), `configurarOrganizacion`.
-  - `permisos.ts`: `puede(user, accion, adulto?)`, `adultosVisibles(user, adultos)`, `alcanzaAdulto`, `MATRIZ`, `DESCRIPCION_ROL`. **Muestra u oculta acciones con `puede()`**; nunca compares el rol a mano.
+  - `permisos.ts`: `puede(user, accion, adulto?)`, `adultosVisibles(user, adultos)`, `alcanzaAdulto`, `MATRIZ`, `permisosDe(rol, tipoCuenta)`, `DESCRIPCION_ROL`. **Muestra u oculta acciones con `puede()`**; nunca compares el rol a mano.
+  - `relaciones.ts`: además `cuidadoresDe`, `voluntariosDe`, `asignadosDe` (personal de campo), `VINCULO_DE_ROL`, `esRolDeCampo`, `usoDelPlan`.
+  - `abreviaturas.ts`: catálogo de abreviaturas en IndexedDB (uso sin conexión), `expandirAbreviaturas`, `sugerencias`.
   - `auth.ts`: `useSession()`, `useUser()`, `login()` (async), `logout()`, `HOME_BY_ROL`, `ROL_LABEL`, `nombreCompleto()`.
   - `conectividad.ts`: `useEnLinea()`. Las pantallas que **no** son visitas/necesidades deben deshabilitar su botón de guardar sin conexión y explicar por qué.
   - `sync.ts`: `usePendientes()`, registros con `pendienteSync: true` en la vista → muéstralos con `<Badge tone="warning">Pendiente de sincronización</Badge>`.
   - `reglas.ts`: motor automático de alertas RF-04/RF-05 (`diasSinVisita`, `ultimaVisitaCompletada`, `condicionesPrioritarias`).
   - `validacion.ts`: validadores compartidos (`errorNombre`, `errorCedula`, `errorTelefono`, `errorEmail`, `errorFechaNacimiento`, `errorTexto`, `hayErrores`…). `seguridad.ts`: `validarPassword`, `REGLAS_PASSWORD`.
   - `dates.ts`: `fechaLarga`, `fechaCorta`, `fechaHora`, `hora12`, `relativo`, `edad`, `todayISO`, `diasCalendario`…
-- `src/components/ui/` (kit, solo lectura): `Button`, `ButtonLink`, `TextField`, `PasswordField`, `SelectField`, `TextareaField`, `TextareaAbreviado` (RF-06 abreviaturas), `SearchInput`, `Checkbox`, `CheckboxGroup`, `Switch`, `ChoicePills`, `Badge`, `RiesgoBadge`, `Avatar`, `Card`, `LinkCard`, `IconTile`, `StatTile`, `Datum`, `InfoRow`, `Segmented`, `Chip`, `EmptyState`, `Spinner`, `StepBar`, `HelpTip`, `Sheet`, `SuccessOverlay` (prop `detail`), `useToast`. Todos aceptan `help`/`hint`/`error` cuando son campos.
+- `src/components/ui/` (kit, solo lectura). Formularios: `useFormulario` (valores, errores, validación por campo, borrador), `FormPasos` (stepper con validación por paso), `AvisoBorrador`, `useBorradorCompleto` (`@/lib/useBorrador`), prop `abreviaturas` en `TextField`/`TextareaField`. Resto: `Button`, `ButtonLink`, `TextField`, `PasswordField`, `SelectField`, `TextareaField`, `TextareaAbreviado` (RF-06 abreviaturas), `SearchInput`, `Checkbox`, `CheckboxGroup`, `Switch`, `ChoicePills`, `Badge`, `RiesgoBadge`, `Avatar`, `Card`, `LinkCard`, `IconTile`, `StatTile`, `Datum`, `InfoRow`, `Segmented`, `Chip`, `EmptyState`, `Spinner`, `StepBar`, `HelpTip`, `Sheet`, `SuccessOverlay` (prop `detail`), `useToast`. Todos aceptan `help`/`hint`/`error` cuando son campos.
 - `src/layouts/AppShell.tsx`: `<Page title back leading actions wide>` en cada pantalla autenticada; `useShell().base` da la base del rol. La barra superior (logo, usuario+rol, conexión, notificaciones) y el pie de página ya los pone el shell.
 - `src/app/guards.tsx`: `RequireRole`, `RequirePermiso accion="…"` (envuelve rutas que requieren un permiso concreto; muestra "Acceso no autorizado").
 
-## Roles (RF-09)
-`admin` (Administrador) · `coordinador` (Coordinador) · `voluntario` (Voluntario, antes "cuidador") · `familiar` (Familiar responsable). Rutas: `/admin`, `/coordinador`, `/voluntario`, `/familiar`.
-Cuentas demo (contraseña `Demo1234`): admin@cuidared.do · coordinador@cuidared.do · voluntario@cuidared.do · familiar@cuidared.do.
+## Roles (RF-09 · Reglas de Negocio V2)
+`admin` (Administrador, solo Organización) · `coordinador` · `cuidador` (trabajo de campo completo: visitas, necesidades, indicaciones, agenda con evidencias; vínculo `cuidador_asignado`) · `voluntario` (solo registra la visita y una observación; vínculo `voluntario_asignado`) · `familiar` (consulta lo autorizado explícitamente; vínculo `familiar_responsable`). Rutas: `/admin`, `/coordinador`, `/cuidador`, `/voluntario`, `/familiar`.
+- Cuentas Familia u Organización (`tipoDeCuenta` en `src/domain/planes.ts`). En Familia el Coordinador gestiona accesos (`AJUSTES_POR_TIPO` en `permisos.ts`).
+- Un usuario puede tener varias cuentas: `useSession()` devuelve `{ user, org, membresia }` con el rol y la cuenta de la membresía activa; `useMisCuentas()` y `cambiarCuenta()` en `auth.ts`. Filtra siempre por la cuenta activa.
+- Planes y prueba gratuita de 14 días: `src/domain/planes.ts` y `src/domain/usePlan.ts` (`useFuncionalidad`). Avisos y bloqueos: `src/components/plan` (`AvisoPlan`, `RequiereFuncionalidad`, `BannerPrueba`, `CuentaSinAcceso`).
+- Visitantes externos (no son rol): `src/domain/api/solicitudes.ts`.
+Cuentas demo (contraseña `Demo1234`): admin@ · coordinador@ · cuidador@ · voluntario@ · familiar@ · familia@cuidared.do (coordinadora de la cuenta Familia).
 
 ## Trabajo en paralelo
 - Edita **solo** tu carpeta (se indica en tu encargo). No toques `package.json`, `src/domain`, el kit UI, layouts, estilos globales ni otras carpetas. No instales dependencias. No ejecutes `git`. No arranques otro servidor (ya corre en http://localhost:5173).

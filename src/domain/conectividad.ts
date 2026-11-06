@@ -6,6 +6,10 @@
  * Además de la red real, permite "simular sin conexión" en esta pestaña (para demostraciones y pruebas
  * de campo sin apagar el Wi-Fi). La simulación se guarda en sessionStorage: cada pestaña actúa como un
  * dispositivo distinto.
+ *
+ * Los navegadores móviles pueden perder los eventos online/offline mientras la app está en segundo plano:
+ * por eso el estado también se vuelve a leer de navigator.onLine al volver a la pestaña (visibilitychange,
+ * pageshow y focus). Un cambio entre «sin red» y «con red» dispara a los suscriptores (p. ej. la sincronización).
  */
 import { useSyncExternalStore } from 'react'
 
@@ -56,6 +60,14 @@ export function useSimulacionSinConexion(): boolean {
   return useSyncExternalStore(suscribirConectividad, simulandoSinConexion, simulandoSinConexion)
 }
 
+/** Vuelve a leer navigator.onLine y avisa solo si cambió. */
+function releerRed() {
+  const ahora = navigator.onLine
+  if (ahora === redDisponible) return
+  redDisponible = ahora
+  emitir()
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     redDisponible = true
@@ -65,4 +77,7 @@ if (typeof window !== 'undefined') {
     redDisponible = false
     emitir()
   })
+  window.addEventListener('focus', releerRed)
+  window.addEventListener('pageshow', releerRed)
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && releerRed())
 }

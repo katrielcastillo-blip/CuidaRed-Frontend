@@ -1,12 +1,13 @@
 /*
  * VisitaCard.tsx — Tarjeta de la agenda de visitas del coordinador: adulto principal y adultos adicionales del
  * hogar (DetalleVisita), hora y fecha, motivo (Visit_razon), voluntario responsable, estado y marca
- * "Pendiente de sincronización" (CU-05 · CU-06 · RF-10).
+ * "Pendiente de sincronización" (CU-05 · CU-06 · RF-10). Si la visita es de una persona externa muestra
+ * "Visitante: nombre (autorizada por …)" (V2).
  * Módulo: coordinador.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarDays, Users } from 'lucide-react'
+import { ArrowRight, CalendarDays, UserRoundCheck, Users } from 'lucide-react'
 import { Badge, IconTile } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import { todayISO } from '@/domain/dates'
@@ -18,6 +19,7 @@ export function VisitaCard({
   adulto,
   adicionales = [],
   responsable,
+  visitante,
   to,
 }: {
   visita: Visita
@@ -25,6 +27,8 @@ export function VisitaCard({
   /** Otros adultos atendidos en la misma visita (filas adicionales de DetalleVisita). */
   adicionales?: Adulto[]
   responsable?: Usuario
+  /** "Visitante: nombre (autorizada por …)" cuando la visita es de una persona externa. */
+  visitante?: string
   to: string
 }) {
   const vencida = visita.estado === 'pendiente' && visita.fecha < todayISO()
@@ -53,7 +57,14 @@ export function VisitaCard({
               <span>También: {adicionales.map(nombreCompleto).join(', ')}</span>
             </p>
           )}
-          <p className="text-sm text-muted">Responsable: {responsable ? nombreCompleto(responsable) : 'Sin asignar'}</p>
+          {visitante ? (
+            <p className="flex items-start gap-1.5 text-sm font-semibold text-ink-2 wrap-anywhere">
+              <UserRoundCheck size={16} className="flex-none mt-0.5 text-navy" aria-hidden />
+              <span>{visitante}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-muted">Responsable: {responsable ? nombreCompleto(responsable) : 'Sin asignar'}</p>
+          )}
           {visita.pendienteSync && (
             <span className="mt-1">
               <Badge tone="warning">Pendiente de sincronización</Badge>

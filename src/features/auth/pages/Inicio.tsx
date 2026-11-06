@@ -6,10 +6,11 @@
  */
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { ChevronDown, KeyRound, Lock, Siren, UserRound } from 'lucide-react'
+import { ChevronDown, Gift, KeyRound, Lock, Siren, UserPlus, UserRound } from 'lucide-react'
 import { Button, ButtonLink, PasswordField, TextField } from '@/components/ui'
 import { HOME_BY_ROL, login, ROL_LABEL, useSession } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
+import { DIAS_PRUEBA_GRATUITA } from '@/domain/planes'
 import { DEMO_PASSWORD } from '@/domain/seed'
 import type { Rol } from '@/domain/types'
 import { PRODUCTO } from '@/lib/proyecto'
@@ -17,12 +18,18 @@ import { AuthScreen } from '../components/AuthScreen'
 import { Aviso } from '../components/Piezas'
 import { emailValido } from '../lib/validar'
 
-/** Cuentas de demostración: los 4 roles del SRS (RF-09). */
-const CUENTAS_DEMO: Array<{ rol: Rol; email: string }> = [
-  { rol: 'admin', email: 'admin@cuidared.do' },
-  { rol: 'coordinador', email: 'coordinador@cuidared.do' },
-  { rol: 'voluntario', email: 'voluntario@cuidared.do' },
-  { rol: 'familiar', email: 'familiar@cuidared.do' },
+/**
+ * DEMO — Cuentas de demostración: los 5 roles (Reglas de Negocio V2) y la cuenta Familia en prueba.
+ * Esta sección y las cuentas semilla solo existen en el prototipo (DemoApp): se elimina al integrar el backend real,
+ * que todavía no tiene estos módulos.
+ */
+const CUENTAS_DEMO: Array<{ id: string; titulo: string; detalle: string; email: string }> = [
+  { id: 'admin', titulo: ROL_LABEL.admin, detalle: 'Organización', email: 'admin@cuidared.do' },
+  { id: 'coordinador', titulo: ROL_LABEL.coordinador, detalle: 'Organización', email: 'coordinador@cuidared.do' },
+  { id: 'cuidador', titulo: ROL_LABEL.cuidador, detalle: 'Organización y Familia', email: 'cuidador@cuidared.do' },
+  { id: 'voluntario', titulo: ROL_LABEL.voluntario, detalle: 'Organización', email: 'voluntario@cuidared.do' },
+  { id: 'familiar', titulo: ROL_LABEL.familiar, detalle: 'Organización y Familia', email: 'familiar@cuidared.do' },
+  { id: 'familia', titulo: 'Coordinador · cuenta Familia', detalle: `Familia Méndez · prueba de ${DIAS_PRUEBA_GRATUITA} días`, email: 'familia@cuidared.do' },
 ]
 
 /** Respeta la ruta de origen solo si pertenece al área del mismo rol (y no es una pantalla de perfil recién cerrada). */
@@ -137,14 +144,23 @@ export default function Inicio() {
         </div>
 
         <div className="mt-auto flex flex-col gap-3 pt-2">
-          <p className="text-center text-sm text-ink-2">¿Tu organización te invitó a CuidaRed?</p>
-          <ButtonLink to="/registro" variant="outline" fullWidth icon={<KeyRound size={20} aria-hidden />}>
-            Activar mi cuenta
-          </ButtonLink>
-          <Link to="/registro-organizacion" className="grid min-h-12 place-items-center text-center text-sm font-semibold text-navy underline underline-offset-[3px]">
-            Registrar una organización
-          </Link>
+          <div className="flex flex-col gap-1.5">
+            <ButtonLink to="/crear-cuenta" variant="outline" fullWidth icon={<UserPlus size={20} aria-hidden />}>
+              Crear cuenta
+            </ButtonLink>
+            <p className="flex items-center justify-center gap-1.5 text-center text-sm text-ink-2">
+              <Gift size={15} aria-hidden className="flex-none text-blue" />
+              Familia u Organización · {DIAS_PRUEBA_GRATUITA} días gratis, sin tarjeta
+            </p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-center text-sm text-ink-2">¿Te invitaron a una cuenta de CuidaRed?</p>
+            <ButtonLink to="/registro" variant="light" fullWidth icon={<KeyRound size={20} aria-hidden />}>
+              Activar mi cuenta
+            </ButtonLink>
+          </div>
 
+          {/* DEMO: se elimina al integrar el backend (ver comentario de CUENTAS_DEMO). */}
           <details className="group rounded-md border border-line-soft bg-surface shadow-1">
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 text-sm font-semibold text-ink-2 [&::-webkit-details-marker]:hidden">
               <span className="flex items-center gap-2">
@@ -159,13 +175,14 @@ export default function Inicio() {
               </p>
               <ul className="grid gap-2 sm:grid-cols-2">
                 {CUENTAS_DEMO.map((c) => (
-                  <li key={c.rol}>
+                  <li key={c.id}>
                     <button
                       type="button"
                       className="flex min-h-12 w-full flex-col items-start justify-center rounded-sm border border-line-soft bg-bg px-3 py-1.5 text-left text-sm hover:border-blue hover:bg-blue-100"
                       onClick={() => usarDemo(c.email)}
                     >
-                      <strong className="text-navy">{ROL_LABEL[c.rol]}</strong>
+                      <strong className="text-navy">{c.titulo}</strong>
+                      <span className="text-xs text-muted">{c.detalle}</span>
                       <span className="wrap-anywhere text-ink-2">{c.email}</span>
                     </button>
                   </li>
@@ -184,7 +201,13 @@ export default function Inicio() {
             9-1-1.
           </span>
         </p>
-        <nav aria-label="Avisos legales" className="flex flex-wrap items-center justify-center">
+        <nav aria-label="Más información" className="flex flex-wrap items-center justify-center">
+          <Link to="/" className={ENLACE_PIE}>
+            Bienvenida
+          </Link>
+          <span aria-hidden className="text-muted">
+            ·
+          </span>
           <Link to="/terminos" className={ENLACE_PIE}>
             Términos
           </Link>
