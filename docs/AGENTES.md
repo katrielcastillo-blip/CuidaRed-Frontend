@@ -66,7 +66,7 @@ El dominio reproduce el modelo de base de datos del equipo (ver `docs/MAPEO-BD.m
 `admin` (Administrador, solo Organización) · `coordinador` · `cuidador` (trabajo de campo completo: visitas, necesidades, indicaciones, agenda con evidencias; vínculo `cuidador_asignado`) · `voluntario` (solo registra la visita y una observación; vínculo `voluntario_asignado`) · `familiar` (consulta lo autorizado explícitamente; vínculo `familiar_responsable`). Rutas: `/admin`, `/coordinador`, `/cuidador`, `/voluntario`, `/familiar`.
 - Cuentas Familia u Organización (`tipoDeCuenta` en `src/domain/planes.ts`). En Familia el Coordinador gestiona accesos (`AJUSTES_POR_TIPO` en `permisos.ts`).
 - Un usuario puede tener varias cuentas: `useSession()` devuelve `{ user, org, membresia }` con el rol y la cuenta de la membresía activa; `useMisCuentas()` y `cambiarCuenta()` en `auth.ts`. Filtra siempre por la cuenta activa.
-- Planes y prueba gratuita de 14 días: `src/domain/planes.ts` y `src/domain/usePlan.ts` (`useFuncionalidad`). Avisos y bloqueos: `src/components/plan` (`AvisoPlan`, `RequiereFuncionalidad`, `BannerPrueba`, `CuentaSinAcceso`).
+- Planes y prueba gratuita de 7 días: `src/domain/planes.ts` y `src/domain/usePlan.ts` (`useFuncionalidad`). Avisos y bloqueos: `src/components/plan` (`AvisoPlan`, `RequiereFuncionalidad`, `BannerPrueba`, `CuentaSinAcceso`).
 - Visitantes externos (no son rol): `src/domain/api/solicitudes.ts`.
 Cuentas demo (contraseña `Demo1234`): admin@ · coordinador@ · cuidador@ · voluntario@ · familiar@ · familia@cuidared.do (coordinadora de la cuenta Familia).
 

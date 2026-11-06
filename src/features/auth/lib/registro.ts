@@ -11,7 +11,7 @@
  *  - "/crear-cuenta" pregunta el tipo de cuenta (Familia u Organización). Cada tipo tiene su formulario:
  *      · "/registro-organizacion": tabla Cuenta de tipo Organización + primera cuenta de Administrador.
  *      · "/registro-familia": tabla Cuenta de tipo Familia + persona Coordinadora (en Familia no hay Administrador).
- *    En ambos casos la cuenta nace en prueba gratuita de 14 días (DIAS_PRUEBA_GRATUITA, domain/planes.ts) con
+ *    En ambos casos la cuenta nace en prueba gratuita de 7 días (DIAS_PRUEBA_GRATUITA, domain/planes.ts) con
  *    funciones limitadas (PRUEBA_GRATUITA), sin plan (Plan_Id vacío, Plan_Precio 0) y sin pedir tarjeta: el plan
  *    se elige cuando la prueba está por terminar (pantalla Suscripción). La persona registrada queda como titular
  *    (User_Titular) con su Usuario + Membresia. Los parámetros (Configuracion_Cuenta) toman su valor por defecto.
@@ -234,7 +234,7 @@ export function validarTitular(d: DatosTitular): Errores {
 }
 
 /**
- * Crea la cuenta (Cuenta) del tipo indicado, en prueba gratuita de 14 días (Suscripcion_Estado "prueba", sin plan:
+ * Crea la cuenta (Cuenta) del tipo indicado, en prueba gratuita de 7 días (Suscripcion_Estado "prueba", sin plan:
  * Plan_Id vacío y Plan_Precio 0), con su persona titular activa (Usuario) y su membresía vigente (Membresia), y la
  * marca como titular (User_Titular). Los parámetros toman su valor por defecto (no se escribe Configuracion_Cuenta).
  * Audita "usuario.crear" y "cuenta.registrar" e inicia sesión. Valida todo de nuevo antes de escribir.

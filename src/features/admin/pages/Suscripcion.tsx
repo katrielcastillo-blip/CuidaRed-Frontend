@@ -79,7 +79,7 @@ function EstadoCuenta({ org }: { org: Organizacion }) {
   )
 }
 
-/** Prueba gratuita (14 días, una sola vez, sin método de pago): días restantes, límites y funciones de la prueba. */
+/** Prueba gratuita (7 días, una sola vez, sin método de pago): días restantes, límites y funciones de la prueba. */
 function EstadoPrueba({ org }: { org: Organizacion }) {
   const { tipo, diasRestantesPrueba: dias, pruebaPorTerminar, funcionalidades, limites } = usePlanCuenta()
   const catalogos = useDB((s) => s.catalogos)

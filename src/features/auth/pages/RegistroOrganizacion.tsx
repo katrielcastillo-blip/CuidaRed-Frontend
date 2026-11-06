@@ -4,7 +4,7 @@
  *  1) Organización (Cuenta: nombre y categoría)
  *  2) Contacto y ubicación (Cuenta: provincia → municipio, dirección, teléfono, correo)
  *  3) Datos del administrador (Usuario)  4) Contraseña + aceptación de términos y privacidad.
- * No se pide plan: la cuenta nace con 14 días de prueba gratuita (sin tarjeta) y funciones limitadas; el plan
+ * No se pide plan: la cuenta nace con 7 días de prueba gratuita (sin tarjeta) y funciones limitadas; el plan
  * se elige cuando la prueba está por terminar (feedback de PM · LOGIN SCREEN).
  * Módulo: auth (SRS §8.2.2.3.5 b · Ley 172-13).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.

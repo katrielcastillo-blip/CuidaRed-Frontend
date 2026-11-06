@@ -84,7 +84,7 @@ export const TERMINOS: Documento = {
         {
           lista: [
             'Una cuenta puede ser de tipo **Familia** o de tipo **Organización** (iglesia, fundación, asilo, universidad…). Se crea registrándose: la persona que la crea queda como **titular** (Administrador en una Organización; Coordinador en una Familia).',
-            'Toda cuenta nueva empieza con una **prueba gratuita de 14 días**, sin tarjeta y con funciones limitadas. Cuando esté por terminar podrás elegir un plan; sin plan, al vencer la prueba la cuenta deja de estar disponible para operar.',
+            'Toda cuenta nueva empieza con una **prueba gratuita de 7 días**, sin tarjeta y con funciones limitadas. Cuando esté por terminar podrás elegir un plan; sin plan, al vencer la prueba la cuenta deja de estar disponible para operar.',
             'Las demás cuentas personales (coordinadores, cuidadores, voluntarios y familiares responsables) **las crea quien gestiona la cuenta**: el administrador en una Organización o el coordinador en una Familia. La persona invitada activa su cuenta eligiendo su propia contraseña; quien la invitó nunca la conoce.',
             'Una misma persona puede tener acceso a varias cuentas, con el rol que le corresponda en cada una.',
             'Tu cuenta es **personal e intransferible**. No compartas tu contraseña ni dejes la sesión abierta en dispositivos de otras personas.',

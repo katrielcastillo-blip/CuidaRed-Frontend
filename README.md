@@ -82,7 +82,7 @@ Pruebas del acceso conectado: `npx playwright test --config playwright.access.co
 
 Se muestran únicamente con `VITE_AUTH_MODE=demo` durante desarrollo. Sus datos y contraseñas son simulados y no se migran a la identidad real. La configuración Playwright histórica habilita este modo explícitamente; no reutilizar un servidor ya iniciado en otro modo.
 
-Hay dos cuentas (Reglas de Negocio V2): la Organización **Fundación Esperanza** (plan Gestión Comunitaria Avanzada) y la Familia **Familia Méndez** (prueba gratuita de 14 días).
+Hay dos cuentas (Reglas de Negocio V2): la Organización **Fundación Esperanza** (plan Gestión Comunitaria Avanzada) y la Familia **Familia Méndez** (prueba gratuita de 7 días).
 
 | Rol | Correo | Cuenta |
 |---|---|---|

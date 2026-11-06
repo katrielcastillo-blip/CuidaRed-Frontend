@@ -34,7 +34,7 @@ export const CUENTAS: Record<Rol, { email: string; id: string; nombre: string; e
   familiar: { email: 'familiar@cuidared.do', id: 'u-fam', nombre: 'Clara Rodríguez', etiqueta: 'Familiar responsable', home: '/familiar' },
 }
 
-/** Coordinadora titular de la cuenta Familia «Familia Méndez» (en prueba gratuita de 14 días). */
+/** Coordinadora titular de la cuenta Familia «Familia Méndez» (en prueba gratuita de 7 días). */
 export const CUENTA_FAMILIA = { email: 'familia@cuidared.do', id: 'u-fcoord', nombre: 'Patricia Méndez', etiqueta: 'Coordinador', home: '/coordinador', orgId: 'org-fam' } as const
 
 const HOME_POR_ID: Record<string, string> = { ...Object.fromEntries(Object.values(CUENTAS).map((c) => [c.id, c.home])), [CUENTA_FAMILIA.id]: CUENTA_FAMILIA.home }

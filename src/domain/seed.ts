@@ -2,7 +2,7 @@
  * seed.ts — Datos maestros y de demostración (SRS §11 "Inicialización de datos maestros"). Reglas de Negocio V2:
  *  - Cuenta Organización «Fundación Esperanza» (plan Gestión Comunitaria Avanzada) con los cinco roles:
  *    Administrador, Coordinador, Cuidador, Voluntario y Familiar responsable.
- *  - Cuenta Familia «Familia Méndez» en prueba gratuita (14 días) con Coordinador, Cuidador y Familiar.
+ *  - Cuenta Familia «Familia Méndez» en prueba gratuita (7 días) con Coordinador, Cuidador y Familiar.
  *  - El cuidador (Carlos) y la familiar (Clara) pertenecen a ambas cuentas: prueban el selector de cuenta.
  * Cubre todas las tablas del modelo de datos V3.0. Datos ficticios (ningún dato real).
  * Módulo: dominio.
@@ -23,7 +23,7 @@ import type {
   Visita,
 } from './types'
 
-export const DB_VERSION = 5
+export const DB_VERSION = 6
 export const DEMO_PASSWORD = 'Demo1234'
 /** Hash PBKDF2-SHA256 (100 000 iteraciones) de DEMO_PASSWORD con DEMO_SALT: la semilla no guarda contraseñas en claro. */
 const DEMO_SALT = 'c7a1d2e3f4a5b6c7d8e9f0a1b2c3d4e5'
@@ -207,8 +207,8 @@ export function buildSeed(): DB {
         suscripcionEstado: 'prueba',
         creadoEn: t(-5),
         pruebaGratuita: true,
-        fechaInicioPrueba: f(-5),
-        fechaFinPrueba: f(9),
+        fechaInicioPrueba: f(-2),
+        fechaFinPrueba: f(5),
         planId: '',
         planPrecio: 0,
         usuarioTitularId: 'u-fcoord',

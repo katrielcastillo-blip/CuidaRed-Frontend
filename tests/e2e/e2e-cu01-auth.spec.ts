@@ -1,7 +1,7 @@
 /*
  * e2e-cu01-auth.spec.ts — Suite E2E-CU01-AUTH: escenarios de CU-01 Iniciar sesión en el sistema (RF-09 · Anexo B),
  * con las Reglas de Negocio V2: 5 roles, cuentas Familia u Organización con selector de cuenta, registro de cuenta
- * por tipo con prueba gratuita de 14 días, política de contraseñas con carácter especial y guía de bienvenida.
+ * por tipo con prueba gratuita de 7 días, política de contraseñas con carácter especial y guía de bienvenida.
  * Módulo: pruebas.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -165,7 +165,7 @@ test.describe('E2E-CU01-AUTH · Iniciar sesión en el sistema', () => {
     await expect(page.getByRole('link', { name: /^Elena Rodríguez, riesgo/ })).toHaveCount(0)
   })
 
-  test('Escenario: Registrar una cuenta Familia deja la prueba gratuita de 14 días', async ({ page }) => {
+  test('Escenario: Registrar una cuenta Familia deja la prueba gratuita de 7 días', async ({ page }) => {
     const correo = 'lucia.perez.e2e@correo.do'
     // Dado que una persona sin cuenta quiere crear una desde el inicio de sesión
     await page.getByRole('link', { name: 'Crear cuenta', exact: true }).click()
@@ -176,7 +176,7 @@ test.describe('E2E-CU01-AUTH · Iniciar sesión en el sistema', () => {
     await expect(page).toHaveURL(/\/registro-familia$/)
     // Y completa los datos de su familia (sin elegir plan: el registro no lo pide)
     await expect(page.getByText('Paso 1 de 3 · Tu familia')).toBeVisible()
-    await expect(page.getByText('14 días gratis, sin tarjeta.')).toBeVisible()
+    await expect(page.getByText('7 días gratis, sin tarjeta.')).toBeVisible()
     await expect(page.getByText(/Plan/)).toHaveCount(0)
     await page.getByRole('textbox', { name: /^Nombre de la familia/ }).fill('Familia Pérez')
     await page.getByRole('combobox', { name: /^Categoría/ }).selectOption({ label: 'Cuidado domiciliario' })
@@ -211,8 +211,8 @@ test.describe('E2E-CU01-AUTH · Iniciar sesión en el sistema', () => {
     expect(usuario).toMatchObject({ rol: 'coordinador', nombre: 'Lucía', apellido: 'Pérez', estado: 'activo' })
     const cuenta = db.orgs.find((o) => o.id === usuario.orgId)!
     expect(cuenta).toMatchObject({ nombre: 'Familia Pérez', tipoCuentaId: 'tc-familia', categoriaCuentaId: 'cc-domiciliario', usuarioTitularId: usuario.id })
-    // Y la cuenta queda en prueba gratuita de 14 días, sin plan ni pago
-    expect(cuenta).toMatchObject({ suscripcionEstado: 'prueba', pruebaGratuita: true, fechaInicioPrueba: enDiasISO(0), fechaFinPrueba: enDiasISO(14), planId: '', planPrecio: 0 })
+    // Y la cuenta queda en prueba gratuita de 7 días, sin plan ni pago
+    expect(cuenta).toMatchObject({ suscripcionEstado: 'prueba', pruebaGratuita: true, fechaInicioPrueba: enDiasISO(0), fechaFinPrueba: enDiasISO(7), planId: '', planPrecio: 0 })
     expect(db.pagos.filter((p) => p.orgId === cuenta.id)).toEqual([])
     expect(db.membresias.filter((m) => m.usuarioId === usuario.id && m.estado === 'activa')).toEqual([expect.objectContaining({ orgId: cuenta.id, rol: 'coordinador' })])
     // (su primera entrada muestra la guía de bienvenida, que la presenta y le explica la prueba gratuita)
@@ -220,15 +220,15 @@ test.describe('E2E-CU01-AUTH · Iniciar sesión en el sistema', () => {
     await expect(guia).toContainText('Coordinador · Familia Pérez')
     for (let i = 0; i < 3; i++) await guia.getByRole('button', { name: 'Siguiente' }).click()
     await expect(guia.getByRole('heading', { name: 'Tu prueba gratuita' })).toBeVisible()
-    await expect(guia).toContainText('de los 14 de prueba gratuita')
+    await expect(guia).toContainText('de los 7 de prueba gratuita')
     await guia.getByRole('button', { name: 'Empezar' }).click()
     await expect(guia).toHaveCount(0)
     // Y la ve en la pantalla de la cuenta: aviso con los días y estado «prueba» en Plan y suscripción
-    await expect(page.getByTestId('banner-prueba')).toContainText('te quedan 14 días')
+    await expect(page.getByTestId('banner-prueba')).toContainText('te quedan 7 días')
     await page.goto('/coordinador/suscripcion')
     const estado = page.getByTestId('estado-suscripcion')
-    await expect(estado).toContainText('Prueba gratuita de 14 días')
-    await expect(estado).toContainText('Quedan 14 días de prueba.')
+    await expect(estado).toContainText('Prueba gratuita de 7 días')
+    await expect(estado).toContainText('Quedan 7 días de prueba.')
   })
 
   test('Escenario: La guía de bienvenida se muestra solo la primera vez que se entra con un rol', async ({ page }) => {

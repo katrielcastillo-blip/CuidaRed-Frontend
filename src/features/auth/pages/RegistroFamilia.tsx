@@ -3,7 +3,7 @@
  * (Reglas de Negocio V2 §Cuenta: en Familia no hay Administrador; la Coordinadora es la titular y gestiona accesos).
  *  1) Tu familia (nombre, categoría de Familia, provincia y municipio)  2) Persona coordinadora (Usuario)
  *  3) Contraseña + aceptación de términos y privacidad.
- * La cuenta nace con 14 días de prueba gratuita (sin tarjeta) y funciones limitadas.
+ * La cuenta nace con 7 días de prueba gratuita (sin tarjeta) y funciones limitadas.
  * Módulo: auth (SRS §8.2.2.3.5 b · Ley 172-13).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */

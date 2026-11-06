@@ -8,8 +8,8 @@
  *
  * Decisiones vigentes:
  *  - Una cuenta es Familia u Organización; cada plan aplica a un único tipo de cuenta.
- *  - La prueba gratuita se maneja en la Cuenta (no es un plan), se usa una sola vez y dura 14 días
- *    (feedback de PM sobre LOGIN SCREEN, 2026-11). Durante la prueba la cuenta tiene funciones limitadas.
+ *  - La prueba gratuita se maneja en la Cuenta (no es un plan), se usa una sola vez y dura 7 días
+ *    (decisión del equipo 2026-11-06, alineada con el backend y V2). Durante la prueba la cuenta tiene funciones limitadas.
  *  - Al vencer la prueba sin un pago registrado, la cuenta queda sin acceso operativo hasta contratar un plan.
  */
 import { diasCalendario, todayISO } from './dates'
@@ -23,7 +23,7 @@ export const TIPO_CUENTA_ID: Record<TipoCuenta, string> = { familia: 'tc-familia
 export const TIPO_CUENTA_LABEL: Record<TipoCuenta, string> = { familia: 'Familia', organizacion: 'Organización' }
 
 /** Duración de la prueba gratuita (una sola vez por cuenta). */
-export const DIAS_PRUEBA_GRATUITA = 14
+export const DIAS_PRUEBA_GRATUITA = 7
 
 /** Roles permitidos por tipo de cuenta (V2 §Cuenta). */
 export const ROLES_POR_TIPO_CUENTA: Record<TipoCuenta, readonly Rol[]> = {
