@@ -4,34 +4,20 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
  * Reglas de Negocio V2: un usuario puede pertenecer a varias cuentas (Familia u Organización) con un rol distinto
- * en cada una. El contrato ampliado de /me (CR-164, backend) agrega `cuentas` con la membresía, el rol, los permisos
- * efectivos y el estado de suscripción de cada cuenta. Mientras el backend de la fase 2 no lo publique, /me solo trae
- * identidad y perfil: el panel lo explica y no inventa datos.
+ * en cada una. El contrato ampliado de /me (CR-164, fase 2) agrega `cuentas` con la membresía, el rol, los permisos
+ * efectivos y el estado de suscripción de cada cuenta: primero las activas y luego las invitaciones pendientes.
+ * Con el backend de la fase 1, /me solo trae identidad y perfil: el panel lo explica y no inventa datos.
  *
  * La cuenta elegida se recuerda en sessionStorage (dura lo que la sesión del navegador) y nunca se envía como
  * parámetro de autorización: el servidor vuelve a validar membresía y permisos en cada petición (CR-162).
  */
 import { Building2, Check, House } from 'lucide-react'
-import { Badge } from '@/components/ui'
+import { Badge, ButtonLink } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import type { CuentaMe, CurrentUser } from './client'
+import { ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
 
 export const CLAVE_CUENTA_ACTIVA = 'cuidared.cuenta.activa'
-
-const ROL_TEXTO: Record<CuentaMe['rol'], string> = {
-  administrador: 'Administrador',
-  coordinador: 'Coordinador',
-  cuidador: 'Cuidador',
-  familiar: 'Familiar responsable',
-  voluntario: 'Voluntario',
-}
-
-const SUSCRIPCION_TEXTO: Record<CuentaMe['estado_suscripcion'], string> = {
-  prueba: 'Prueba gratuita',
-  activa: 'Plan activo',
-  vencida: 'Sin plan activo',
-  cancelada: 'Cancelada',
-}
 
 /** Cuentas activas que devuelve /me (vacío si el backend aún no las informa). */
 export const cuentasDe = (user: CurrentUser | null): CuentaMe[] => (user?.cuentas ?? []).filter((c) => c.estado_membresia === 'activa')
@@ -72,6 +58,9 @@ export function PanelCuentas({ user, activa, onCambiar }: { user: CurrentUser; a
           Mis cuentas
         </h2>
         <p className="text-sm text-muted">Todavía no perteneces a ninguna familia u organización. Cuando una persona responsable te agregue, verás aquí la cuenta y tu rol.</p>
+        <ButtonLink to="/crear-cuenta" variant="outline" size="sm" className="self-start">
+          Crear una cuenta
+        </ButtonLink>
       </section>
     )
   }
@@ -97,10 +86,10 @@ export function PanelCuentas({ user, activa, onCambiar }: { user: CurrentUser; a
                 <span className="flex-1 min-w-0 flex flex-col">
                   <strong className="text-ink truncate">{c.nombre}</strong>
                   <span className="text-sm text-muted">
-                    {ROL_TEXTO[c.rol]} · {SUSCRIPCION_TEXTO[c.estado_suscripcion]}
+                    {ROL_TEXTO[c.rol]} · {suscripcionTexto(c.estado_suscripcion)}
                   </span>
                 </span>
-                <Badge tone={c.tipo === 'familia' ? 'info' : 'neutral'}>{c.tipo === 'familia' ? 'Familia' : 'Organización'}</Badge>
+                <Badge tone={c.tipo === 'familia' ? 'info' : 'neutral'}>{TIPO_TEXTO[c.tipo]}</Badge>
                 {actual && <Check size={20} className="text-navy flex-none" aria-label="Cuenta actual" />}
               </button>
             </li>

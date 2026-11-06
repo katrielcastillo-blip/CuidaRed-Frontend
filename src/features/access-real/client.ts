@@ -1,4 +1,8 @@
-/* Supabase Auth real y API de perfil · ID01. © 2026 Equipo CuidaRed – INTEC. */
+/*
+ * client.ts — Cliente de Supabase Auth, cliente HTTP de la API Express y tipos base del acceso conectado.
+ * Módulo: access-real (ID01 · ID02).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { collectionSearch, readPaginatedResponse, type CollectionQuery, type PaginatedResponse } from '../../lib/api-contract'
 
@@ -117,29 +121,44 @@ export interface Profile {
   telefono: string | null
   estado: 'activo'
 }
+export type TipoCuenta = 'familia' | 'organizacion'
+export type RolCuenta = 'administrador' | 'coordinador' | 'cuidador' | 'familiar' | 'voluntario'
+export type EstadoSuscripcion = 'prueba' | 'activa' | 'vencida' | 'cancelada' | 'suspendida'
+/** Límites del plan de la cuenta; `null` = ilimitado. */
+export interface LimitesPlan {
+  envejecientes: number | null
+  usuarios: number | null
+  familiares: number | null
+}
 /**
- * Membresía de la persona en una cuenta, tal como la propone el contrato ampliado de GET /me (CR-164, pendiente de
- * backend fase 2). Campos en snake_case según CR-162. Todo es informativo para la interfaz: el servidor valida.
+ * Membresía de la persona en una cuenta, tal como la publica GET /me (CR-164, fase 2). Campos en snake_case según
+ * CR-162. Todo es informativo para la interfaz: el servidor valida. Las cuentas `pendiente` son invitaciones sin
+ * aceptar: no dan permisos ni acceso (permisos vacíos, sin suscripción) y traen `membresia_id` para aceptarlas.
  */
 export interface CuentaMe {
   cuenta_id: string
   nombre: string
-  tipo: 'familia' | 'organizacion'
-  rol: 'administrador' | 'coordinador' | 'cuidador' | 'familiar' | 'voluntario'
-  estado_membresia: 'activa' | 'inactiva'
+  tipo: TipoCuenta
+  rol: RolCuenta
+  estado_membresia: 'activa' | 'inactiva' | 'pendiente'
   /** Acciones permitidas para el rol en esa cuenta (p. ej. "visitas:registrar"). */
   permisos: string[]
-  estado_suscripcion: 'prueba' | 'activa' | 'vencida' | 'cancelada'
+  estado_suscripcion: EstadoSuscripcion | null
   /** Funcionalidades del plan (feature gating, CR-157/CR-187). */
   funcionalidades?: string[]
   es_titular?: boolean
+  /** `false` con la prueba o el plan vencidos: solo se gestiona la cuenta, sus miembros y la suscripción. */
+  acceso_operativo?: boolean
+  limites?: LimitesPlan | null
+  /** Solo en invitaciones pendientes: identifica la membresía que se acepta o rechaza. */
+  membresia_id?: string
 }
 export interface CurrentUser {
   identity: { id: string; email: string }
   profile: Profile
-  /** [CR-164] Cuentas y roles. Ausente mientras el backend solo publique la fase 1. */
+  /** [CR-164] Cuentas activas y luego pendientes. Ausente mientras el backend solo publique la fase 1. */
   cuentas?: CuentaMe[]
-  /** [CR-164] Cuenta sugerida por el servidor (la última usada). */
+  /** [CR-164] El servidor responde siempre `null`: la cuenta activa la elige el cliente y viaja en la ruta. */
   cuenta_activa_id?: string | null
 }
 
