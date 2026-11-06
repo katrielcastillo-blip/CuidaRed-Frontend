@@ -28,6 +28,7 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 120_000,
+    env: { VITE_AUTH_MODE: 'demo' },
   },
   projects: [
     { name: 'unit', testMatch: /unit\/.*\.spec\.ts/ },

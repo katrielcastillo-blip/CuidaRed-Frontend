@@ -1,5 +1,7 @@
 # CuidaRed Frontend: guía para quien implementa pantallas
 
+> Esta guía describe el prototipo local y los encargos de pantallas. Desde la integración de la fase 1, el acceso conectado es el modo predeterminado y el prototipo se habilita explícitamente solo en desarrollo. Para integrar el backend, consultar su `AGENTS.md`, `CONTEXTO-BACKEND.md` y `PLAN-DESARROLLO-BACKEND.md`; las decisiones aprobadas V2 prevalecen sobre las reglas históricas del prototipo. La identidad real no se enlaza a sus datos simulados.
+
 Proyecto: **React 19 + Vite 8 + TypeScript + react-router-dom 7 + vite-plugin-pwa + Tailwind CSS 4**. PWA instalable, mobile-first.
 Fuente de requisitos: **SRS de CuidaRed (Sprint 7)**: RF-01 a RF-10, casos de uso CU-01 a CU-14 y requisitos no funcionales. Esta versión es **solo frontend**: el "servidor" se simula en el navegador.
 

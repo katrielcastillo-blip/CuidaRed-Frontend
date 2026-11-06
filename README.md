@@ -10,7 +10,15 @@
 
 Proyecto académico del curso **IDS352-01 Anteproyecto de Grado**, Instituto Tecnológico de Santo Domingo (**INTEC**), 2026. Especificación: *SRS CuidaRed, Sprint 7*.
 
-## Alcance implementado (SRS)
+## Estado de integración del backend
+
+El contrato de errores, paginación, orden y filtros está definido en [Convenciones de API — CR-162](../CuidaRed-Backend/docs/CONVENCIONES-API.md), aprobado por el usuario el 31/10/2026. El cliente conectado distingue 401/403/404 y dispone de `apiPage` para los listados que se integren en las siguientes fases.
+
+El acceso conectado es el modo predeterminado: activación de invitaciones con códigos de Supabase, inicio de sesión, recuperación y perfil propio en `src/features/access-real/`. La identidad real no accede a los datos del prototipo. Las cuentas, membresías y módulos operativos se incorporarán según las ocho fases de [la hoja de ruta](../CuidaRed-Backend/PLAN-DESARROLLO-BACKEND.md).
+
+La persistencia de fase 1 fue aprobada y aplicada el 25/10/2026; consultar [su verificación](../CuidaRed-Backend/docs/VERIFICACION-FASE-1-SUPABASE.md). Quedan pendientes configuración Auth y pruebas con usuarios reales, que requieren revisión aparte. El esquema no se crea al iniciar la aplicación. V2 prevalece sobre el SRS donde exista contradicción; la descripción histórica siguiente corresponde al prototipo y no define las reglas del backend.
+
+## Alcance del prototipo local (SRS)
 
 | Requisito | Dónde |
 |---|---|
@@ -44,11 +52,11 @@ React 19 · TypeScript · Vite 8 · **Tailwind CSS 4** (tema en `tailwind.config
 
 ## Instalación y ejecución local
 
-Requisitos: Node.js 20 LTS o superior y npm.
+Requisitos de la integración actual: Node.js 24.19+ de la rama 24 y npm.
 
 ```bash
-npm install
-cp .env.example .env.local   # opcional en esta versión (ver "Variables de entorno")
+npm ci
+cp .env.example .env.local   # completar URL API y configuración publicable de Supabase
 npm run dev                  # http://localhost:5173 (también accesible desde el teléfono: http://<IP-del-PC>:5173)
 npm run build                # compilación de producción + Service Worker (dist/)
 npm run preview              # sirve dist/ para probar la instalación como app y el modo sin conexión
@@ -56,22 +64,23 @@ npm run preview              # sirve dist/ para probar la instalación como app 
 
 ## Variables de entorno
 
-Ver [`.env.example`](.env.example). Esta entrega es **solo frontend**: el "servidor central" se simula en el navegador (localStorage para los datos compartidos y IndexedDB para la cola sin conexión), por lo que ninguna variable es obligatoria. Están reservadas para la integración con el backend previsto por el SRS:
+Ver [`.env.example`](.env.example). El acceso real necesita las variables siguientes. Tokens de sesión en `sessionStorage`; los códigos y contraseñas no se guardan en almacenamiento del navegador. No hay retorno automático a datos simulados si falla una conexión.
 
 | Variable | Uso |
 |---|---|
 | `VITE_API_URL` | URL de la API REST (Node.js + Express). Desarrollo `http://localhost:3000`; producción solo HTTPS. |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Proyecto de Supabase (solo la clave pública *anon*; la *service_role* nunca va en el frontend). |
-| `VITE_SESION_MINUTOS_INACTIVIDAD` | Minutos de inactividad para cerrar la sesión (por defecto 30). |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Proyecto de Supabase y clave `sb_publishable_...`; nunca secret/service_role. |
+| `VITE_AUTH_MODE` | `supabase` por defecto. `demo` permite revisar el prototipo solo en desarrollo; producción lo excluye. |
 
-### Conectar con Supabase (cuando exista el backend)
+### Integración progresiva
 
-1. Crear el proyecto en Supabase y habilitar Auth (correo y contraseña).
-2. Crear las tablas en `snake_case` equivalentes a `src/domain/types.ts` (organizaciones, usuarios, familias, adultos, visitas, necesidades, alertas, auditoria) con integridad referencial y políticas RLS por rol.
-3. Exponerlas a través de la API Express (`VITE_API_URL`), que valida token, rol y datos.
-4. Sustituir la implementación local de `src/domain/api/*` y `src/domain/store.ts` por llamadas HTTP a la API. Las pantallas no cambian: solo usan la capa de servicios.
+La API Express en `../CuidaRed-Backend/` valida tokens y sesión actual. Usa RPC propias en `cuidared_api`, sin conceder acceso directo a las tablas internas. La persistencia implementa límites de 30 minutos sin interacción y 12 horas desde la sesión original; falta validarlos con identidades reales autorizadas. Quien invita debe proporcionar cédula, nombres y apellidos; el invitado confirma ese perfil. No se ofrece autorregistro ni se asignan permisos desde el navegador.
+
+Pruebas del acceso conectado: `npx playwright test --config playwright.access.config.ts`. Se interceptan Auth y API; no se envían correos ni se modifica una base real. Para instalar el navegador de pruebas: `npx playwright install chromium --only-shell`.
 
 ## Cuentas de demostración (contraseña `Demo1234`)
+
+Se muestran únicamente con `VITE_AUTH_MODE=demo` durante desarrollo. Sus datos y contraseñas son simulados y no se migran a la identidad real. La configuración Playwright histórica habilita este modo explícitamente; no reutilizar un servidor ya iniciado en otro modo.
 
 | Rol | Correo |
 |---|---|
