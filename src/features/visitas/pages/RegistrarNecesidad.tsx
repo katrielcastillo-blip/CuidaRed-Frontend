@@ -11,28 +11,33 @@
  *
  * RF-06: dos campos de texto libre (descripción con abreviaturas y cantidad); el resto con listas, píldoras e
  * interruptor. Se registra SIEMPRE como "Pendiente"; la prioridad es Alta por defecto en medicamentos (RF-04).
- * Sin conexión se guarda en el dispositivo (pendiente de sincronización). Borrador persistente.
+ * Sin conexión se guarda en el dispositivo (pendiente de sincronización).
+ * Formulario con useFormulario: validación en el cliente con validarNecesidad (el campo «adulto» del servicio es
+ * «adultoId» aquí) por campo al salir de él y al enviar, foco en el primer campo inválido, errores del servicio junto
+ * a cada campo y borrador persistente con aviso «Recuperamos lo que estabas escribiendo» (AvisoBorrador).
  */
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Laugh, TriangleAlert } from 'lucide-react'
 import { nombreCompleto, useSession } from '@/domain/auth'
-import { DATOS_NECESIDAD_VACIOS, registrarNecesidad, UNIDADES, type DatosNecesidad } from '@/domain/api'
+import { DATOS_NECESIDAD_VACIOS, registrarNecesidad, UNIDADES, validarNecesidad, type DatosNecesidad } from '@/domain/api'
 import { useEnLinea } from '@/domain/conectividad'
 import { alcanzaAdulto, puede } from '@/domain/permisos'
 import { useDB } from '@/domain/store'
 import type { Adulto, Necesidad, Prioridad, TipoNecesidad, Usuario } from '@/domain/types'
-import { Button, ChoicePills, SelectField, SuccessOverlay, Switch, TextareaAbreviado, TextField, useToast } from '@/components/ui'
+import { AvisoBorrador, Button, ChoicePills, SelectField, SuccessOverlay, Switch, TextareaAbreviado, TextField, useFormulario, useToast } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
-import { useBorrador } from '@/lib/useBorrador'
 import { AdultoHeader } from '../components/AdultoHeader'
 import { EstadoPunto, NoEncontrado } from '../components/Comun'
 import { ESTADO_NECESIDAD, PRIORIDADES, prioridadPorDefecto, TIPOS_NECESIDAD, tipoNecesidad, useAdultosElegibles } from '../lib/dominio'
 
 const TITULO = 'Registrar necesidad'
 
-type Borrador = Omit<DatosNecesidad, 'visitaId'>
-type Errores = Partial<Record<'adulto' | 'tipo' | 'descripcion' | 'cantidad' | 'unidad' | 'prioridad', string | undefined>>
+/** Valores del formulario (los datos de la necesidad; la visita asociada viaja aparte). */
+type Valores = Omit<DatosNecesidad, 'visitaId'>
+
+/** Orden de los campos en pantalla: el primero con error recibe el foco. */
+const CAMPOS: Array<keyof Valores> = ['adultoId', 'tipo', 'catalogoId', 'descripcion', 'cantidad', 'unidad', 'prioridad', 'recurrente', 'indicacionId']
 
 export function RegistrarNecesidad() {
   const { user } = useSession()
@@ -64,9 +69,17 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
   const indicaciones = useDB((s) => s.indicaciones)
   const esGestion = puede(user, 'visitas:programar')
 
-  const [d, setD, descartar] = useBorrador<Borrador>(clave, { ...DATOS_NECESIDAD_VACIOS, adultoId: adultoFijo?.id ?? '' })
-  const [errores, setErrores] = useState<Errores>({})
-  const [enviando, setEnviando] = useState(false)
+  const f = useFormulario<Valores>({
+    clave,
+    inicial: { ...DATOS_NECESIDAD_VACIOS, adultoId: adultoFijo?.id ?? '' },
+    campos: CAMPOS,
+    // validarNecesidad nombra «adulto» al campo del adulto; en el formulario es «adultoId».
+    validar: (v) => {
+      const e = validarNecesidad({ ...v, adultoId: adultoFijo?.id ?? v.adultoId })
+      return { adultoId: e.adulto, tipo: e.tipo, descripcion: e.descripcion, cantidad: e.cantidad, unidad: e.unidad, prioridad: e.prioridad }
+    },
+  })
+  const d = f.valores
   const [exito, setExito] = useState<{ necesidad: Necesidad; offline: boolean } | null>(null)
 
   const adulto = adultoFijo ?? elegibles.find((a) => a.id === d.adultoId)
@@ -84,39 +97,28 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
     [indicaciones, adulto, verIndicaciones],
   )
 
-  function set<K extends keyof Borrador>(campo: K, valor: Borrador[K], errorKey?: keyof Errores) {
-    setD((x) => ({ ...x, [campo]: valor }))
-    if (errorKey && errores[errorKey]) setErrores((x) => ({ ...x, [errorKey]: undefined }))
-  }
-
   function elegirTipo(tipo: TipoNecesidad) {
     // Al cambiar de categoría se limpia la necesidad del catálogo (pertenece a otra categoría).
-    setD((x) => ({ ...x, tipo, catalogoId: catalogos.necesidades.some((n) => n.id === x.catalogoId && n.tipo === tipo) ? x.catalogoId : '' }))
-    if (errores.tipo) setErrores((x) => ({ ...x, tipo: undefined }))
+    f.setValores({ tipo, catalogoId: catalogos.necesidades.some((n) => n.id === d.catalogoId && n.tipo === tipo) ? d.catalogoId : '' })
+    f.tocar('tipo')
   }
 
-  async function registrar(e: FormEvent) {
-    e.preventDefault()
-    if (enviando) return
-    setEnviando(true)
+  /** Envía al servicio. Si falla, sus errores por campo aparecen junto a cada campo (adulto → adultoId). */
+  async function registrar(v: Valores) {
     const res = await registrarNecesidad(user, {
-      ...d,
+      ...v,
       adultoId: adulto?.id ?? '',
       prioridad,
-      indicacionId: vigentes.some((i) => i.id === d.indicacionId) ? d.indicacionId : '',
+      indicacionId: vigentes.some((i) => i.id === v.indicacionId) ? v.indicacionId : '',
       visitaId,
     })
-    setEnviando(false)
     if (!res.ok) {
-      if (res.errores) {
-        setErrores(res.errores)
-        requestAnimationFrame(() => document.querySelector('form [role="alert"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-      }
       toast(res.error, 'error')
-      return
+      const { adulto: errorAdulto, ...resto } = res.errores ?? {}
+      return { ok: false as const, errores: { ...resto, ...(errorAdulto ? { adultoId: errorAdulto } : {}) } }
     }
-    descartar()
     setExito({ necesidad: res.valor, offline: !!res.offline })
+    return res
   }
 
   const pendiente = ESTADO_NECESIDAD.pendiente
@@ -124,7 +126,9 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
 
   return (
     <Page title={TITULO} back>
-      <form className="flex flex-col gap-4" onSubmit={registrar} noValidate aria-label="Registro de necesidad">
+      <form className="flex flex-col gap-4" onSubmit={f.enviar(registrar)} noValidate aria-label="Registro de necesidad">
+        <AvisoBorrador formulario={f} />
+
         {adultoFijo ? (
           <AdultoHeader adulto={adultoFijo} compacto />
         ) : (
@@ -132,9 +136,7 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
             label="Adulto mayor"
             required
             placeholder="Selecciona un adulto"
-            value={d.adultoId}
-            onChange={(e) => set('adultoId', e.target.value, 'adulto')}
-            error={errores.adulto}
+            {...f.campo('adultoId')}
             hint={elegibles.length === 0 ? 'No tienes adultos mayores asignados.' : undefined}
             options={elegibles.map((a) => ({ value: a.id, label: nombreCompleto(a) }))}
           />
@@ -147,15 +149,14 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
               label="Categoría"
               required
               placeholder="Selecciona una categoría"
-              value={d.tipo}
+              {...f.campo('tipo')}
               onChange={(e) => elegirTipo(e.target.value as TipoNecesidad)}
-              error={errores.tipo}
               help="Medicamentos, alimentación, transporte, compañía u otros apoyos. Las de medicamentos generan una alerta de caso prioritario."
               options={TIPOS_NECESIDAD.map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
           {Icono && (
-            <span className={`size-[52px] grid place-items-center flex-none rounded-sm bg-blue-100 text-blue ${errores.tipo ? 'mb-7' : ''}`} aria-hidden>
+            <span className={`size-[52px] grid place-items-center flex-none rounded-sm bg-blue-100 text-blue ${f.errores.tipo ? 'mb-7' : ''}`} aria-hidden>
               <Icono size={26} />
             </span>
           )}
@@ -171,8 +172,7 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
         {d.tipo && delCatalogo.length > 0 && (
           <SelectField
             label="Necesidad"
-            value={d.catalogoId}
-            onChange={(e) => set('catalogoId', e.target.value)}
+            {...f.campo('catalogoId')}
             help={
               elegidaCatalogo?.descripcion
                 ? `${elegidaCatalogo.nombre}: ${elegidaCatalogo.descripcion}`
@@ -190,47 +190,29 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
             rows={2}
             maxLength={500}
             placeholder="Ej.: necesita reposición de meds para la hta"
-            hint="Admite abreviaturas (toca ? para verlas)."
-            value={d.descripcion}
-            onValueChange={(v) => set('descripcion', v, 'descripcion')}
-            error={errores.descripcion}
+            hint="Admite abreviaturas."
+            {...f.abreviado('descripcion')}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <TextField
-            label="Cantidad"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            placeholder="Opcional"
-            value={d.cantidad}
-            onChange={(e) => set('cantidad', e.target.value, 'cantidad')}
-            error={errores.cantidad}
-          />
-          <SelectField
-            label="Unidad"
-            value={d.unidad}
-            onChange={(e) => set('unidad', e.target.value, 'unidad')}
-            error={errores.unidad}
-            options={[{ value: '', label: '—' }, ...UNIDADES.map((u) => ({ value: u, label: u }))]}
-          />
+          <TextField label="Cantidad" type="number" inputMode="decimal" min={0} step="any" placeholder="Opcional" {...f.campo('cantidad')} />
+          <SelectField label="Unidad" {...f.campo('unidad')} options={[{ value: '', label: '—' }, ...UNIDADES.map((u) => ({ value: u, label: u }))]} />
         </div>
 
         <ChoicePills<Prioridad>
           label="Prioridad"
+          {...f.valor('prioridad')}
           value={prioridad}
-          onChange={(v) => set('prioridad', v, 'prioridad')}
           options={PRIORIDADES.map((p) => ({ value: p.value, label: p.label }))}
-          error={errores.prioridad}
           help="Alta: requiere atención en pocos días. Las necesidades de medicamentos son de prioridad alta por defecto."
         />
 
         <div className="px-4 rounded-sm border border-line-soft bg-surface-2/50">
           <Switch
+            id={f.idDe('recurrente')}
             checked={d.recurrente}
-            onChange={(v) => set('recurrente', v)}
+            onChange={(v) => f.set('recurrente', v)}
             label={
               <span className="flex flex-col">
                 <span className="font-semibold">Necesidad recurrente</span>
@@ -243,8 +225,7 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
         {vigentes.length > 0 && (
           <SelectField
             label="Indicación médica relacionada"
-            value={d.indicacionId}
-            onChange={(e) => set('indicacionId', e.target.value)}
+            {...f.campo('indicacionId')}
             help="Opcional. Relaciona la necesidad con una indicación vigente del adulto (por ejemplo, el medicamento que hay que reponer)."
             options={[{ value: '', label: 'Ninguna' }, ...vigentes.map((i) => ({ value: i.id, label: `${i.titulo} · ${i.frecuenciaHorario}` }))]}
           />
@@ -262,12 +243,15 @@ function Formulario({ clave, user, adultoFijo, visitaId }: { clave: string; user
         )}
 
         <div className="flex flex-col gap-3 md:flex-row md:[&>*]:flex-1">
-          <Button type="submit" variant={esGestion ? 'primary' : 'soft'} fullWidth loading={enviando}>
+          <Button type="submit" variant={esGestion ? 'primary' : 'soft'} fullWidth loading={f.enviando}>
             Registrar necesidad
           </Button>
-          <Button variant="outline" fullWidth onClick={() => navigate(-1)}>
-            Cancelar
-          </Button>
+          {/* En móvil se vuelve con la flecha de la barra superior: el botón solo aparece desde tablet (RF-06, un desplazamiento). */}
+          <div className="hidden md:block">
+            <Button variant="outline" fullWidth onClick={() => navigate(-1)}>
+              Cancelar
+            </Button>
+          </div>
         </div>
       </form>
 

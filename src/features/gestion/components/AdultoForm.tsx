@@ -7,14 +7,15 @@
  *   Paso 3 · Condición y riesgo: autonomía, condición general, nivel de riesgo social + motivo (Env_Riesgo)
  *            y consentimiento informado.
  * RF-01 · RF-06 (≤ 5 campos de texto libre por pantalla, listas, casillas y píldoras, objetivos de 48 px,
- * un solo desplazamiento por paso a 360×640). Valida por paso y al guardar, muestra el mensaje junto a cada
- * campo y conserva lo escrito (useBorrador).
+ * un solo desplazamiento por paso a 360×640). Valida cada campo al salir de él, por paso y al guardar, muestra
+ * el mensaje junto a cada campo, lleva el foco al primer error (también en grupos de casillas y píldoras) y
+ * conserva lo escrito (useBorradorCompleto), avisando cuando recupera un borrador.
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { WifiOff } from 'lucide-react'
-import { Button, Checkbox, CheckboxGroup, ChoicePills, HelpTip, SelectField, StepBar, TextField, useToast } from '@/components/ui'
+import { AvisoBorrador, Button, Checkbox, CheckboxGroup, ChoicePills, HelpTip, SelectField, StepBar, TextField, useToast } from '@/components/ui'
 import { DATOS_ADULTO_VACIOS, PARENTESCOS, validarAdulto, type DatosAdulto, type Resultado } from '@/domain/api'
 import { useUser } from '@/domain/auth'
 import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'
@@ -22,7 +23,7 @@ import { useEnLinea } from '@/domain/conectividad'
 import { todayISO } from '@/domain/dates'
 import { useDB } from '@/domain/store'
 import type { Adulto } from '@/domain/types'
-import { useBorrador } from '@/lib/useBorrador'
+import { useBorradorCompleto } from '@/lib/useBorrador'
 import { maskCedula, maskTelefono, opcionesParentesco } from '../lib/formato'
 import { sectoresEnUso } from '../lib/ubicacion'
 import { NotaInfo } from './Piezas'
@@ -37,6 +38,8 @@ const PASOS: Record<Paso, Campo[]> = {
   2: ['provinciaCod', 'municipioCod', 'zona', 'direccion', 'contactoNombres', 'contactoApellidos', 'contactoParentesco', 'contactoTelefono'],
   3: ['autonomia', 'condiciones', 'notaCondicion', 'riesgo', 'motivoRiesgo', 'consentimiento'],
 }
+/** Grupos de controles (casillas) que no marcan aria-invalid: se enfocan por su id. */
+const ID_GRUPO: Partial<Record<Campo, string>> = { condiciones: 'adulto-condiciones' }
 const TITULOS: Record<Paso, string> = { 1: 'Identificación', 2: 'Ubicación y contacto', 3: 'Condición y riesgo' }
 const TOTAL = 3
 const pasoDe = (c: string): Paso => (PASOS[1].includes(c as Campo) ? 1 : PASOS[2].includes(c as Campo) ? 2 : 3)
@@ -79,9 +82,12 @@ export function AdultoForm({
   const enLinea = useEnLinea()
   const adultos = useDB((s) => s.adultos)
   const catalogos = useDB((s) => s.catalogos)
-  const [d, setD, descartar] = useBorrador<DatosAdulto>(claveBorrador, inicial)
+  const borrador = useBorradorCompleto<DatosAdulto>(claveBorrador, inicial)
+  const { valor: d, setValor: setD, descartar } = borrador
   const [paso, setPaso] = useState<Paso>(1)
   const [intentado, setIntentado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false })
+  // Campos de los que ya se salió (validación al salir, sin esperar a «Siguiente»).
+  const [tocados, setTocados] = useState<Partial<Record<Campo, boolean>>>({})
   const [servidor, setServidor] = useState<Errores>({})
   const [guardando, setGuardando] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
@@ -96,7 +102,8 @@ export function AdultoForm({
   }, [adultos, user.orgId, d.municipioCod])
   const locales = useMemo(() => validarAdulto(d, adultos, idActual, user.orgId, catalogos.municipios) as Errores, [d, adultos, idActual, user.orgId, catalogos.municipios])
 
-  const err = (c: Campo) => servidor[c] ?? (intentado[pasoDe(c)] ? locales[c] : undefined)
+  const err = (c: Campo) => servidor[c] ?? (intentado[pasoDe(c)] || tocados[c] ? locales[c] : undefined)
+  const tocar = (c: Campo) => setTocados((t) => (t[c] ? t : { ...t, [c]: true }))
   const hayErrorEn = (p: Paso) => PASOS[p].some((c) => locales[c])
 
   const set = <K extends Campo>(campo: K, valor: DatosAdulto[K]) => {
@@ -115,8 +122,22 @@ export function AdultoForm({
     setServidor((s) => ({ ...s, provinciaCod: undefined, municipioCod: undefined }))
   }
 
-  const enfocarError = () =>
-    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus({ preventScroll: false }))
+  /** Foco en el primer control con error según el orden de la pantalla (incluye grupos de casillas por su id). */
+  const enfocarError = (campos: readonly string[] = []) =>
+    requestAnimationFrame(() => {
+      const raiz = formRef.current
+      if (!raiz) return
+      const candidatos = [...raiz.querySelectorAll<HTMLElement>('[aria-invalid="true"]')]
+      for (const c of campos) {
+        const id = ID_GRUPO[c as Campo]
+        const grupo = id ? raiz.querySelector<HTMLElement>(`#${id}`) : null
+        if (grupo) candidatos.push(grupo)
+      }
+      candidatos.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+      const primero = candidatos[0]
+      const destino = primero?.matches('fieldset') ? (primero.querySelector<HTMLElement>('input, button') ?? primero) : primero
+      destino?.focus({ preventScroll: false })
+    })
 
   const irA = (p: Paso) => {
     setPaso(p)
@@ -126,7 +147,7 @@ export function AdultoForm({
   const avanzar = () => {
     setIntentado((x) => ({ ...x, [paso]: true }))
     if (hayErrorEn(paso)) {
-      enfocarError()
+      enfocarError(PASOS[paso].filter((c) => locales[c]))
       return
     }
     irA((paso + 1) as Paso)
@@ -142,7 +163,7 @@ export function AdultoForm({
     const conError = ([1, 2, 3] as Paso[]).find((p) => hayErrorEn(p))
     if (conError) {
       if (conError !== paso) setPaso(conError)
-      enfocarError()
+      enfocarError(PASOS[conError].filter((c) => locales[c]))
       return
     }
     setGuardando(true)
@@ -151,13 +172,22 @@ export function AdultoForm({
     if (!r.ok) {
       setServidor(r.errores ?? {})
       toast(r.error, 'error')
-      const primero = Object.keys(r.errores ?? {}).find((c) => r.errores?.[c])
-      if (primero) setPaso(pasoDe(primero))
-      enfocarError()
+      const conErrores = Object.keys(r.errores ?? {}).filter((c) => r.errores?.[c])
+      if (conErrores[0]) setPaso(pasoDe(conErrores[0]))
+      enfocarError(conErrores)
       return
     }
     descartar()
     onExito(r.valor, r.offline)
+  }
+
+  /** «Descartar» del aviso de borrador: vuelve a los valores iniciales y a la primera pantalla, sin errores. */
+  const descartarBorrador = () => {
+    borrador.reiniciar()
+    setIntentado({ 1: false, 2: false, 3: false })
+    setTocados({})
+    setServidor({})
+    irA(1)
   }
 
   const cancelar = () => {
@@ -175,6 +205,7 @@ export function AdultoForm({
       placeholder="809 000 0000"
       value={d[campo]}
       onChange={(e) => set(campo, maskTelefono(e.target.value))}
+      onBlur={() => tocar(campo)}
       error={err(campo)}
       hint={opcional ? 'Opcional' : undefined}
     />
@@ -194,11 +225,13 @@ export function AdultoForm({
         <StepBar step={paso} total={TOTAL} />
       </div>
 
+      <AvisoBorrador formulario={{ borradorRecuperado: borrador.recuperado, descartarBorrador, cerrarAvisoBorrador: borrador.cerrarAviso }} />
+
       {paso === 1 && (
         <fieldset className="grid grid-cols-2 gap-x-3 gap-y-4 border-0 p-0 m-0 min-w-0">
           <legend className="sr-only">Identificación</legend>
-          <TextField label="Nombres" required autoComplete="off" value={d.nombre} onChange={(e) => set('nombre', e.target.value)} error={err('nombre')} maxLength={60} />
-          <TextField label="Apellidos" required autoComplete="off" value={d.apellido} onChange={(e) => set('apellido', e.target.value)} error={err('apellido')} maxLength={60} />
+          <TextField label="Nombres" required autoComplete="off" value={d.nombre} onChange={(e) => set('nombre', e.target.value)} onBlur={() => tocar('nombre')} error={err('nombre')} maxLength={60} />
+          <TextField label="Apellidos" required autoComplete="off" value={d.apellido} onChange={(e) => set('apellido', e.target.value)} onBlur={() => tocar('apellido')} error={err('apellido')} maxLength={60} />
           <TextField
             label="Cédula"
             required
@@ -207,7 +240,7 @@ export function AdultoForm({
             placeholder="000-0000000-0"
             value={d.cedula}
             onChange={(e) => set('cedula', maskCedula(e.target.value))}
-            error={err('cedula')}
+            onBlur={() => tocar('cedula')} error={err('cedula')}
           />
           {tel('telefono', 'Teléfono', true)}
           <div className="col-span-2 sm:col-span-1">
@@ -219,13 +252,15 @@ export function AdultoForm({
               min="1900-01-01"
               value={d.fechaNacimiento}
               onChange={(e) => set('fechaNacimiento', e.target.value)}
-              error={err('fechaNacimiento')}
+              onBlur={() => tocar('fechaNacimiento')} error={err('fechaNacimiento')}
               help="CuidaRed acompaña a personas de 60 años o más (Ley 352-98). Toca el campo para abrir el calendario."
             />
           </div>
           <div className="col-span-2 sm:col-span-1">
             <ChoicePills
-              label="Sexo *"
+              id="adulto-sexo"
+              label="Sexo"
+              required
               value={d.sexo}
               onChange={(s) => set('sexo', s)}
               error={err('sexo')}
@@ -248,7 +283,7 @@ export function AdultoForm({
               placeholder="Seleccionar"
               value={d.provinciaCod}
               onChange={(e) => cambiarProvincia(e.target.value)}
-              error={err('provinciaCod')}
+              onBlur={() => tocar('provinciaCod')} error={err('provinciaCod')}
               options={catalogos.provincias.map((p) => ({ value: p.cod, label: p.nombre }))}
             />
             <SelectField
@@ -258,7 +293,7 @@ export function AdultoForm({
               disabled={!d.provinciaCod}
               value={d.municipioCod}
               onChange={(e) => set('municipioCod', e.target.value)}
-              error={err('municipioCod')}
+              onBlur={() => tocar('municipioCod')} error={err('municipioCod')}
               options={municipios.map((m) => ({ value: m.cod, label: m.nombre }))}
             />
             <div className="col-span-2">
@@ -270,7 +305,7 @@ export function AdultoForm({
                 placeholder="Ej.: Renacimiento"
                 value={d.zona}
                 onChange={(e) => set('zona', e.target.value)}
-                error={err('zona')}
+                onBlur={() => tocar('zona')} error={err('zona')}
                 maxLength={60}
                 help="Se usa para organizar las visitas y filtrar los reportes por sector. Al escribir verás los sectores ya registrados: elige uno para no duplicarlos con otra escritura."
               />
@@ -287,7 +322,7 @@ export function AdultoForm({
                 placeholder="Calle, número y referencias"
                 value={d.direccion}
                 onChange={(e) => set('direccion', e.target.value)}
-                error={err('direccion')}
+                onBlur={() => tocar('direccion')} error={err('direccion')}
                 hint="Opcional · ayuda al voluntario a llegar"
                 maxLength={150}
               />
@@ -300,15 +335,15 @@ export function AdultoForm({
                 Persona a quien llamar si el adulto mayor necesita ayuda. Desde el perfil puedes agregar más contactos y elegir cuál es el principal.
               </HelpTip>
             </legend>
-            <TextField label="Nombres" required autoComplete="off" value={d.contactoNombres} onChange={(e) => set('contactoNombres', e.target.value)} error={err('contactoNombres')} maxLength={60} />
-            <TextField label="Apellidos" required autoComplete="off" value={d.contactoApellidos} onChange={(e) => set('contactoApellidos', e.target.value)} error={err('contactoApellidos')} maxLength={60} />
+            <TextField label="Nombres" required autoComplete="off" value={d.contactoNombres} onChange={(e) => set('contactoNombres', e.target.value)} onBlur={() => tocar('contactoNombres')} error={err('contactoNombres')} maxLength={60} />
+            <TextField label="Apellidos" required autoComplete="off" value={d.contactoApellidos} onChange={(e) => set('contactoApellidos', e.target.value)} onBlur={() => tocar('contactoApellidos')} error={err('contactoApellidos')} maxLength={60} />
             <SelectField
               label="Parentesco"
               required
               placeholder="Seleccionar"
               value={d.contactoParentesco}
               onChange={(e) => set('contactoParentesco', e.target.value)}
-              error={err('contactoParentesco')}
+              onBlur={() => tocar('contactoParentesco')} error={err('contactoParentesco')}
               options={opcionesParentesco(PARENTESCOS, d.contactoParentesco)}
             />
             {tel('contactoTelefono', 'Teléfono')}
@@ -325,12 +360,13 @@ export function AdultoForm({
             placeholder="Seleccionar"
             value={d.autonomia}
             onChange={(e) => set('autonomia', e.target.value as DatosAdulto['autonomia'])}
-            error={err('autonomia')}
+            onBlur={() => tocar('autonomia')} error={err('autonomia')}
             options={AUTONOMIAS}
             help="Capacidad para realizar solo/a las actividades de la vida diaria: comer, asearse, vestirse y desplazarse."
           />
           <div className="[&_fieldset>div.grid]:grid-cols-2">
             <CheckboxGroup
+              id="adulto-condiciones"
               label="Condición general"
               options={CONDICIONES}
               value={d.condiciones}
@@ -346,7 +382,7 @@ export function AdultoForm({
             placeholder="Ej.: Vive sola y no tiene ingresos fijos"
             value={d.motivoRiesgo}
             onChange={(e) => set('motivoRiesgo', e.target.value)}
-            error={err('motivoRiesgo')}
+            onBlur={() => tocar('motivoRiesgo')} error={err('motivoRiesgo')}
             maxLength={200}
             hint={idActual ? 'Opcional · se guarda en el historial solo si cambias el nivel' : 'Opcional'}
             help="Queda en el historial de riesgos del perfil, con la fecha y tu nombre. Explica en pocas palabras por qué asignas este nivel."
@@ -361,7 +397,10 @@ export function AdultoForm({
               label="Se informó y se obtuvo la autorización para registrar y usar estos datos."
               checked={d.consentimiento}
               aria-invalid={err('consentimiento') ? true : undefined}
-              onChange={(e) => set('consentimiento', e.target.checked)}
+              onChange={(e) => {
+                set('consentimiento', e.target.checked)
+                tocar('consentimiento')
+              }}
             />
             {err('consentimiento') && (
               <p className="text-danger text-sm" role="alert" id="consent-err">

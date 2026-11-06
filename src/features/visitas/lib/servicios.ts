@@ -7,7 +7,7 @@
  */
 import { auditar } from '@/domain/auditoria'
 import { ERROR_NO_ENCONTRADO, ERROR_VALIDACION, exito, fallo, sinConexion, verificar, type Resultado } from '@/domain/api'
-import { tieneVinculo } from '@/domain/relaciones'
+import { esRolDeCampo, tieneVinculo, VINCULO_DE_ROL } from '@/domain/relaciones'
 import { getDB, mutate } from '@/domain/store'
 import type { Usuario, Visita } from '@/domain/types'
 
@@ -27,9 +27,9 @@ export function reasignarVisita(actor: Usuario, visitaId: string, responsableId:
   if (denegado) return denegado
   if (v.estado !== 'pendiente' && v.estado !== 'en_curso') return fallo('Solo se pueden reasignar visitas que no se han cerrado.')
   const responsable = db.usuarios.find(
-    (u) => u.id === responsableId && u.estado === 'activo' && u.orgId === actor.orgId && (u.rol === 'voluntario' || u.rol === 'coordinador'),
+    (u) => u.id === responsableId && u.estado === 'activo' && u.orgId === actor.orgId && (esRolDeCampo(u.rol) || u.rol === 'coordinador'),
   )
-  if (!responsable) return fallo(ERROR_VALIDACION, { responsable: 'Selecciona un voluntario o coordinador activo.' })
+  if (!responsable) return fallo(ERROR_VALIDACION, { responsable: 'Selecciona un cuidador, voluntario o coordinador activo.' })
   if (responsable.id === v.cuidadorId) return exito(v)
 
   const ahora = new Date().toISOString()
@@ -38,8 +38,9 @@ export function reasignarVisita(actor: Usuario, visitaId: string, responsableId:
   mutate((draft) => {
     const i = draft.visitas.findIndex((x) => x.id === visitaId)
     if (i >= 0) draft.visitas[i] = nueva
-    if (responsable.rol === 'voluntario' && !tieneVinculo(draft.vinculos, responsable.id, v.adultoId, 'voluntario_asignado')) {
-      draft.vinculos.push({ adultoId: v.adultoId, usuarioId: responsable.id, tipoVinculoId: 'voluntario_asignado', creadoEn: ahora })
+    const tipoVinc = VINCULO_DE_ROL[responsable.rol]
+    if (esRolDeCampo(responsable.rol) && tipoVinc && !tieneVinculo(draft.vinculos, responsable.id, v.adultoId, tipoVinc)) {
+      draft.vinculos.push({ adultoId: v.adultoId, usuarioId: responsable.id, tipoVinculoId: tipoVinc, creadoEn: ahora })
     }
     auditar(draft, actor, { accion: 'visita.reasignar', entidad: 'visita', registroId: visitaId, detalle: `Nuevo responsable ${responsable.id}` })
   })

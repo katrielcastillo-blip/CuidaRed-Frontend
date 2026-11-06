@@ -13,6 +13,7 @@ import { fechaCorta, todayISO } from '@/domain/dates'
 import { nombreUsuario } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Cuidador, Usuario } from '@/domain/types'
+import { useMiembros } from '../lib/datos'
 import { rolTexto } from './MiembroUi'
 import { AvisoSinConexion } from './Nota'
 
@@ -50,7 +51,7 @@ export function EditarCuidador({ usuario, cuidador, onClose }: { usuario: Usuari
   const toast = useToast()
   const enLinea = useEnLinea()
   const catalogos = useDB((s) => s.catalogos)
-  const usuarios = useDB((s) => s.usuarios)
+  const miembros = useMiembros()
   const [d, setD] = useState<DatosCuidador>({
     tipoCuidadoId: cuidador?.tipoCuidadoId ?? '',
     fechaInicio: cuidador?.fechaInicio ?? todayISO(),
@@ -62,11 +63,11 @@ export function EditarCuidador({ usuario, cuidador, onClose }: { usuario: Usuari
 
   const empleadores = useMemo(
     () =>
-      usuarios
-        .filter((u) => u.orgId === yo.orgId && u.id !== usuario.id && u.estado !== 'inactivo')
-        .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b)))
-        .map((u) => ({ value: u.id, label: `${nombreCompleto(u)} · ${rolTexto(u.rol)}` })),
-    [usuarios, yo.orgId, usuario.id],
+      miembros
+        .filter((m) => m.usuario.id !== usuario.id && m.estado !== 'inactivo')
+        .sort((a, b) => nombreCompleto(a.usuario).localeCompare(nombreCompleto(b.usuario)))
+        .map((m) => ({ value: m.usuario.id, label: `${nombreCompleto(m.usuario)} · ${rolTexto(m.rol)}` })),
+    [miembros, usuario.id],
   )
 
   const set = <K extends keyof DatosCuidador>(k: K, v: DatosCuidador[K]) => {

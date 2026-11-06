@@ -289,7 +289,7 @@ function AsignarResponsable({ necesidad, user, orgId }: { necesidad: Necesidad; 
   const opciones = useMemo(
     () =>
       usuarios
-        .filter((u) => u.orgId === orgId && u.estado === 'activo' && (u.rol === 'coordinador' || u.rol === 'admin' || u.rol === 'voluntario'))
+        .filter((u) => u.orgId === orgId && u.estado === 'activo' && (u.rol === 'coordinador' || u.rol === 'admin' || u.rol === 'cuidador'))
         .sort((a, b) => a.rol.localeCompare(b.rol) || a.nombre.localeCompare(b.nombre))
         .map((u) => ({ value: u.id, label: `${nombreCompleto(u)} · ${ROL_LABEL[u.rol]}${u.id === user.id ? ' (yo)' : ''}` })),
     [usuarios, orgId, user.id],

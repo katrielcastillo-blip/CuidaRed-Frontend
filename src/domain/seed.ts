@@ -1,7 +1,10 @@
 /*
- * seed.ts — Datos maestros y de demostración (SRS §11 "Inicialización de datos maestros": la organización
- * se inicializa con los catálogos de la BD y los cuatro perfiles de rol: Administrador, Coordinador,
- * Voluntario y Familiar responsable). Cubre todas las tablas del modelo de datos V3.0.
+ * seed.ts — Datos maestros y de demostración (SRS §11 "Inicialización de datos maestros"). Reglas de Negocio V2:
+ *  - Cuenta Organización «Fundación Esperanza» (plan Gestión Comunitaria Avanzada) con los cinco roles:
+ *    Administrador, Coordinador, Cuidador, Voluntario y Familiar responsable.
+ *  - Cuenta Familia «Familia Méndez» en prueba gratuita (7 días) con Coordinador, Cuidador y Familiar.
+ *  - El cuidador (Carlos) y la familiar (Clara) pertenecen a ambas cuentas: prueban el selector de cuenta.
+ * Cubre todas las tablas del modelo de datos V3.0. Datos ficticios (ningún dato real).
  * Módulo: dominio.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -20,7 +23,7 @@ import type {
   Visita,
 } from './types'
 
-export const DB_VERSION = 4
+export const DB_VERSION = 7
 export const DEMO_PASSWORD = 'Demo1234'
 /** Hash PBKDF2-SHA256 (100 000 iteraciones) de DEMO_PASSWORD con DEMO_SALT: la semilla no guarda contraseñas en claro. */
 const DEMO_SALT = 'c7a1d2e3f4a5b6c7d8e9f0a1b2c3d4e5'
@@ -85,6 +88,7 @@ export function buildSeed(): DB {
   /** ISO UTC de hace n días a la hora dada. */
   const t = (n: number, hhmm = '09:00') => isoAt(n, hhmm)
   const ORG = 'org-1'
+  const FAM = 'org-fam'
   const catalogos = catalogosIniciales()
   const mun = (nombre: string) => catalogos.municipios.find((m) => m.nombre === nombre)!.cod
   const DN = mun('Santo Domingo de Guzmán')
@@ -176,8 +180,8 @@ export function buildSeed(): DB {
       {
         id: ORG,
         nombre: 'Fundación Esperanza',
-        tipoCuentaId: 'tc-fundacion',
-        categoriaCuentaId: 'cc-sin-fines',
+        tipoCuentaId: 'tc-organizacion',
+        categoriaCuentaId: 'cc-fundacion',
         municipioCod: DN,
         direccion: 'Calle Las Damas #15, Zona Colonial',
         telefono: '809 555 0100',
@@ -187,9 +191,27 @@ export function buildSeed(): DB {
         pruebaGratuita: true,
         fechaInicioPrueba: f(-420),
         fechaFinPrueba: f(-390),
-        planId: 'plan-comunitario',
-        planPrecio: 1500,
+        planId: 'plan-gestion-avanzada',
+        planPrecio: 8500,
         usuarioTitularId: 'u-admin',
+      },
+      {
+        id: FAM,
+        nombre: 'Familia Méndez',
+        tipoCuentaId: 'tc-familia',
+        categoriaCuentaId: 'cc-domiciliario',
+        municipioCod: mun('Santiago'),
+        direccion: 'Calle del Sol #22, Los Jardines',
+        telefono: '809 582 4410',
+        correo: 'familia.mendez@correo.do',
+        suscripcionEstado: 'prueba',
+        creadoEn: t(-5),
+        pruebaGratuita: true,
+        fechaInicioPrueba: f(-2),
+        fechaFinPrueba: f(5),
+        planId: '',
+        planPrecio: 0,
+        usuarioTitularId: 'u-fcoord',
       },
     ],
     configuracion: [
@@ -197,38 +219,52 @@ export function buildSeed(): DB {
       { orgId: ORG, parametroId: 'prm-5', valor: '809 555 0100', actualizadoEn: t(-400) },
     ],
     pagos: [
-      { id: 'pg-1', orgId: ORG, planId: 'plan-comunitario', usuarioId: 'u-admin', monto: 1500, metodoPagoId: 'mp-transferencia', estado: 'confirmado', fecha: t(-62), referencia: 'TRF-88213' },
-      { id: 'pg-2', orgId: ORG, planId: 'plan-comunitario', usuarioId: 'u-admin', monto: 1500, metodoPagoId: 'mp-transferencia', estado: 'confirmado', fecha: t(-32), referencia: 'TRF-90544' },
-      { id: 'pg-3', orgId: ORG, planId: 'plan-comunitario', usuarioId: 'u-admin', monto: 1500, metodoPagoId: 'mp-tarjeta', estado: 'registrado', fecha: t(-2) },
+      { id: 'pg-1', orgId: ORG, planId: 'plan-operacion-base', usuarioId: 'u-admin', monto: 3500, metodoPagoId: 'mp-transferencia', estado: 'confirmado', fecha: t(-62), referencia: 'TRF-88213' },
+      { id: 'pg-2', orgId: ORG, planId: 'plan-gestion-avanzada', usuarioId: 'u-admin', monto: 8500, metodoPagoId: 'mp-transferencia', estado: 'confirmado', fecha: t(-32), referencia: 'TRF-90544' },
+      { id: 'pg-3', orgId: ORG, planId: 'plan-gestion-avanzada', usuarioId: 'u-admin', monto: 8500, metodoPagoId: 'mp-tarjeta', estado: 'registrado', fecha: t(-2) },
     ],
     usuarios: [
-      // Cuentas demo: los cuatro roles del sistema (contraseña Demo1234)
-      usuario({ id: 'u-cuid', rol: 'voluntario', nombre: 'Carlos', apellido: 'Ruiz', cedula: '001-8755156-2', email: 'voluntario@cuidared.do', telefono: '829 777 9865', etiqueta: 'Voluntario', estado: 'activo', creadoEn: f(-120) }),
+      // Cuentas demo: los cinco roles del sistema (contraseña Demo1234)
+      usuario({ id: 'u-cuid', rol: 'cuidador', nombre: 'Carlos', apellido: 'Ruiz', cedula: '001-8755156-2', email: 'cuidador@cuidared.do', telefono: '829 777 9865', etiqueta: 'Cuidador', estado: 'activo', creadoEn: f(-120) }),
+      usuario({ id: 'u-vol', rol: 'voluntario', nombre: 'Miguel', apellido: 'Acosta', cedula: '001-4455667-3', email: 'voluntario@cuidared.do', telefono: '829 640 1188', etiqueta: 'Voluntario', estado: 'activo', creadoEn: f(-45) }),
       usuario({ id: 'u-fam', rol: 'familiar', nombre: 'Clara', apellido: 'Rodríguez', cedula: '001-1122334-5', email: 'familiar@cuidared.do', telefono: '809 444 2211', etiqueta: 'Familiar responsable', estado: 'activo', creadoEn: f(-200) }),
       usuario({ id: 'u-admin', rol: 'admin', nombre: 'Andrea', apellido: 'Peña', cedula: '001-1234567-8', email: 'admin@cuidared.do', telefono: '829 777 1100', etiqueta: 'Administrador', estado: 'activo', creadoEn: f(-400) }),
       usuario({ id: 'u-coord', rol: 'coordinador', nombre: 'Laura', apellido: 'Núñez', cedula: '001-5566778-9', email: 'coordinador@cuidared.do', telefono: '809 333 7788', etiqueta: 'Coordinador', estado: 'activo', creadoEn: f(-300) }),
       // Otros miembros de la organización
-      usuario({ id: 'u-giselle', rol: 'voluntario', nombre: 'Giselle', apellido: 'Mejía', cedula: '001-0012154-3', email: 'giselle.mejia@gmail.com', telefono: '809 787 1234', etiqueta: 'Voluntario', estado: 'activo', creadoEn: f(-90) }),
+      usuario({ id: 'u-giselle', rol: 'cuidador', nombre: 'Giselle', apellido: 'Mejía', cedula: '001-0012154-3', email: 'giselle.mejia@gmail.com', telefono: '809 787 1234', etiqueta: 'Cuidador', estado: 'activo', creadoEn: f(-90) }),
       usuario({ id: 'u-ctorres', rol: 'coordinador', nombre: 'Carlos', apellido: 'Torres', cedula: '001-2233445-6', email: 'carlos.torres@cuidared.do', telefono: '809 222 3344', etiqueta: 'Coordinador', estado: 'activo', creadoEn: f(-150) }),
       usuario({ id: 'u-eduardo', rol: 'voluntario', nombre: 'Eduardo', apellido: 'Hernández', cedula: '001-9988776-5', email: 'eduardo.h@gmail.com', telefono: '829 111 2233', etiqueta: 'Voluntario', estado: 'inactivo', creadoEn: f(-60) }),
+      // Cuenta Familia «Familia Méndez»: la coordinadora es la titular (V2: en Familia el Coordinador gestiona accesos).
+      { ...usuario({ id: 'u-fcoord', rol: 'coordinador', nombre: 'Patricia', apellido: 'Méndez', cedula: '031-0456789-1', email: 'familia@cuidared.do', telefono: '809 582 7710', etiqueta: 'Coordinador', estado: 'activo', creadoEn: f(-5) }), orgId: FAM },
     ],
     membresias: [
       { id: 'm-1', usuarioId: 'u-admin', orgId: ORG, rol: 'admin', estado: 'activa', fechaInicio: t(-400) },
       { id: 'm-2', usuarioId: 'u-coord', orgId: ORG, rol: 'coordinador', estado: 'activa', fechaInicio: t(-300) },
-      { id: 'm-3', usuarioId: 'u-cuid', orgId: ORG, rol: 'voluntario', estado: 'activa', fechaInicio: t(-120) },
+      { id: 'm-3', usuarioId: 'u-cuid', orgId: ORG, rol: 'cuidador', estado: 'activa', fechaInicio: t(-120) },
       { id: 'm-4', usuarioId: 'u-fam', orgId: ORG, rol: 'familiar', estado: 'activa', fechaInicio: t(-200) },
-      { id: 'm-5', usuarioId: 'u-giselle', orgId: ORG, rol: 'voluntario', estado: 'activa', fechaInicio: t(-90) },
+      { id: 'm-5', usuarioId: 'u-giselle', orgId: ORG, rol: 'cuidador', estado: 'activa', fechaInicio: t(-90) },
+      { id: 'm-9', usuarioId: 'u-vol', orgId: ORG, rol: 'voluntario', estado: 'activa', fechaInicio: t(-45) },
+      // Familia Méndez: coordinadora titular, el cuidador independiente contratado por la familia y Clara como familiar.
+      { id: 'm-10', usuarioId: 'u-fcoord', orgId: FAM, rol: 'coordinador', estado: 'activa', fechaInicio: t(-5) },
+      { id: 'm-11', usuarioId: 'u-cuid', orgId: FAM, rol: 'cuidador', estado: 'activa', fechaInicio: t(-4) },
+      { id: 'm-12', usuarioId: 'u-fam', orgId: FAM, rol: 'familiar', estado: 'activa', fechaInicio: t(-3) },
       { id: 'm-6', usuarioId: 'u-ctorres', orgId: ORG, rol: 'voluntario', estado: 'inactiva', fechaInicio: t(-200), fechaFin: t(-150) },
       { id: 'm-7', usuarioId: 'u-ctorres', orgId: ORG, rol: 'coordinador', estado: 'activa', fechaInicio: t(-150) },
       { id: 'm-8', usuarioId: 'u-eduardo', orgId: ORG, rol: 'voluntario', estado: 'inactiva', fechaInicio: t(-60), fechaFin: t(-10) },
     ],
     cuidadores: [
-      { id: 'cu-1', usuarioId: 'u-cuid', tipoCuidadoId: 'tcu-voluntario', fechaInicio: f(-120), independiente: true },
+      { id: 'cu-1', usuarioId: 'u-cuid', tipoCuidadoId: 'tcu-remunerado', fechaInicio: f(-120), independiente: true },
       { id: 'cu-2', usuarioId: 'u-giselle', tipoCuidadoId: 'tcu-remunerado', fechaInicio: f(-90), independiente: false, empleadorUsuarioId: 'u-fam' },
     ],
     notificaciones: [],
-    adultos,
+    adultos: [
+      ...adultos,
+      { ...adulto({ id: 'a-rosa', nombre: 'Rosa', apellido: 'Méndez', cedula: '031-0011223-4', fechaNacimiento: '1946-04-08', sexo: 'Femenino', telefono: '809 582 3301', municipioCod: mun('Santiago'), zona: 'Los Jardines', direccion: 'Calle del Sol #22', riesgo: 'medio', condicionGeneral: cond('parcial', ['cronica', 'movilidad']), estado: 'activo', creadoEn: f(-5) }), orgId: FAM, registradoPor: 'u-fcoord', actualizadoPor: 'u-fcoord' },
+      { ...adulto({ id: 'a-ramon', nombre: 'Ramón', apellido: 'Méndez', cedula: '031-0011224-2', fechaNacimiento: '1943-11-19', sexo: 'Masculino', telefono: '809 582 3302', municipioCod: mun('Santiago'), zona: 'Los Jardines', direccion: 'Calle del Sol #22', riesgo: 'alto', condicionGeneral: cond('dependiente', ['cognitivo', 'cronica']), estado: 'activo', creadoEn: f(-5) }), orgId: FAM, registradoPor: 'u-fcoord', actualizadoPor: 'u-fcoord' },
+    ],
     contactos: [
+      contacto('a-rosa', 'Patricia', 'Méndez', 'Hijo/a', '809 582 7710'),
+      contacto('a-ramon', 'Patricia', 'Méndez', 'Hijo/a', '809 582 7710'),
       contacto('a-elena', 'Clara', 'Rodríguez', 'Hijo/a', '849 787 0348'),
       contacto('a-elena', 'Pedro', 'Rodríguez', 'Hijo/a', '829 787 1100', false),
       contacto('a-jose', 'Rosa', 'Santana', 'Esposo/a', '829 555 0192'),
@@ -243,12 +279,19 @@ export function buildSeed(): DB {
       vinculo('u-fam', 'a-elena', 'familiar_responsable', -200),
       vinculo('u-fam', 'a-maria', 'familiar_responsable', -70),
       vinculo('u-fam', 'a-estefan', 'familiar_responsable', -30),
-      // Voluntarios asignados
-      vinculo('u-cuid', 'a-elena', 'voluntario_asignado', -100),
-      vinculo('u-cuid', 'a-jose', 'voluntario_asignado', -95),
-      vinculo('u-cuid', 'a-camila', 'voluntario_asignado', -80),
-      vinculo('u-giselle', 'a-elena', 'voluntario_asignado', -90),
-      vinculo('u-giselle', 'a-maria', 'voluntario_asignado', -70),
+      // Cuidadores asignados (V2: todos con el mismo nivel, sin cuidador principal)
+      vinculo('u-cuid', 'a-elena', 'cuidador_asignado', -100),
+      vinculo('u-cuid', 'a-jose', 'cuidador_asignado', -95),
+      vinculo('u-cuid', 'a-camila', 'cuidador_asignado', -80),
+      vinculo('u-giselle', 'a-elena', 'cuidador_asignado', -90),
+      vinculo('u-giselle', 'a-maria', 'cuidador_asignado', -70),
+      // Voluntario asignado (solo registra la visita y su observación)
+      vinculo('u-vol', 'a-alicia', 'voluntario_asignado', -40),
+      vinculo('u-vol', 'a-josem', 'voluntario_asignado', -35),
+      // Familia Méndez
+      vinculo('u-cuid', 'a-rosa', 'cuidador_asignado', -4),
+      vinculo('u-cuid', 'a-ramon', 'cuidador_asignado', -4),
+      vinculo('u-fam', 'a-rosa', 'familiar_responsable', -3),
     ],
     riesgos: [
       { id: 'er-1', adultoId: 'a-elena', riesgoId: 'r-social', fecha: t(-100), nivel: 'medio', estado: 'vigente', motivo: 'Vive sola y tiene una enfermedad crónica.', registradoPor: 'u-coord' },
@@ -260,12 +303,15 @@ export function buildSeed(): DB {
       { id: 'er-7', adultoId: 'a-alicia', riesgoId: 'r-social', fecha: t(-50), nivel: 'bajo', estado: 'vigente', motivo: 'Independiente.', registradoPor: 'u-coord' },
       { id: 'er-8', adultoId: 'a-josem', riesgoId: 'r-social', fecha: t(-40), nivel: 'alto', estado: 'vigente', motivo: 'Vive solo en vivienda precaria, dependiente.', registradoPor: 'u-coord' },
       { id: 'er-9', adultoId: 'a-estefan', riesgoId: 'r-social', fecha: t(-30), nivel: 'medio', estado: 'vigente', motivo: 'Deterioro de memoria.', registradoPor: 'u-coord' },
+      { id: 'er-10', adultoId: 'a-rosa', riesgoId: 'r-salud', fecha: t(-5), nivel: 'medio', estado: 'vigente', motivo: 'Artrosis de rodilla; camina con bastón.', registradoPor: 'u-fcoord' },
+      { id: 'er-11', adultoId: 'a-ramon', riesgoId: 'r-salud', fecha: t(-5), nivel: 'alto', estado: 'vigente', motivo: 'Deterioro cognitivo moderado; requiere supervisión.', registradoPor: 'u-fcoord' },
     ],
     indicaciones: [
       { id: 'im-1', adultoId: 'a-jose', tipoIndicacionId: 'ti-medicamento', titulo: 'Losartán 50 mg', descripcion: 'Una tableta en la mañana, según receta de su médico de cabecera.', frecuenciaHorario: 'Diario · 8:00 a.m.', fechaInicio: f(-60), estado: 'vigente', evidencia: 'receta-losartan.jpg', registradaPor: 'u-coord', actualizadoEn: t(-60) },
       { id: 'im-2', adultoId: 'a-elena', tipoIndicacionId: 'ti-control', titulo: 'Control de presión arterial', descripcion: 'Tomar la presión y anotarla en cada visita.', frecuenciaHorario: 'En cada visita', fechaInicio: f(-30), estado: 'vigente', registradaPor: 'u-coord', actualizadoEn: t(-30) },
       { id: 'im-3', adultoId: 'a-camila', tipoIndicacionId: 'ti-dieta', titulo: 'Dieta baja en azúcar', descripcion: 'Evitar refrescos y dulces; preferir frutas enteras.', frecuenciaHorario: 'Permanente', fechaInicio: f(-80), estado: 'vigente', registradaPor: 'u-coord', actualizadoEn: t(-80) },
       { id: 'im-4', adultoId: 'a-camila', tipoIndicacionId: 'ti-medicamento', titulo: 'Metformina 850 mg', descripcion: 'Tratamiento anterior, suspendido por su médico.', frecuenciaHorario: 'Diario · con el almuerzo', fechaInicio: f(-80), fechaFin: f(-18), estado: 'finalizada', registradaPor: 'u-coord', actualizadoEn: t(-18) },
+      { id: 'im-5', adultoId: 'a-ramon', tipoIndicacionId: 'ti-medicamento', titulo: 'Donepezilo 5 mg', descripcion: 'Una tableta en la noche, según su neurólogo.', frecuenciaHorario: 'Diario · 9:00 p.m.', fechaInicio: f(-5), estado: 'vigente', registradaPor: 'u-fcoord', actualizadoEn: t(-5) },
     ],
     visitas: [
       visita({ id: 'v-1', adultoId: 'a-elena', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(-1), horaPautada: '16:30', inicio: isoAt(-1, '16:35'), fin: isoAt(-1, '17:20'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Se encuentra de buen ánimo, tomó sus medicamentos.', checklist: ['alimentacion', 'medicamentos', 'higiene', 'animo'], evidencias: [] }),
@@ -276,7 +322,14 @@ export function buildSeed(): DB {
       visita({ id: 'v-6', adultoId: 'a-camila', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(-6), horaPautada: '11:00', inicio: isoAt(-6, '11:05'), fin: isoAt(-6, '11:45'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Sin novedades.', evidencias: [] }),
       visita({ id: 'v-7', adultoId: 'a-maria', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', fecha: f(-3), horaPautada: '10:00', inicio: isoAt(-3, '10:10'), fin: isoAt(-3, '10:55'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Visita sin novedades.', evidencias: [] }),
       // Visita a un hogar con dos adultos (DetalleVisita con dos filas)
-      visita({ id: 'v-8', adultoId: 'a-elena', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', razon: 'Visita familiar conjunta', fecha: f(-9), horaPautada: '10:00', inicio: isoAt(-9, '10:00'), fin: isoAt(-9, '10:40'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Control rutinario.', detallesAdicionales: [{ adultoId: 'a-maria', observacion: 'Estaba de visita en casa de Elena; buen estado general.' }], evidencias: [] }),
+      visita({ id: 'v-8', adultoId: 'a-elena', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', razon: 'Visita familiar conjunta', fecha: f(-9), horaPautada: '10:00', inicio: isoAt(-9, '10:00'), fin: isoAt(-9, '10:40'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Control rutinario.', detallesAdicionales: [{ adultoId: 'a-maria', estadoAdulto: 'estable', observacion: 'Estaba de visita en casa de Elena; buen estado general.' }], evidencias: [] }),
+      // Voluntario: una visita de hoy por registrar y una ya realizada
+      visita({ id: 'v-sol-2', adultoId: 'a-camila', cuidadorId: 'u-coord', tipo: 'Visita de voluntario ocasional', razon: 'Visita de compañía de la junta de vecinos.', fecha: hoy, horaPautada: '11:00', estado: 'pendiente', notas: 'Visita de voluntario ocasional autorizada a partir de una solicitud.', visitante: { nombre: 'Pedro Castillo', solicitudId: 'sv-2' }, evidencias: [] }),
+      visita({ id: 'v-9', adultoId: 'a-alicia', cuidadorId: 'u-vol', tipo: 'Visita de Seguimiento', razon: 'Visita de acompañamiento', fecha: hoy, horaPautada: '17:00', estado: 'pendiente', evidencias: [] }),
+      visita({ id: 'v-10', adultoId: 'a-josem', cuidadorId: 'u-vol', tipo: 'Visita de Seguimiento', razon: 'Visita de acompañamiento', fecha: f(-4), horaPautada: '10:00', inicio: isoAt(-4, '10:05'), fin: isoAt(-4, '10:40'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Conversamos un rato; estaba animado.', checklist: [], evidencias: [] }),
+      // Familia Méndez
+      visita({ id: 'v-11', adultoId: 'a-ramon', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(-2), horaPautada: '08:00', inicio: isoAt(-2, '08:05'), fin: isoAt(-2, '12:00'), estado: 'completada', estadoAdulto: 'requiere_atencion', observaciones: 'Desorientado al despertar; se tranquilizó con la rutina.', autorizadaPor: 'u-fcoord', evidencias: [] }),
+      visita({ id: 'v-12', adultoId: 'a-rosa', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(1), horaPautada: '08:00', estado: 'pendiente', autorizadaPor: 'u-fcoord', evidencias: [] }),
       ...historialVisitas(),
     ],
     necesidades: [
@@ -287,6 +340,7 @@ export function buildSeed(): DB {
       necesidad({ id: 'n-5', adultoId: 'a-camila', catalogoId: 'nc-medicamento', registradaPor: 'u-cuid', tipo: 'medicamentos', descripcion: 'Reposición de metformina 850 mg.', cantidad: 60, unidad: 'tabletas', estado: 'satisfecha', creadaEn: t(-20, '10:00'), satisfechaEn: t(-18, '11:30'), satisfechaPor: 'u-coord', motivoResolucion: 'Donación de farmacia comunitaria.', indicacionId: 'im-4' }),
       necesidad({ id: 'n-6', adultoId: 'a-estefan', catalogoId: 'nc-acompanamiento', registradaPor: 'u-giselle', tipo: 'compania', descripcion: 'Acompañamiento a misa dominical.', recurrente: true, prioridad: 'baja', estado: 'satisfecha', creadaEn: t(-35, '08:00'), satisfechaEn: t(-33, '12:00'), satisfechaPor: 'u-ctorres', motivoResolucion: 'Lo acompaña un voluntario de la iglesia.' }),
       necesidad({ id: 'n-7', adultoId: 'a-josem', catalogoId: 'nc-vivienda', registradaPor: 'u-coord', tipo: 'otros', descripcion: 'Reparación de la rampa de acceso a la vivienda.', prioridad: 'alta', estado: 'pendiente', creadaEn: t(-4, '16:00'), umbralAlertaDias: 10 }),
+      necesidad({ id: 'n-9', adultoId: 'a-rosa', catalogoId: 'nc-insumos', registradaPor: 'u-cuid', tipo: 'medicamentos', descripcion: 'Tiras para medir la glucosa.', cantidad: 1, unidad: 'caja', prioridad: 'media', estado: 'pendiente', creadaEn: t(-1, '18:00'), responsableId: 'u-fcoord' }),
       necesidad({ id: 'n-8', adultoId: 'a-alicia', catalogoId: 'nc-suplemento', registradaPor: 'u-coord', tipo: 'alimentacion', descripcion: 'Suplemento nutricional recomendado por su médico.', cantidad: 2, unidad: 'latas', estado: 'inactiva', creadaEn: t(-15, '09:30'), gestionadaPor: 'u-coord', gestionadaEn: t(-14, '09:30'), motivoResolucion: 'La familia lo cubre directamente.' }),
     ],
     // Alertas registradas manualmente o desde visitas. Las de caso prioritario (RF-04), seguimiento
@@ -301,11 +355,32 @@ export function buildSeed(): DB {
       { id: 'ta-2', cuidadorId: 'cu-1', indicacionId: 'im-2', adultoId: 'a-elena', titulo: 'Tomar la presión arterial', fechaProgramada: hoy, horaProgramada: '15:00', prioridad: 'media', estado: 'pendiente', requiereEvidencia: false, repetitiva: false, creadaPor: 'u-coord', actualizadoEn: t(-2) },
       { id: 'ta-3', cuidadorId: 'cu-2', adultoId: 'a-maria', titulo: 'Acompañar a la cita de cardiología', fechaProgramada: f(2), horaProgramada: '07:30', prioridad: 'alta', estado: 'pendiente', requiereEvidencia: true, repetitiva: false, creadaPor: 'u-coord', actualizadoEn: t(-1) },
       { id: 'ta-4', cuidadorId: 'cu-1', indicacionId: 'im-1', adultoId: 'a-jose', titulo: 'Verificar toma de losartán', fechaProgramada: f(-1), horaProgramada: '08:00', prioridad: 'alta', estado: 'completada', requiereEvidencia: true, repetitiva: true, creadaPor: 'u-coord', actualizadoEn: t(-1, '08:20') },
+      { id: 'ta-5', cuidadorId: 'cu-1', indicacionId: 'im-5', adultoId: 'a-ramon', titulo: 'Dar donepezilo con la cena', fechaProgramada: hoy, horaProgramada: '21:00', prioridad: 'alta', estado: 'pendiente', requiereEvidencia: true, repetitiva: true, creadaPor: 'u-fcoord', actualizadoEn: t(-4) },
     ],
     evidencias: [
       { id: 'ev-1', tareaId: 'ta-4', fechaRegistro: t(-1, '08:20'), archivo: 'foto-pastillero.jpg', observacion: 'Pastillero del día vacío a la hora indicada.', estadoValidacion: 'validada', registradaPor: 'u-cuid', validadaPor: 'u-coord' },
     ],
     invitaciones: [],
+    necesidadesOrg: [
+      {
+        id: 'no-1', orgId: ORG, catalogoId: 'nc-insumos', tipo: 'medicamentos', descripcion: 'Tensiómetro digital para las visitas de campo.', cantidad: 2, unidad: 'unidades',
+        prioridad: 'media', estado: 'pendiente', registradaPor: 'u-admin', creadaEn: t(-6), responsableId: 'u-admin',
+        historial: [{ estado: 'pendiente', fecha: t(-6), usuarioId: 'u-admin' }], actualizadoEn: t(-6),
+      },
+    ],
+    // Solicitudes de visita de personas externas (código demo de la autorizada: VIS-DEMO-2026).
+    solicitudesVisita: [
+      {
+        id: 'sv-1', orgId: ORG, visitante: { nombres: 'Ana Belén', apellidos: 'Ortiz', cedula: '402-1234567-8', telefono: '829 555 7788', correo: 'anabelen@correo.do' },
+        personaAVisitar: 'Doña Elena Rodríguez (Renacimiento)', fechaPropuesta: f(2), horaPropuesta: '16:00', motivo: 'Soy de la parroquia y quiero llevarle la comunión.',
+        estado: 'pendiente', codigoHash: 'pendiente-sin-codigo', creadaEn: t(0, '08:30'),
+      },
+      {
+        id: 'sv-2', orgId: ORG, visitante: { nombres: 'Pedro', apellidos: 'Castillo', cedula: '001-3216549-0', telefono: '809 321 6549' },
+        personaAVisitar: 'Camila Torres', fechaPropuesta: hoy, horaPropuesta: '11:00', motivo: 'Visita de compañía de la junta de vecinos.',
+        estado: 'autorizada', adultoId: 'a-camila', codigoHash: '30e8b6d08567f2c79c436eecdc9770a2659526fbadc6f99b60bd047674ad5db3', creadaEn: t(-2, '15:00'), revisadaPor: 'u-coord', revisadaEn: t(-1, '09:00'), visitaId: 'v-sol-2',
+      },
+    ],
     auditoria: [],
     bloqueos: {},
     recuperaciones: [],

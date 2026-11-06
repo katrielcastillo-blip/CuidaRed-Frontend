@@ -22,6 +22,7 @@ export const ENTIDAD_TEXTO: Record<EntidadAuditada, string> = {
   indicacion: 'Indicación médica',
   tarea: 'Tarea de agenda',
   pago: 'Plan y pagos',
+  solicitud: 'Solicitud de visita',
 }
 
 export const RESULTADO: Record<ResultadoAuditoria, { texto: string; clase: string; Icono: typeof CircleCheck }> = {

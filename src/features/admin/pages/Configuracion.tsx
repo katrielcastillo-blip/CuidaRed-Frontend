@@ -1,5 +1,5 @@
 /*
- * Configuracion.tsx — Configuración de la organización en dos secciones:
+ * Configuracion.tsx — Configuración de la organización (o de la cuenta Familia, que gestiona su Coordinador) en dos secciones:
  *  1) Datos de la cuenta (tabla Cuenta): nombre, tipo (TipoCuenta), categoría (Categoria_cuenta),
  *     provincia → municipio (Municipio_Cod), dirección, teléfono y correo; fecha de creación y titular
  *     (User_Titular) en solo lectura. Se guarda con actualizarCuenta.
@@ -19,6 +19,7 @@ import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { PARAM } from '@/domain/datosMaestros'
 import { puede } from '@/domain/permisos'
+import { tipoDeCuenta } from '@/domain/planes'
 import { nombreMunicipio, nombreUsuario, provinciaDe, valorParametro } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Organizacion, Parametro } from '@/domain/types'
@@ -35,8 +36,9 @@ const TITULO = 'flex items-center gap-2 pb-3 border-b border-line-soft text-lg f
 export default function Configuracion() {
   const { base } = useShell()
   const { org } = useSession()
+  const familia = tipoDeCuenta(org) === 'familia'
   return (
-    <Page title="Configurar organización" back={`${base}/mas`} wide>
+    <Page title={familia ? 'Configurar cuenta' : 'Configurar organización'} back={`${base}/mas`} wide>
       {org ? (
         <>
           <Cabecera org={org} />
@@ -85,6 +87,7 @@ type CamposCuenta = DatosCuenta & { provinciaCod: string }
 
 function DatosDeLaCuenta({ org }: { org: Organizacion }) {
   const user = useUser()
+  const familia = tipoDeCuenta(org) === 'familia'
   const toast = useToast()
   const enLinea = useEnLinea()
   const catalogos = useDB((s) => s.catalogos)
@@ -133,7 +136,7 @@ function DatosDeLaCuenta({ org }: { org: Organizacion }) {
         <Building2 size={20} className="text-navy" aria-hidden /> Datos de la cuenta
       </h3>
       <TextField
-        label="Nombre de la organización"
+        label={familia ? 'Nombre de la cuenta' : 'Nombre de la organización'}
         required
         autoComplete="organization"
         value={d.nombre}
@@ -142,12 +145,12 @@ function DatosDeLaCuenta({ org }: { org: Organizacion }) {
       />
       <div className="grid gap-4 md:grid-cols-2">
         <SelectField
-          label="Tipo de organización"
-          required
-          placeholder="Seleccionar"
+          label="Tipo de cuenta"
+          disabled
           options={catalogos.tiposCuenta.map((t) => ({ value: t.id, label: t.nombre }))}
           value={d.tipoCuentaId}
           error={errores.tipoCuentaId}
+          hint="No se puede cambiar: define los roles y los planes de la cuenta."
           onChange={(e) => set('tipoCuentaId', e.target.value)}
         />
         <SelectField
@@ -194,7 +197,7 @@ function DatosDeLaCuenta({ org }: { org: Organizacion }) {
       />
       <div className="grid gap-4 md:grid-cols-2">
         <TextField
-          label="Teléfono institucional"
+          label={familia ? 'Teléfono de contacto' : 'Teléfono institucional'}
           required
           type="tel"
           inputMode="tel"
@@ -204,7 +207,7 @@ function DatosDeLaCuenta({ org }: { org: Organizacion }) {
           onChange={(e) => set('telefono', e.target.value)}
         />
         <TextField
-          label="Correo institucional"
+          label={familia ? 'Correo de contacto' : 'Correo institucional'}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -222,7 +225,7 @@ function DatosDeLaCuenta({ org }: { org: Organizacion }) {
         <div className="flex flex-col gap-0.5 min-w-0">
           <dt className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-muted">
             Titular de la cuenta
-            <HelpTip label="Ayuda: titular">Administrador responsable de la cuenta ante CuidaRed (User_Titular). Se asigna al registrar la organización.</HelpTip>
+            <HelpTip label="Ayuda: titular">Persona responsable de la cuenta ante CuidaRed (User_Titular): el Administrador en una organización o el Coordinador en una cuenta Familia. Se asigna al registrar la cuenta.</HelpTip>
           </dt>
           <dd className="font-semibold text-ink wrap-anywhere">{nombreUsuario(usuarios, org.usuarioTitularId)}</dd>
         </div>

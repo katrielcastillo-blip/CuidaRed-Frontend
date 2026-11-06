@@ -1,6 +1,7 @@
 /*
  * Fields.tsx — Campos de formulario: TextField, PasswordField, SelectField, TextareaField, SearchInput,
- * Checkbox, CheckboxGroup, Switch, ChoicePills. Todos con etiqueta, ayuda contextual y error accesible.
+ * Checkbox, CheckboxGroup, Switch, ChoicePills. Todos con etiqueta, ayuda contextual y error accesible
+ * (aria-invalid + aria-describedby), objetivos táctiles de 48 px y letra de 16 px (RF-06).
  * Módulo: kit de componentes UI.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -8,12 +9,14 @@ import {
   useId,
   useState,
   type InputHTMLAttributes,
+  type KeyboardEvent,
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
-import { Check, Eye, EyeOff, Search } from 'lucide-react'
+import { Check, CircleAlert, Eye, EyeOff, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useAyudaAbreviaturas } from './Abreviaturas'
 import { HelpTip } from './Display'
 
 interface FieldShellProps {
@@ -24,39 +27,79 @@ interface FieldShellProps {
   /** Explicación desplegable junto a la etiqueta (ayuda en línea, SRS §8.2.2.1.8.2). */
   help?: ReactNode
   id: string
+  /** Acción al pie, a la derecha del mensaje de ayuda/error (p. ej. "Procesar abreviaturas"). */
+  footer?: ReactNode
   children: ReactNode
 }
 
 const LABEL = 'text-base font-semibold text-ink'
 
-function FieldShell({ label, required, error, hint, help, id, children }: FieldShellProps) {
+/** Marca de campo obligatorio: asterisco visible + "(obligatorio)" para lectores de pantalla. */
+const Obligatorio = () => (
+  <>
+    <span aria-hidden> *</span>
+    <span className="sr-only"> (obligatorio)</span>
+  </>
+)
+
+/** Mensaje junto al campo: el error (role="alert", con icono para no depender solo del color) o la ayuda breve. */
+function MensajeCampo({ id, error, hint }: { id: string; error?: string; hint?: string }) {
+  if (error) {
+    return (
+      <p className="flex items-start gap-1.5 text-danger text-sm" role="alert" id={`${id}-err`}>
+        <CircleAlert size={16} className="mt-0.5 flex-none" aria-hidden />
+        <span>{error}</span>
+      </p>
+    )
+  }
+  if (hint) {
+    return (
+      <p className="text-muted text-sm" id={`${id}-hint`}>
+        {hint}
+      </p>
+    )
+  }
+  return null
+}
+
+function FieldShell({ label, required, error, hint, help, id, footer, children }: FieldShellProps) {
   return (
     <div className="flex flex-col gap-2 min-w-0">
       {label && (
         <div className="flex items-center gap-1">
           <label htmlFor={id} className={LABEL}>
             {label}
-            {required ? <span aria-hidden> *</span> : ''}
-            {required && <span className="sr-only"> (obligatorio)</span>}
+            {required && <Obligatorio />}
           </label>
           {help && <HelpTip label={`Ayuda: ${label}`}>{help}</HelpTip>}
         </div>
       )}
       {children}
-      {error ? (
-        <p className="text-danger text-sm" role="alert" id={`${id}-err`}>
-          {error}
-        </p>
-      ) : hint ? (
-        <p className="text-muted text-sm" id={`${id}-hint`}>
-          {hint}
-        </p>
-      ) : null}
+      {footer ? (
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <div className="min-w-0 grow">
+            <MensajeCampo id={id} error={error} hint={hint} />
+          </div>
+          <div className="flex-none">{footer}</div>
+        </div>
+      ) : (
+        <MensajeCampo id={id} error={error} hint={hint} />
+      )}
     </div>
   )
 }
 
 type BaseProps = { label?: string; error?: string; hint?: string; help?: ReactNode }
+
+/**
+ * Ayuda de abreviaturas (CU-07) para campos de texto: expansión al escribir, sugerencias y botón
+ * "Procesar abreviaturas". Funciona sin conexión. Solo para campos de texto (no number, date…).
+ */
+type PropsAbreviaturas = {
+  abreviaturas?: boolean
+  /** Con `abreviaturas`: muestra el botón "Procesar abreviaturas" (por defecto sí). */
+  procesarAbreviaturas?: boolean
+}
 
 /** Clase base de inputs: 52 px de alto, 16 px de letra (evita el zoom de iOS). */
 export const INPUT =
@@ -66,7 +109,9 @@ const INVALIDO = 'border-danger'
 
 const describedBy = (fid: string, error?: string, hint?: string) => (error ? `${fid}-err` : hint ? `${fid}-hint` : undefined)
 
-export function TextField({ label, error, hint, help, required, id, className, ...rest }: BaseProps & InputHTMLAttributes<HTMLInputElement>) {
+type PropsTexto = BaseProps & InputHTMLAttributes<HTMLInputElement>
+
+function TextFieldBase({ label, error, hint, help, required, id, className, ...rest }: PropsTexto) {
   const auto = useId()
   const fid = id ?? auto
   return (
@@ -81,6 +126,56 @@ export function TextField({ label, error, hint, help, required, id, className, .
       />
     </FieldShell>
   )
+}
+
+function TextFieldAbreviado({
+  label,
+  error,
+  hint,
+  help,
+  required,
+  id,
+  className,
+  procesar = true,
+  onChange,
+  onKeyDown,
+  onKeyUp,
+  onClick,
+  onFocus,
+  onBlur,
+  ...rest
+}: PropsTexto & { procesar?: boolean }) {
+  const auto = useId()
+  const fid = id ?? auto
+  const { ref, campoProps, lista, boton } = useAyudaAbreviaturas<HTMLInputElement>({
+    maxLength: rest.maxLength,
+    valor: rest.value,
+    deshabilitado: rest.disabled || rest.readOnly,
+    botonProcesar: procesar,
+    manejadores: { onChange, onKeyDown, onKeyUp, onClick, onFocus, onBlur },
+  })
+  return (
+    <FieldShell label={label} required={required} error={error} hint={hint} help={help} id={fid} footer={boton}>
+      <div className="relative">
+        <input
+          ref={ref}
+          id={fid}
+          className={cn(INPUT, error && INVALIDO, className)}
+          aria-invalid={!!error || undefined}
+          aria-describedby={describedBy(fid, error, hint)}
+          required={required}
+          autoComplete="off"
+          {...rest}
+          {...campoProps}
+        />
+        {lista}
+      </div>
+    </FieldShell>
+  )
+}
+
+export function TextField({ abreviaturas, procesarAbreviaturas, ...props }: PropsTexto & PropsAbreviaturas) {
+  return abreviaturas ? <TextFieldAbreviado {...props} procesar={procesarAbreviaturas} /> : <TextFieldBase {...props} />
 }
 
 export function PasswordField({ label, error, hint, help, required, id, ...rest }: BaseProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
@@ -157,14 +252,18 @@ export function SelectField({
   )
 }
 
-export function TextareaField({ label, error, hint, help, required, id, className, ...rest }: BaseProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+const AREA = 'min-h-[120px] py-3 resize-y leading-snug'
+
+type PropsArea = BaseProps & TextareaHTMLAttributes<HTMLTextAreaElement>
+
+function TextareaFieldBase({ label, error, hint, help, required, id, className, ...rest }: PropsArea) {
   const auto = useId()
   const fid = id ?? auto
   return (
     <FieldShell label={label} required={required} error={error} hint={hint} help={help} id={fid}>
       <textarea
         id={fid}
-        className={cn(INPUT, 'min-h-[120px] py-3 resize-y leading-snug', error && INVALIDO, className)}
+        className={cn(INPUT, AREA, error && INVALIDO, className)}
         aria-invalid={!!error || undefined}
         aria-describedby={describedBy(fid, error, hint)}
         required={required}
@@ -172,6 +271,56 @@ export function TextareaField({ label, error, hint, help, required, id, classNam
       />
     </FieldShell>
   )
+}
+
+function TextareaFieldAbreviado({
+  label,
+  error,
+  hint,
+  help,
+  required,
+  id,
+  className,
+  procesar = true,
+  onChange,
+  onKeyDown,
+  onKeyUp,
+  onClick,
+  onFocus,
+  onBlur,
+  ...rest
+}: PropsArea & { procesar?: boolean }) {
+  const auto = useId()
+  const fid = id ?? auto
+  const { ref, campoProps, lista, boton } = useAyudaAbreviaturas<HTMLTextAreaElement>({
+    maxLength: rest.maxLength,
+    valor: rest.value,
+    deshabilitado: rest.disabled || rest.readOnly,
+    botonProcesar: procesar,
+    manejadores: { onChange, onKeyDown, onKeyUp, onClick, onFocus, onBlur },
+  })
+  return (
+    <FieldShell label={label} required={required} error={error} hint={hint} help={help} id={fid} footer={boton}>
+      <div className="relative">
+        <textarea
+          ref={ref}
+          id={fid}
+          className={cn(INPUT, AREA, error && INVALIDO, className)}
+          aria-invalid={!!error || undefined}
+          aria-describedby={describedBy(fid, error, hint)}
+          required={required}
+          autoComplete="off"
+          {...rest}
+          {...campoProps}
+        />
+        {lista}
+      </div>
+    </FieldShell>
+  )
+}
+
+export function TextareaField({ abreviaturas, procesarAbreviaturas, ...props }: PropsArea & PropsAbreviaturas) {
+  return abreviaturas ? <TextareaFieldAbreviado {...props} procesar={procesarAbreviaturas} /> : <TextareaFieldBase {...props} />
 }
 
 export function SearchInput({ className, ...rest }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
@@ -189,17 +338,39 @@ export function SearchInput({ className, ...rest }: Omit<InputHTMLAttributes<HTM
   )
 }
 
-export function Checkbox({ label, id, className, ...rest }: { label: ReactNode } & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+/** Casilla suelta (consentimientos, términos). Con `error` muestra el mensaje junto a ella y marca aria-invalid. */
+export function Checkbox({
+  label,
+  id,
+  className,
+  error,
+  hint,
+  ...rest
+}: { label: ReactNode; error?: string; hint?: string } & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
   const auto = useId()
   const fid = id ?? auto
-  return (
+  const casilla = (
     <label
       htmlFor={fid}
       className={cn('flex items-center gap-3 min-h-12 text-sm text-ink-2 cursor-pointer [&_a]:text-navy [&_a]:font-semibold [&_a]:underline', className)}
     >
-      <input id={fid} type="checkbox" className="size-6 m-0 accent-navy flex-none" {...rest} />
+      <input
+        id={fid}
+        type="checkbox"
+        className="size-6 m-0 accent-navy flex-none"
+        aria-invalid={!!error || undefined}
+        aria-describedby={describedBy(fid, error, hint)}
+        {...rest}
+      />
       <span>{label}</span>
     </label>
+  )
+  if (!error && !hint) return casilla
+  return (
+    <div className="flex flex-col gap-1 min-w-0">
+      {casilla}
+      <MensajeCampo id={fid} error={error} hint={hint} />
+    </div>
   )
 }
 
@@ -215,6 +386,8 @@ export function CheckboxGroup<T extends string>({
   error,
   hint,
   help,
+  required,
+  id,
   columns = 2,
 }: {
   label: string
@@ -224,14 +397,21 @@ export function CheckboxGroup<T extends string>({
   error?: string
   hint?: string
   help?: ReactNode
+  required?: boolean
+  /** Identificador del grupo (lo usa `useFormulario` para llevar el foco al primer campo inválido). */
+  id?: string
   columns?: 1 | 2
 }) {
-  const id = useId()
+  const auto = useId()
+  const gid = id ?? auto
   const toggle = (v: T) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v])
   return (
-    <fieldset className="flex flex-col gap-2 min-w-0 border-0 p-0 m-0" aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}>
+    <fieldset id={gid} className="flex flex-col gap-2 min-w-0 border-0 p-0 m-0" aria-describedby={describedBy(gid, error, hint)}>
       <legend className={cn(LABEL, 'flex items-center gap-1 mb-2')}>
-        {label}
+        <span>
+          {label}
+          {required && <Obligatorio />}
+        </span>
         {help && <HelpTip label={`Ayuda: ${label}`}>{help}</HelpTip>}
       </legend>
       <div className={cn('grid gap-2', columns === 2 && 'grid-cols-1 sm:grid-cols-2')}>
@@ -244,6 +424,7 @@ export function CheckboxGroup<T extends string>({
                 'flex items-center gap-3 min-h-12 px-3 rounded-sm border cursor-pointer text-sm font-semibold select-none',
                 'has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-blue',
                 on ? 'bg-blue-100 border-navy text-navy' : 'bg-bg border-line text-ink-2',
+                error && !on && 'border-danger',
               )}
             >
               <input type="checkbox" className="sr-only" checked={on} onChange={() => toggle(o.value)} />
@@ -258,15 +439,7 @@ export function CheckboxGroup<T extends string>({
           )
         })}
       </div>
-      {error ? (
-        <p className="text-danger text-sm" role="alert" id={`${id}-err`}>
-          {error}
-        </p>
-      ) : hint ? (
-        <p className="text-muted text-sm" id={`${id}-hint`}>
-          {hint}
-        </p>
-      ) : null}
+      <MensajeCampo id={gid} error={error} hint={hint} />
     </fieldset>
   )
 }
@@ -316,33 +489,65 @@ export function Switch({
   )
 }
 
-/** Selector de una opción entre pocas (botones tipo "píldora"): Activa/Inactiva, Femenino/Masculino… */
+/**
+ * Selector de una opción entre pocas (botones tipo "píldora"): Activa/Inactiva, Femenino/Masculino…
+ * Además del toque, se recorre con las flechas del teclado (patrón radiogroup).
+ */
 export function ChoicePills<T extends string>({
   value,
   onChange,
   options,
   label,
   error,
+  hint,
   help,
+  required,
+  id,
 }: {
   value: T | ''
   onChange: (v: T) => void
   options: Array<{ value: T; label: string }>
   label?: string
   error?: string
+  hint?: string
   help?: ReactNode
+  required?: boolean
+  /** Identificador del grupo (lo usa `useFormulario` para llevar el foco al primer campo inválido). */
+  id?: string
 }) {
-  const id = useId()
+  const auto = useId()
+  const gid = id ?? auto
+  const alTecla = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!delta) return
+    e.preventDefault()
+    const siguiente = (i + delta + options.length) % options.length
+    onChange(options[siguiente]!.value)
+    e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[siguiente]?.focus()
+  }
   return (
-    <div className="flex flex-col gap-2 min-w-0" role="radiogroup" aria-label={label} aria-describedby={error ? `${id}-err` : undefined}>
+    <div
+      id={gid}
+      // tabIndex -1: el grupo puede recibir el foco por código (primer campo inválido) sin entrar en el orden de tabulación.
+      tabIndex={-1}
+      className="flex flex-col gap-2 min-w-0 outline-none"
+      role="radiogroup"
+      aria-label={label}
+      aria-required={required || undefined}
+      aria-invalid={!!error || undefined}
+      aria-describedby={describedBy(gid, error, hint)}
+    >
       {label && (
         <span className={cn(LABEL, 'flex items-center gap-1')}>
-          {label}
+          <span>
+            {label}
+            {required && <Obligatorio />}
+          </span>
           {help && <HelpTip label={`Ayuda: ${label}`}>{help}</HelpTip>}
         </span>
       )}
       <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
+        {options.map((o, i) => (
           <button
             key={o.value}
             type="button"
@@ -354,16 +559,13 @@ export function ChoicePills<T extends string>({
               error ? 'border-danger' : value === o.value ? '' : 'border-line',
             )}
             onClick={() => onChange(o.value)}
+            onKeyDown={(e) => alTecla(e, i)}
           >
             {o.label}
           </button>
         ))}
       </div>
-      {error && (
-        <p className="text-danger text-sm" role="alert" id={`${id}-err`}>
-          {error}
-        </p>
-      )}
+      <MensajeCampo id={gid} error={error} hint={hint} />
     </div>
   )
 }

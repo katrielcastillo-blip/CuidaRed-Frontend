@@ -3,21 +3,24 @@
  * Módulo: app.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
- * Cada área es dueña de su archivo routes.tsx:
+ * Cada área es dueña de su archivo routes.tsx (un área por rol, Reglas de Negocio V2):
  *   públicas (auth) ........ features/auth/routes.tsx         → "/", "/inicio", "/registro", …
- *   /voluntario/* .......... features/voluntario/routes.tsx
+ *   /cuidador/* ............ features/cuidador/routes.tsx     (Cuidador: trabajo de campo completo)
+ *   /voluntario/* .......... features/voluntario/routes.tsx   (Voluntario: vista mínima, solo visita + observación)
  *   /familiar/* ............ features/familiar/routes.tsx
- *   /admin/* ............... features/admin/routes.tsx
+ *   /admin/* ............... features/admin/routes.tsx        (alias /administrador)
  *   /coordinador/* ......... features/coordinador/routes.tsx
  * Módulos compartidos que los roles montan dentro de su área:
  *   perfilRoutes()   (features/perfil)   → perfil, perfil/editar
  *   visitasRoutes()  (features/visitas)  → visitas/nueva, visitas/:visitaId, necesidades/nueva, necesidades/:necesidadId
  *   gestionRoutes()  (features/gestion)  → adultos…, alertas…, resumen, reportes
  *   sistemaRoutes()  (features/sistema)  → sincronizacion, acerca, ayuda, auditoria
- * Cualquier error inesperado de una pantalla muestra ErrorRuta (sin detalles técnicos).
+ * Cada área está protegida por RequireRole (acceso directo por URL bloqueado, RS-014) y cada pantalla sensible
+ * por RequirePermiso. Cualquier error inesperado de una pantalla muestra ErrorRuta (sin detalles técnicos).
  */
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 import { authRoutes } from '@/features/auth/routes'
+import { cuidadorRoutes } from '@/features/cuidador/routes'
 import { voluntarioRoutes } from '@/features/voluntario/routes'
 import { familiarRoutes } from '@/features/familiar/routes'
 import { adminRoutes } from '@/features/admin/routes'
@@ -28,11 +31,12 @@ const conError = (r: RouteObject): RouteObject => ({ ...r, errorElement: <ErrorR
 
 export const router = createBrowserRouter([
   ...authRoutes.map(conError),
+  conError(cuidadorRoutes),
   conError(voluntarioRoutes),
   conError(familiarRoutes),
   conError(adminRoutes),
   conError(coordinadorRoutes),
-  // Enlaces antiguos del rol "cuidador" (ahora "voluntario", según el SRS).
-  { path: '/cuidador/*', element: <Navigate to="/voluntario" replace /> },
+  // Nombre largo del área de administración usado en la documentación.
+  { path: '/administrador/*', element: <Navigate to="/admin" replace /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ])

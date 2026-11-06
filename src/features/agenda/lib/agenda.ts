@@ -1,19 +1,22 @@
 /*
  * agenda.ts — Datos y formatos compartidos del módulo de agenda (tablas Tarea_agenda y Evidencias):
- * tareas visibles según permisos y alcance (tareasVisibles), nombres de cuidadores (Cuidador + Usuario +
- * Tipo_Cuidado), indicaciones relacionadas y etiquetas de estado, prioridad y validación.
+ * tareas visibles según permisos, alcance y cuenta activa (tareasVisibles), nombres de cuidadores (Cuidador +
+ * Usuario + Tipo_Cuidado), cuidadores asignables a cada adulto, indicaciones relacionadas, situación de la evidencia
+ * de cada tarea y etiquetas de estado, prioridad y validación.
+ * Cuenta activa: un usuario puede tener varias cuentas (membresías); aquí solo se consideran los adultos, las tareas
+ * y los cuidadores de la cuenta en la que actúa (`useUser().orgId`).
  * Módulo: agenda.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
-import { tareasVisibles } from '@/domain/api'
+import { cuidadoresAsignables, esCuidadorDeCuenta, tareasVisibles, type EvidenciaDetallada } from '@/domain/api'
 import { nombreCompleto, useUser } from '@/domain/auth'
-import { addDays, fechaCorta, hhmmA12, toISODate, todayISO } from '@/domain/dates'
+import { addDays, fechaCorta, hhmmA12, pad, toISODate, todayISO } from '@/domain/dates'
 import { adultosVisibles, puede } from '@/domain/permisos'
 import { cuidadorDeUsuario, nombreUsuario } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Tone } from '@/components/ui'
-import type { Adulto, Cuidador, Evidencia, EstadoTarea, IndicacionMedica, Prioridad, Tarea } from '@/domain/types'
+import type { Adulto, Cuidador, EstadoTarea, Evidencia, IndicacionMedica, Prioridad, Tarea } from '@/domain/types'
 
 /* ───────────── Etiquetas ───────────── */
 
@@ -48,8 +51,36 @@ export const tareaAbierta = (t: Pick<Tarea, 'estado'>) => t.estado === 'pendient
 /** Clave para ordenar por fecha y hora programadas. */
 export const claveTarea = (t: Pick<Tarea, 'fechaProgramada' | 'horaProgramada'>) => `${t.fechaProgramada} ${t.horaProgramada}`
 
-/** ¿Una evidencia sirve para completar la tarea? (las rechazadas no cuentan). */
-export const evidenciaValida = (e: Evidencia) => e.estadoValidacion !== 'rechazada'
+/** ¿La evidencia sirve para completar la tarea? Solo las validadas (las pendientes y rechazadas no cuentan). */
+export const evidenciaValida = (e: Pick<Evidencia, 'estadoValidacion'>) => e.estadoValidacion === 'validada'
+
+/** Situación de la evidencia de una tarea, de la más a la menos favorable. */
+export type SituacionEvidencia = 'validada' | 'pendiente' | 'rechazada' | 'sin_evidencia'
+
+export function situacionEvidencia(evidencias: Array<Pick<Evidencia, 'estadoValidacion'>>): SituacionEvidencia {
+  if (evidencias.some((e) => e.estadoValidacion === 'validada')) return 'validada'
+  if (evidencias.some((e) => e.estadoValidacion === 'pendiente')) return 'pendiente'
+  if (evidencias.length > 0) return 'rechazada'
+  return 'sin_evidencia'
+}
+
+/** Última evidencia rechazada (la que explica por qué la tarea volvió a pendiente). */
+export const ultimoRechazo = (evidencias: EvidenciaDetallada[]): EvidenciaDetallada | undefined =>
+  evidencias
+    .filter((e) => e.estadoValidacion === 'rechazada')
+    .sort((a, b) => (b.validadaEn ?? b.fechaRegistro).localeCompare(a.validadaEn ?? a.fechaRegistro))[0]
+
+/**
+ * Rechazo que el cuidador todavía debe atender: la última evidencia rechazada, siempre que la tarea no tenga una
+ * evidencia validada ni el cuidador haya adjuntado otra después del rechazo.
+ */
+export function rechazoVigente(evidencias: EvidenciaDetallada[]): EvidenciaDetallada | undefined {
+  if (evidencias.some((e) => e.estadoValidacion === 'validada')) return undefined
+  const r = ultimoRechazo(evidencias)
+  if (!r) return undefined
+  const cuando = r.validadaEn ?? r.fechaRegistro
+  return evidencias.some((e) => e.estadoValidacion === 'pendiente' && e.fechaRegistro > cuando) ? undefined : r
+}
 
 /* ───────────── Datos ───────────── */
 
@@ -58,11 +89,12 @@ export interface InfoCuidador {
   nombre: string
   tipo: string
   usuarioId: string
+  /** Usuario activo, perfil vigente y miembro (como cuidador) de la cuenta activa. */
   activo: boolean
 }
 
 /**
- * Datos de agenda que el usuario puede consultar, ya indexados. Todo se deriva con useMemo sobre
+ * Datos de agenda que el usuario puede consultar en su cuenta activa, ya indexados. Todo se deriva con useMemo sobre
  * referencias del store (nunca se crean arrays dentro del selector).
  */
 export function useAgenda() {
@@ -72,35 +104,50 @@ export function useAgenda() {
   const adultosAll = useDB((s) => s.adultos)
   const cuidadoresAll = useDB((s) => s.cuidadores)
   const usuarios = useDB((s) => s.usuarios)
+  const membresias = useDB((s) => s.membresias)
   const indicacionesAll = useDB((s) => s.indicaciones)
   const vinculos = useDB((s) => s.vinculos)
   const catalogos = useDB((s) => s.catalogos)
 
   return useMemo(() => {
-    const db = { tareas: tareasAll, adultos: adultosAll, cuidadores: cuidadoresAll }
-    const tareas = tareasVisibles(db, user)
+    const tareas = tareasVisibles({ tareas: tareasAll, adultos: adultosAll, cuidadores: cuidadoresAll }, user)
     const tareaIds = new Set(tareas.map((t) => t.id))
-    const evidencias = evidenciasAll.filter((e) => tareaIds.has(e.tareaId))
+    const evidencias = evidenciasAll.filter((e) => tareaIds.has(e.tareaId)) as EvidenciaDetallada[]
 
-    // Adultos que aparecen en la agenda: los que el usuario alcanza + los de sus propias tareas.
-    const adultoPorId = new Map<string, Adulto>(adultosVisibles(user, adultosAll, vinculos).map((a) => [a.id, a]))
+    // Adultos de la cuenta activa que el usuario alcanza + los de sus propias tareas (también de esta cuenta).
+    const adultosCuenta = adultosAll.filter((a) => a.orgId === user.orgId)
+    const adultoPorId = new Map<string, Adulto>(adultosVisibles(user, adultosCuenta, vinculos).map((a) => [a.id, a]))
     for (const t of tareas) {
-      const a = adultosAll.find((x) => x.id === t.adultoId)
+      const a = adultosCuenta.find((x) => x.id === t.adultoId)
       if (a && !adultoPorId.has(a.id)) adultoPorId.set(a.id, a)
     }
 
-    const hoy = todayISO()
+    // Cuidadores de la cuenta activa (por membresía) y los de las tareas visibles, aunque ya no sean miembros.
+    const conTareas = new Set(tareas.map((t) => t.cuidadorId))
+    const dbCuentas = { usuarios, membresias }
     const cuidadorPorId = new Map<string, InfoCuidador>()
     for (const c of cuidadoresAll) {
       const u = usuarios.find((x) => x.id === c.usuarioId)
-      if (!u || u.orgId !== user.orgId) continue
+      if (!u) continue
+      const activo = esCuidadorDeCuenta(dbCuentas, c, user.orgId)
+      const miembro = membresias.some((m) => m.usuarioId === u.id && m.orgId === user.orgId && m.rol === 'cuidador')
+      if (!activo && !miembro && !conTareas.has(c.id)) continue
       cuidadorPorId.set(c.id, {
         cuidador: c,
         nombre: nombreCompleto(u),
         tipo: catalogos.tiposCuidado.find((t) => t.id === c.tipoCuidadoId)?.nombre ?? 'Cuidador',
         usuarioId: u.id,
-        activo: u.estado === 'activo' && (!c.fechaFin || c.fechaFin >= hoy),
+        activo,
       })
+    }
+
+    /** Cuidadores que se pueden asignar a las tareas de un adulto: vínculo `cuidador_asignado` en la cuenta activa. */
+    const cuidadoresDeAdulto = (adultoId: string): InfoCuidador[] => {
+      const a = adultosCuenta.find((x) => x.id === adultoId)
+      return cuidadoresAsignables({ vinculos, cuidadores: cuidadoresAll, usuarios, membresias }, a)
+        .map((c) => cuidadorPorId.get(c.id))
+        .filter((c): c is InfoCuidador => !!c)
+        .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
     }
 
     const indicacionPorId = new Map<string, IndicacionMedica>(indicacionesAll.map((i) => [i.id, i]))
@@ -113,9 +160,22 @@ export function useAgenda() {
       return !!a && puede(user, 'indicaciones:ver', a, vinculos)
     }
 
-    return { user, tareas, evidencias, adultoPorId, cuidadorPorId, indicacionPorId, miCuidador, nombreDe, veIndicacion, vinculos, catalogos }
-  }, [user, tareasAll, evidenciasAll, adultosAll, cuidadoresAll, usuarios, indicacionesAll, vinculos, catalogos])
+    return { user, tareas, evidencias, adultoPorId, cuidadorPorId, cuidadoresDeAdulto, indicacionPorId, miCuidador, nombreDe, veIndicacion, vinculos, catalogos }
+  }, [user, tareasAll, evidenciasAll, adultosAll, cuidadoresAll, usuarios, membresias, indicacionesAll, vinculos, catalogos])
 }
+
+/** Evidencias de cada tarea, indexadas por id de tarea (más recientes primero). */
+export function evidenciasPorTarea(evidencias: EvidenciaDetallada[]): Map<string, EvidenciaDetallada[]> {
+  const m = new Map<string, EvidenciaDetallada[]>()
+  for (const e of [...evidencias].sort((a, b) => b.fechaRegistro.localeCompare(a.fechaRegistro))) {
+    const lista = m.get(e.tareaId)
+    if (lista) lista.push(e)
+    else m.set(e.tareaId, [e])
+  }
+  return m
+}
+
+/* ───────────── Formatos ───────────── */
 
 /** "08:00" → "8:00 a.m." */
 export const horaTarea = (hhmm: string) => hhmmA12(hhmm).replace(/^0/, '')
@@ -130,6 +190,43 @@ export function etiquetaDia(fecha: string) {
 
 /** "Hoy · 8:00 a.m." */
 export const cuandoTarea = (t: Pick<Tarea, 'fechaProgramada' | 'horaProgramada'>) => `${etiquetaDia(t.fechaProgramada)} · ${horaTarea(t.horaProgramada)}`
+
+const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+const aFecha = (iso: string) => new Date(`${iso}T00:00:00`)
+
+/** "jueves 6 de noviembre" (con el año si no es el actual). */
+export function fechaDiaLarga(iso: string) {
+  const d = aFecha(iso)
+  const anio = d.getFullYear() === new Date().getFullYear() ? '' : ` de ${d.getFullYear()}`
+  return `${DIAS_LARGOS[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()]}${anio}`
+}
+
+/** "jue 6 nov" */
+export function fechaDiaCorta(iso: string) {
+  const d = aFecha(iso)
+  return `${DIAS_CORTOS[d.getDay()]} ${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`
+}
+
+/** Suma `n` días (negativo = restar) a una fecha YYYY-MM-DD. */
+export const sumarDias = (iso: string, n: number) => toISODate(addDays(aFecha(iso), n))
+
+/** Días de la semana para las repeticiones semanales: valor = Date.getDay() (0 = domingo). Empiezan en lunes. */
+export const DIAS_SEMANA: Array<{ value: number; label: string; largo: string }> = [1, 2, 3, 4, 5, 6, 0].map((v) => ({
+  value: v,
+  label: DIAS_CORTOS[v]!.replace(/^./, (c) => c.toUpperCase()),
+  largo: DIAS_LARGOS[v]!,
+}))
+
+/** "9 nov 2026, 8:05 a.m." en hora local, a partir de un ISO UTC. */
+export function fechaHoraBreve(iso: string) {
+  const d = new Date(iso)
+  const h = d.getHours()
+  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]} ${d.getFullYear()}, ${h % 12 || 12}:${pad(d.getMinutes())} ${h >= 12 ? 'p.m.' : 'a.m.'}`
+}
 
 /** Minúsculas y sin tildes (búsquedas). */
 export const normaliza = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

@@ -1,22 +1,38 @@
 <!doctype html>
+<!--
+  index.html — Documento base de CuidaRed (PWA): metas de instalación para Android e iOS.
+  Módulo: configuración.
+  © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+  El manifest (<link rel="manifest">) y el registro del Service Worker los inyecta vite-plugin-pwa al compilar.
+-->
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0c3b6e" />
+    <meta name="description" content="CuidaRed · Seguimiento comunitario de adultos mayores" />
+
+    <!-- Android / Chrome / Edge -->
+    <meta name="application-name" content="CuidaRed" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- iOS / iPadOS (Safari → Compartir → Agregar a inicio) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CuidaRed" />
-    <meta name="description" content="CuidaRed · Seguimiento comunitario de adultos mayores" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+
+    <!-- Guarda el evento de instalación (beforeinstallprompt) apenas se lanza; ver public/pwa-instalacion.js -->
+    <script src="/pwa-instalacion.js"></script>
     <title>CuidaRed</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>CuidaRed necesita JavaScript para funcionar. Actívalo en tu navegador e inténtalo de nuevo.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

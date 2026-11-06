@@ -1,17 +1,20 @@
 /*
- * reportes.ts — Reportes estadísticos básicos (RF-08 · CU-12): adultos mayores registrados, visitas
- * realizadas (incluidas las visitas compartidas, DetalleVisita), necesidades frecuentes (con prioridad y
- * recurrencia de Env_Necesidad) y casos prioritarios, con filtros de fecha, municipio (Municipio_Cod),
- * sector, riesgo y categoría.
+ * reportes.ts — Reportes estadísticos (RF-08 · CU-12): adultos mayores registrados, visitas realizadas
+ * (incluidas las visitas compartidas, DetalleVisita), necesidades frecuentes (con prioridad y recurrencia de
+ * Env_Necesidad) y casos prioritarios, con filtros de fecha, municipio (Municipio_Cod), sector, riesgo y
+ * categoría. Incluye el análisis avanzado del plan «reportes_avanzados» (comparativo por zona y tendencias
+ * mensuales) y los textos accesibles de cada gráfico (aria-label y tabla de datos).
  * Funciones puras (sin React): calculan el reporte, describen los filtros y generan el CSV.
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { nombreCompleto } from '@/domain/auth'
 import { addDays, edad, fechaCorta, fechaLarga, toISODate } from '@/domain/dates'
-import { adultosDeVisita, nombreMunicipio, voluntariosDe } from '@/domain/relaciones'
+import { diasSinVisita } from '@/domain/reglas'
+import { adultosDeVisita, nombreMunicipio } from '@/domain/relaciones'
 import type { Adulto, Alerta, Catalogos, DB, EstadoAdultoVisita, Prioridad, Riesgo, TipoNecesidad } from '@/domain/types'
 import { diaLocal, ESTADO_ALERTA_TEXTO, ESTADO_NECESIDAD_TEXTO, necesidadAbierta, nombreAdulto, RIESGO_TEXTO, TIPO_NECESIDAD_TEXTO } from './formato'
+import { personalAsignado, usuariosActivos } from './resumen'
 
 /* ───────────── Tipos de reporte y filtros ───────────── */
 export type TipoReporte = 'adultos' | 'visitas' | 'necesidades' | 'prioritarios'
@@ -91,6 +94,8 @@ export interface Grafico {
   descripcion?: string
   /** 'h' = barras horizontales con texto · 'v' = columnas por mes. */
   forma: 'h' | 'v'
+  /** 'dona' dibuja un anillo (partes de un todo con pocas categorías); por defecto, barras según `forma`. */
+  visual?: 'dona'
   unidad: [string, string] // singular, plural
   barras: Barra[]
 }
@@ -154,7 +159,10 @@ function reporteAdultos(base: Adulto[], db: Datos, lim: ReturnType<typeof limite
   const activos = lista.filter((a) => a.estado === 'activo')
   const edades = lista.filter((a) => !a.anonimizado).map((a) => edad(a.fechaNacimiento))
   const muni = (a: Adulto) => nombreMunicipio(db.catalogos, a.municipioCod) || 'Sin municipio'
-  const sinVoluntario = activos.filter((a) => voluntariosDe(db.vinculos, a.id).length === 0).length
+  // Personal asignado = cuidadores + voluntarios con cuenta activa (asignadosDe).
+  const activosIds = usuariosActivos(db.usuarios)
+  const personal = (a: Adulto) => personalAsignado(db.vinculos, activosIds, a.id).ids.length
+  const sinPersonal = activos.filter((a) => personal(a) === 0).length
   return {
     ...encabezado('adultos'),
     vacio: lista.length === 0,
@@ -163,13 +171,14 @@ function reporteAdultos(base: Adulto[], db: Datos, lim: ReturnType<typeof limite
       { etiqueta: 'Perfiles activos', valor: activos.length, nota: `${lista.length - activos.length} inactivos` },
       { etiqueta: 'Riesgo alto', valor: activos.filter((a) => a.riesgo === 'alto').length, nota: 'Perfiles activos', peligro: activos.some((a) => a.riesgo === 'alto') },
       { etiqueta: 'Edad promedio', valor: edades.length ? Math.round(edades.reduce((t, e) => t + e, 0) / edades.length) : '—', nota: 'años' },
-      { etiqueta: 'Sin voluntario asignado', valor: sinVoluntario, nota: 'Perfiles activos', peligro: sinVoluntario > 0 },
+      { etiqueta: 'Sin personal asignado', valor: sinPersonal, nota: 'Perfiles activos', peligro: sinPersonal > 0 },
     ],
     graficos: [
       {
         id: 'riesgo',
         titulo: 'Adultos activos por nivel de riesgo',
         forma: 'h',
+        visual: 'dona',
         unidad: ['adulto', 'adultos'],
         barras: barras(NIVELES.map((n) => ({ etiqueta: RIESGO_TEXTO[n], valor: activos.filter((a) => a.riesgo === n).length, riesgo: n }))),
       },
@@ -197,7 +206,7 @@ function reporteAdultos(base: Adulto[], db: Datos, lim: ReturnType<typeof limite
         { etiqueta: 'Sector' },
         { etiqueta: 'Edad', tipo: 'numero' },
         { etiqueta: 'Riesgo', tipo: 'riesgo' },
-        { etiqueta: 'Voluntarios', tipo: 'numero' },
+        { etiqueta: 'Personal asignado', tipo: 'numero' },
         { etiqueta: 'Registrado' },
         { etiqueta: 'Estado' },
       ],
@@ -212,7 +221,7 @@ function reporteAdultos(base: Adulto[], db: Datos, lim: ReturnType<typeof limite
           a.zona || '—',
           a.anonimizado ? '—' : edad(a.fechaNacimiento),
           RIESGO_TEXTO[a.riesgo],
-          voluntariosDe(db.vinculos, a.id).length,
+          personal(a),
           fechaCorta(a.creadoEn),
           a.estado === 'activo' ? 'Activo' : 'Inactivo',
         ],
@@ -483,13 +492,17 @@ function reportePrioritarios(base: Adulto[], db: Datos, lim: ReturnType<typeof l
   }
 }
 
+/** Adultos que pasan los filtros de ubicación y riesgo (los de fecha y categoría se aplican a cada registro). */
+const adultosFiltrados = (adultos: Adulto[], f: FiltrosReporte) =>
+  adultos.filter((a) => (!f.municipio || a.municipioCod === f.municipio) && (!f.sector || a.zona === f.sector) && (!f.riesgo || a.riesgo === f.riesgo))
+
 /**
  * Genera el reporte solicitado con información actualizada.
  * @param adultos adultos que el usuario puede consultar (adultosVisibles).
  */
 export function generarReporte(db: Datos, adultos: Adulto[], f: FiltrosReporte, hoy: Date = new Date()): Reporte {
   const lim = limitesRango(f, hoy)
-  const base = adultos.filter((a) => (!f.municipio || a.municipioCod === f.municipio) && (!f.sector || a.zona === f.sector) && (!f.riesgo || a.riesgo === f.riesgo))
+  const base = adultosFiltrados(adultos, f)
   switch (f.tipo) {
     case 'adultos':
       return reporteAdultos(base, db, lim)
@@ -501,6 +514,224 @@ export function generarReporte(db: Datos, adultos: Adulto[], f: FiltrosReporte, 
       return reportePrioritarios(base, db, lim)
   }
 }
+
+/* ───────────── Análisis avanzado (plan «reportes_avanzados») ───────────── */
+export interface SerieGrafico {
+  nombre: string
+  valores: number[]
+}
+
+/** Gráfico con varias series sobre las mismas etiquetas (comparativo por zona y tendencias). */
+export interface GraficoSeries {
+  id: string
+  titulo: string
+  descripcion?: string
+  /** 'barras' agrupadas por etiqueta · 'lineas' (evolución mensual). */
+  forma: 'barras' | 'lineas'
+  unidad: [string, string]
+  etiquetas: string[]
+  series: SerieGrafico[]
+}
+
+export type TablaReporte = Reporte['tabla']
+
+export interface Analisis {
+  vacio: boolean
+  grafico: GraficoSeries
+  tabla: TablaReporte
+}
+
+export interface AnalisisAvanzado {
+  zonas: Analisis
+  tendencias: Analisis
+}
+
+/** Cualquier gráfico que se puede dibujar, exportar o imprimir. */
+export type GraficoReporte = Grafico | GraficoSeries
+
+export const esGraficoSeries = (g: GraficoReporte): g is GraficoSeries => 'series' in g
+
+/** Meses que abarca la tendencia: el período elegido o, si es muy corto, los 6 últimos hasta su fin. */
+function mesesTendencia(lim: ReturnType<typeof limitesRango>, hoy: Date) {
+  const hasta = lim.hasta ?? toISODate(hoy)
+  const desde = lim.desde ?? toISODate(new Date(hoy.getFullYear(), hoy.getMonth() - 5, 1))
+  const delPeriodo = mesesEntre(desde < hasta ? desde : hasta, hasta)
+  if (delPeriodo.length >= 3) return delPeriodo
+  const [y, m] = hasta.split('-').map(Number)
+  return mesesEntre(toISODate(new Date(y!, m! - 6, 1)), hasta)
+}
+
+const variacion = (actual: number, previo: number | undefined) => {
+  if (previo === undefined) return '—'
+  if (previo === 0) return actual === 0 ? '0%' : 'Nuevo'
+  const v = Math.round(((actual - previo) / previo) * 100)
+  return `${v > 0 ? '+' : ''}${v}%`
+}
+
+/**
+ * Comparativo por zona (sector) y tendencias mensuales de los adultos que pasan los filtros de ubicación y
+ * riesgo (no depende del tipo de reporte elegido). Funcionalidad del plan «reportes_avanzados».
+ */
+export function analisisAvanzado(db: Datos, adultos: Adulto[], f: FiltrosReporte, hoy: Date = new Date()): AnalisisAvanzado {
+  const lim = limitesRango(f, hoy)
+  const base = adultosFiltrados(adultos, f)
+  const porId = new Map(base.map((a) => [a.id, a]))
+  const muni = (a: Adulto) => nombreMunicipio(db.catalogos, a.municipioCod) || 'Sin municipio'
+  const activosIds = usuariosActivos(db.usuarios)
+  const completadas = db.visitas.filter((v) => v.estado === 'completada' && adultosDeVisita(v).some((id) => porId.has(id)))
+
+  /* Comparativo por zona. */
+  const zonas = new Map<string, { zona: string; municipio: string; adultos: Adulto[] }>()
+  for (const a of base) {
+    const k = `${a.municipioCod}|${a.zona}`
+    const z = zonas.get(k) ?? { zona: a.zona || 'Sin sector', municipio: muni(a), adultos: [] }
+    z.adultos.push(a)
+    zonas.set(k, z)
+  }
+  // Si un mismo sector existe en dos municipios, la etiqueta incluye el municipio.
+  const vistas = new Set<string>()
+  const repetidas = new Set<string>()
+  for (const z of zonas.values()) (vistas.has(z.zona) ? repetidas : vistas).add(z.zona)
+  const filasZona = [...zonas.entries()]
+    .map(([k, z]) => {
+      const ids = new Set(z.adultos.map((a) => a.id))
+      const activos = z.adultos.filter((a) => a.estado === 'activo')
+      const visitas = completadas.filter((v) => dentro(v.fecha, lim) && adultosDeVisita(v).some((id) => ids.has(id))).length
+      const dias = activos.map((a) => diasSinVisita(db, a, hoy).dias)
+      return {
+        k,
+        etiqueta: repetidas.has(z.zona) ? `${z.zona} (${z.municipio})` : z.zona,
+        sector: z.zona,
+        municipio: z.municipio,
+        activos: activos.length,
+        riesgoAlto: activos.filter((a) => a.riesgo === 'alto').length,
+        visitas,
+        porAdulto: activos.length ? (visitas / activos.length).toFixed(1).replace('.', ',') : '—',
+        necesidades: db.necesidades.filter((n) => ids.has(n.adultoId) && necesidadAbierta(n.estado) && dentro(diaLocal(n.creadaEn), lim)).length,
+        alertas: db.alertas.filter((al) => ids.has(al.adultoId) && al.estado !== 'atendida').length,
+        dias: dias.length ? Math.round(dias.reduce((t, d) => t + d, 0) / dias.length) : 0,
+        sinPersonal: activos.filter((a) => personalAsignado(db.vinculos, activosIds, a.id).ids.length === 0).length,
+      }
+    })
+    .sort((x, y) => y.activos - x.activos || x.etiqueta.localeCompare(y.etiqueta, 'es'))
+
+  /* Tendencias mensuales. */
+  const meses = mesesTendencia(lim, hoy)
+  const variosAnios = new Set(meses.map((x) => x.y)).size > 1
+  const etiquetaMes = (x: { m: number; y: number }) => `${MES_CORTO[x.m]}${variosAnios ? ` ${String(x.y).slice(2)}` : ''}`
+  const altas = db.alertas.filter((al) => (al.tipo === 'prioritaria' || al.tipo === 'emergencia') && porId.has(al.adultoId))
+  const visitasMes = meses.map((x) => completadas.filter((v) => v.fecha.startsWith(x.clave)).length)
+  const necesidadesMes = meses.map((x) => db.necesidades.filter((n) => porId.has(n.adultoId) && diaLocal(n.creadaEn).startsWith(x.clave)).length)
+  const alertasMes = meses.map((x) => altas.filter((al) => diaLocal(al.creadaEn).startsWith(x.clave)).length)
+  const perfilesMes = meses.map((x) => base.filter((a) => diaLocal(a.creadoEn).startsWith(x.clave)).length)
+
+  return {
+    zonas: {
+      vacio: filasZona.length === 0,
+      grafico: {
+        id: 'zonas',
+        titulo: 'Comparativo por zona',
+        descripcion: 'Adultos activos, visitas realizadas y necesidades por resolver en cada sector',
+        forma: 'barras',
+        unidad: ['registro', 'registros'],
+        etiquetas: filasZona.map((x) => x.etiqueta),
+        series: [
+          { nombre: 'Adultos activos', valores: filasZona.map((x) => x.activos) },
+          { nombre: 'Visitas realizadas', valores: filasZona.map((x) => x.visitas) },
+          { nombre: 'Necesidades por resolver', valores: filasZona.map((x) => x.necesidades) },
+        ],
+      },
+      tabla: {
+        titulo: 'Comparativo por zona (sector)',
+        columnas: [
+          { etiqueta: 'Sector' },
+          { etiqueta: 'Municipio' },
+          { etiqueta: 'Adultos activos', tipo: 'numero' },
+          { etiqueta: 'Riesgo alto', tipo: 'numero' },
+          { etiqueta: 'Visitas realizadas', tipo: 'numero' },
+          { etiqueta: 'Visitas por adulto', tipo: 'numero' },
+          { etiqueta: 'Necesidades por resolver', tipo: 'numero' },
+          { etiqueta: 'Alertas abiertas', tipo: 'numero' },
+          { etiqueta: 'Días sin visita (prom.)', tipo: 'numero' },
+          { etiqueta: 'Sin personal asignado', tipo: 'numero' },
+        ],
+        filas: filasZona.map((x) => ({ id: x.k, celdas: [x.sector, x.municipio, x.activos, x.riesgoAlto, x.visitas, x.porAdulto, x.necesidades, x.alertas, x.dias, x.sinPersonal] })),
+      },
+    },
+    tendencias: {
+      vacio: base.length === 0,
+      grafico: {
+        id: 'tendencias',
+        titulo: 'Tendencias mensuales',
+        descripcion: `Últimos ${meses.length} meses`,
+        forma: 'lineas',
+        unidad: ['registro', 'registros'],
+        etiquetas: meses.map(etiquetaMes),
+        series: [
+          { nombre: 'Visitas realizadas', valores: visitasMes },
+          { nombre: 'Necesidades registradas', valores: necesidadesMes },
+          { nombre: 'Alertas de urgencia alta', valores: alertasMes },
+          { nombre: 'Perfiles nuevos', valores: perfilesMes },
+        ],
+      },
+      tabla: {
+        titulo: 'Tendencias mensuales',
+        columnas: [
+          { etiqueta: 'Mes' },
+          { etiqueta: 'Visitas realizadas', tipo: 'numero' },
+          { etiqueta: 'Variación de visitas', tipo: 'numero' },
+          { etiqueta: 'Necesidades registradas', tipo: 'numero' },
+          { etiqueta: 'Alertas de urgencia alta', tipo: 'numero' },
+          { etiqueta: 'Perfiles nuevos', tipo: 'numero' },
+        ],
+        filas: meses.map((x, i) => ({
+          id: x.clave,
+          celdas: [etiquetaMes(x), visitasMes[i]!, variacion(visitasMes[i]!, i > 0 ? visitasMes[i - 1] : undefined), necesidadesMes[i]!, alertasMes[i]!, perfilesMes[i]!],
+        })),
+      },
+    },
+  }
+}
+
+/* ───────────── Alternativa accesible de los gráficos ───────────── */
+const TIPO_GRAFICO_TEXTO = { barras: 'barras', lineas: 'líneas', dona: 'anillo' } as const
+
+/** Tipo de gráfico en palabras, para el aria-label ("Gráfico de barras"). */
+export const tipoGraficoTexto = (g: GraficoReporte) => TIPO_GRAFICO_TEXTO[esGraficoSeries(g) ? g.forma : (g.visual ?? 'barras')]
+
+/**
+ * Descripción completa del gráfico para lectores de pantalla (aria-label del canvas): título, tipo y cada valor.
+ * La misma información está disponible como tabla (tablaDeGrafico).
+ */
+export function describirGrafico(g: GraficoReporte): string {
+  const cabecera = `Gráfico de ${tipoGraficoTexto(g)}: ${g.titulo}.`
+  if (esGraficoSeries(g)) {
+    if (g.etiquetas.length === 0) return `${cabecera} Sin datos.`
+    return `${cabecera} ${g.series.map((s) => `${s.nombre}: ${g.etiquetas.map((e, i) => `${e} ${s.valores[i] ?? 0}`).join(', ')}.`).join(' ')}`
+  }
+  if (g.barras.every((b) => b.valor === 0)) return `${cabecera} Sin registros.`
+  return `${cabecera} ${g.barras.map((b) => `${b.etiqueta}: ${b.valor} (${b.pct}%)`).join('; ')}.`
+}
+
+export interface TablaDatos {
+  columnas: string[]
+  filas: Array<Array<string | number>>
+}
+
+/** Datos del gráfico como tabla (pantalla, PDF, Excel e impresión). */
+export function tablaDeGrafico(g: GraficoReporte): TablaDatos {
+  if (esGraficoSeries(g)) {
+    return { columnas: [g.id === 'tendencias' ? 'Mes' : 'Sector', ...g.series.map((s) => s.nombre)], filas: g.etiquetas.map((e, i) => [e, ...g.series.map((s) => s.valores[i] ?? 0)]) }
+  }
+  return { columnas: ['Categoría', 'Total', 'Porcentaje'], filas: g.barras.map((b) => [b.etiqueta, b.valor, `${b.pct}%`]) }
+}
+
+/** Gráficos del reporte más, si el plan lo incluye, los del análisis avanzado (ninguno si el reporte no tiene datos). */
+export const graficosDelReporte = (r: Reporte, avanzado: AnalisisAvanzado | null): GraficoReporte[] =>
+  r.vacio ? [] : [...r.graficos, ...(avanzado ? [avanzado.zonas, avanzado.tendencias].filter((a) => !a.vacio).map((a) => a.grafico) : [])]
+
+/** ¿Hay filtros distintos de los iniciales (sin contar el tipo de reporte)? */
+export const hayFiltrosReporte = (f: FiltrosReporte) => f.rango !== 'todo' || !!f.municipio || !!f.sector || !!f.riesgo || !!f.categoria
 
 /** Texto legible de los filtros aplicados (CSV y versión imprimible). */
 export function describirFiltros(f: FiltrosReporte, cat: Pick<Catalogos, 'municipios'>, hoy: Date = new Date()): string[] {
@@ -524,7 +755,7 @@ const celda = (v: string | number) => {
 }
 
 /** CSV del reporte (UTF-8 con BOM, abre bien en Excel): filtros, indicadores, gráficos y detalle. */
-export function reporteCSV(r: Reporte, f: FiltrosReporte, cat: Pick<Catalogos, 'municipios'>, organizacion: string, hoy: Date = new Date()): string {
+export function reporteCSV(r: Reporte, f: FiltrosReporte, cat: Pick<Catalogos, 'municipios'>, organizacion: string, hoy: Date = new Date(), avanzado: AnalisisAvanzado | null = null): string {
   const filas: Array<Array<string | number>> = [
     [`Reporte CuidaRed: ${r.titulo}`],
     ['Organización', organizacion],
@@ -538,13 +769,17 @@ export function reporteCSV(r: Reporte, f: FiltrosReporte, cat: Pick<Catalogos, '
     filas.push(['Indicadores'], ['Indicador', 'Valor', 'Nota'], ...r.kpis.map((k) => [k.etiqueta, k.valor, k.nota ?? '']), [])
     for (const g of r.graficos) filas.push([g.titulo], ['Categoría', 'Total', 'Porcentaje'], ...g.barras.map((b) => [b.etiqueta, b.valor, `${b.pct}%`]), [])
     filas.push([r.tabla.titulo], r.tabla.columnas.map((c) => c.etiqueta), ...r.tabla.filas.map((x) => x.celdas))
+    for (const a of avanzado ? [avanzado.zonas, avanzado.tendencias] : []) {
+      if (a.vacio) continue
+      filas.push([], [a.tabla.titulo], a.tabla.columnas.map((c) => c.etiqueta), ...a.tabla.filas.map((x) => x.celdas))
+    }
   }
   return '﻿' + filas.map((fila) => fila.map(celda).join(',')).join('\r\n')
 }
 
-/** Descarga un texto como archivo desde el navegador. */
-export function descargarArchivo(nombre: string, contenido: string, tipo = 'text/csv;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }))
+/** Descarga un archivo (Blob) desde el navegador. */
+export function descargarBlob(nombre: string, blob: Blob) {
+  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = nombre
@@ -552,4 +787,9 @@ export function descargarArchivo(nombre: string, contenido: string, tipo = 'text
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Descarga un texto como archivo desde el navegador. */
+export function descargarArchivo(nombre: string, contenido: string, tipo = 'text/csv;charset=utf-8') {
+  descargarBlob(nombre, new Blob([contenido], { type: tipo }))
 }

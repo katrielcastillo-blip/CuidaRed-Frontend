@@ -1,7 +1,8 @@
 /*
  * datos.ts — Datos y formatos del panel de gestión del coordinador: alcance de la organización según
  * permisos (RF-09), indicadores de seguimiento (RF-05; umbral desde Configuracion_Cuenta con configOrg),
- * vínculos (Vinculo) y etiquetas de visitas y alertas.
+ * monitoreo de visitas (realizadas, pendientes, días sin visita realizada, adultos sin personal asignado),
+ * próximos eventos (visitas y tareas), vínculos (Vinculo) y etiquetas de visitas y alertas.
  * Módulo: coordinador.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -11,10 +12,10 @@ import { useSession, useUser } from '@/domain/auth'
 import { alertasVisibles } from '@/domain/api'
 import { adultosVisibles } from '@/domain/permisos'
 import { diasSinVisita } from '@/domain/reglas'
-import { configOrg } from '@/domain/relaciones'
-import { fechaCorta, hhmmA12, relativo } from '@/domain/dates'
+import { asignadosDe, configOrg, esRolDeCampo, nombreUsuario } from '@/domain/relaciones'
+import { addDays, fechaCorta, hhmmA12, relativo, toISODate, todayISO } from '@/domain/dates'
 import type { Tone } from '@/components/ui'
-import type { Adulto, Alerta, EstadoVisita, SeveridadAlerta, Usuario, Visita } from '@/domain/types'
+import type { Adulto, Alerta, EstadoVisita, SeveridadAlerta, Tarea, Usuario, Vinculo, Visita } from '@/domain/types'
 
 /**
  * Datos que el coordinador puede consultar (adultosVisibles / alertasVisibles), ya indexados.
@@ -37,23 +38,100 @@ export function useOrgData() {
     const adultoPorId = new Map<string, Adulto>(adultos.map((a) => [a.id, a]))
     const usuarios = usuariosAll.filter((u) => u.orgId === user.orgId)
     const usuarioPorId = new Map<string, Usuario>(usuarios.map((u) => [u.id, u]))
-    const voluntarios = usuarios.filter((u) => u.rol === 'voluntario')
+    // Personal de campo (cuidadores y voluntarios).
+    const voluntarios = usuarios.filter((u) => esRolDeCampo(u.rol))
     // Visitas de los adultos a su alcance (como adulto principal o adicional del hogar · DetalleVisita).
     const visitas = visitasAll.filter((v) => adultoPorId.has(v.adultoId) || v.detallesAdicionales.some((d) => adultoPorId.has(d.adultoId)))
     const alertas = alertasVisibles({ alertas: alertasAll, adultos: adultosAll }, user)
     const necesidades = necesidadesAll.filter((n) => adultoPorId.has(n.adultoId))
     const umbral = configOrg({ catalogos, configuracion }, org?.id ?? user.orgId).diasSinVisitaAlerta
-    return { user, adultos, adultoPorId, usuarios, usuarioPorId, voluntarios, visitas, alertas, necesidades, umbral, vinculos }
+    // Nombre de cualquier usuario (también el de quien autorizó una visita desde otra de sus cuentas).
+    const nombreDe = (id: string | undefined) => nombreUsuario(usuariosAll, id)
+    return { user, adultos, adultoPorId, usuarios, usuarioPorId, nombreDe, voluntarios, visitas, alertas, necesidades, umbral, vinculos }
   }, [user, org, adultosAll, visitasAll, alertasAll, necesidadesAll, usuariosAll, vinculos, catalogos, configuracion])
 }
 
-/** Adultos activos que superan el umbral de días sin visita (RF-05), del que lleva más días al que menos. */
-export function sinVisitaReciente(adultos: Adulto[], visitas: Visita[], umbral: number) {
+export interface AdultoSinVisita {
+  adulto: Adulto
+  /** Días calendario desde la última visita REALIZADA (completada); sin visitas, desde la creación del perfil. */
+  dias: number
+  conVisitas: boolean
+  /** ¿Supera el umbral de la cuenta (RF-05)? */
+  supera: boolean
+}
+
+/**
+ * Monitoreo de seguimiento: todos los adultos activos con sus días sin visita realizada (las visitas programadas o
+ * canceladas no cuentan), del que lleva más días al que menos. `supera` marca los que pasan el umbral de la cuenta.
+ */
+export function monitoreoSinVisita(adultos: Adulto[], visitas: Visita[], umbral: number): AdultoSinVisita[] {
   return adultos
     .filter((a) => a.estado === 'activo')
-    .map((a) => ({ adulto: a, ...diasSinVisita({ visitas }, a) }))
-    .filter((x) => x.dias > umbral)
+    .map((a) => {
+      const d = diasSinVisita({ visitas }, a)
+      return { adulto: a, dias: d.dias, conVisitas: d.conVisitas, supera: d.dias > umbral }
+    })
     .sort((a, b) => b.dias - a.dias)
+}
+
+/** Adultos activos que superan el umbral de días sin visita realizada (RF-05). */
+export const sinVisitaReciente = (adultos: Adulto[], visitas: Visita[], umbral: number) =>
+  monitoreoSinVisita(adultos, visitas, umbral).filter((x) => x.supera)
+
+/**
+ * Adultos activos sin personal de campo asignado: ningún cuidador (`cuidador_asignado`) ni voluntario
+ * (`voluntario_asignado`) activo de la cuenta.
+ */
+export function sinPersonalAsignado(adultos: Adulto[], vinculos: Vinculo[], usuarioPorId: Map<string, Usuario>): Adulto[] {
+  return adultos.filter((a) => a.estado === 'activo' && !asignadosDe(vinculos, a.id).some((id) => usuarioPorId.get(id)?.estado === 'activo'))
+}
+
+/** Resumen de las visitas del día: realizadas, pendientes (por hacer o en curso) y total (sin canceladas). */
+export function resumenVisitasHoy(visitas: Visita[], hoy = todayISO()) {
+  const delDia = visitas.filter((v) => v.fecha === hoy && v.estado !== 'cancelada')
+  const realizadas = delDia.filter((v) => v.estado === 'completada').length
+  return { total: delDia.length, realizadas, pendientes: delDia.length - realizadas }
+}
+
+/** Alerta activa: pendiente o en atención (no atendida). */
+export const esAlertaAbierta = (a: Alerta) => a.estado !== 'atendida'
+
+/** Orden de las alertas por urgencia: alta, media, baja. */
+const ORDEN_SEVERIDAD: Record<SeveridadAlerta, number> = { alta: 0, media: 1, baja: 2 }
+
+/** Alertas activas (pendientes y en atención), de mayor a menor urgencia y, a igual urgencia, las más recientes primero. */
+export const alertasActivas = (alertas: Alerta[]) =>
+  alertas.filter(esAlertaAbierta).sort((a, b) => ORDEN_SEVERIDAD[a.severidad] - ORDEN_SEVERIDAD[b.severidad] || b.creadaEn.localeCompare(a.creadaEn))
+
+/** Próximo evento del coordinador: una visita programada o una tarea de la agenda. */
+export type EventoProximo =
+  | { tipo: 'visita'; id: string; fecha: string; hora: string; visita: Visita }
+  | { tipo: 'tarea'; id: string; fecha: string; hora: string; tarea: Tarea }
+
+/**
+ * Visitas programadas (pendientes o en curso) y tareas abiertas de hoy y de los próximos `dias` días,
+ * en orden cronológico. Las tareas atrasadas no entran: se cuentan aparte (`tareasVencidas`).
+ */
+export function proximosEventos(visitas: Visita[], tareas: Tarea[], dias = 7, hoy = todayISO()): EventoProximo[] {
+  const limite = toISODate(addDays(new Date(), dias))
+  const eventos: EventoProximo[] = [
+    ...visitas
+      .filter((v) => (v.estado === 'pendiente' || v.estado === 'en_curso') && v.fecha >= hoy && v.fecha <= limite)
+      .map((v): EventoProximo => ({ tipo: 'visita', id: v.id, fecha: v.fecha, hora: v.horaPautada, visita: v })),
+    ...tareas
+      .filter((t) => (t.estado === 'pendiente' || t.estado === 'en_curso') && t.fechaProgramada >= hoy && t.fechaProgramada <= limite)
+      .map((t): EventoProximo => ({ tipo: 'tarea', id: t.id, fecha: t.fechaProgramada, hora: t.horaProgramada, tarea: t })),
+  ]
+  return eventos.sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`) || a.tipo.localeCompare(b.tipo))
+}
+
+/** Tareas de agenda abiertas cuya fecha ya pasó. */
+export const tareasVencidas = (tareas: Tarea[], hoy = todayISO()) => tareas.filter((t) => (t.estado === 'pendiente' || t.estado === 'en_curso') && t.fechaProgramada < hoy)
+
+/** "Visitante: Pedro Castillo (autorizada por Laura Núñez)" para visitas de personas externas; undefined si no lo es. */
+export function textoVisitante(visita: Pick<Visita, 'visitante' | 'autorizadaPor'>, nombreDe: (id: string | undefined) => string): string | undefined {
+  if (!visita.visitante) return undefined
+  return `Visitante: ${visita.visitante.nombre}${visita.autorizadaPor ? ` (autorizada por ${nombreDe(visita.autorizadaPor)})` : ''}`
 }
 
 /* ───────────── Formato ───────────── */
@@ -98,8 +176,6 @@ export const SEVERIDAD: Record<SeveridadAlerta, { label: string; tono: Tone }> =
   media: { label: 'Urgencia media', tono: 'warning' },
   baja: { label: 'Urgencia baja', tono: 'success' },
 }
-
-export const esAlertaAbierta = (a: Alerta) => a.estado !== 'atendida'
 
 /** Motivos predefinidos de visita (Visit_razon). "Otra" permite escribir uno distinto. */
 export const RAZONES_VISITA = [

@@ -1,4 +1,8 @@
-/* Formularios ID01 conectados, sin contraseñas locales · acceso. © 2026 Equipo CuidaRed – INTEC. */
+/*
+ * forms.tsx — Formularios conectados del acceso: inicio de sesión, activación de invitación, recuperación y perfil.
+ * Módulo: access-real (ID01), sin contraseñas locales.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
@@ -73,6 +77,9 @@ export function AccessForm({ notice }: { notice: string }) {
         </ButtonLink>
         <ButtonLink to="/registro" variant="outline">
           Activar mi cuenta
+        </ButtonLink>
+        <ButtonLink to="/crear-cuenta" variant="ghost">
+          Crear una cuenta
         </ButtonLink>
         <nav className="flex justify-center gap-4">
           <Link className="inline-flex min-h-12 items-center" to="/terminos">

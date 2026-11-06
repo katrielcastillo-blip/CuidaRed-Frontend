@@ -182,6 +182,8 @@ test('recuperación genérica y cambio de contraseña con código Supabase', asy
   await expect(page.getByRole('status')).toContainText('Si el correo pertenece a una cuenta')
   await expect(page.getByText('Modo demostración')).not.toBeVisible()
   await page.getByRole('link', { name: 'Ingresar el código' }).click()
+  // La navegación es una transición: se espera la pantalla nueva antes de escribir (si no, se llena la anterior).
+  await expect(page.getByRole('heading', { name: 'Restablecer contraseña' })).toBeVisible()
   await page.getByLabel(/^Correo electrónico/).fill(authUser.email)
   await page.getByLabel(/^Código de verificación/).fill('123456')
   await page.getByLabel(/^Nueva contraseña/).fill('Otra123!')

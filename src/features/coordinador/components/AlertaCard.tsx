@@ -1,11 +1,11 @@
 /*
  * AlertaCard.tsx — Tarjeta de alerta del panel del coordinador: borde y etiqueta por urgencia, adulto,
- * descripción y categoría. Enlaza al detalle de la alerta (CU-09 · CU-10).
+ * descripción, categoría y estado (pendiente o en atención). Enlaza al detalle de la alerta (CU-09 · CU-10).
  * Módulo: coordinador.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { Avatar } from '@/components/ui'
+import { Avatar, Badge } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import type { Adulto, Alerta, SeveridadAlerta } from '@/domain/types'
 import { cn } from '@/lib/cn'
@@ -46,6 +46,12 @@ export function AlertaCard({ alerta, adulto, to }: { alerta: Alerta; adulto: Adu
         <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-pill text-[11px] font-bold tracking-[0.04em] uppercase', e.cat)}>
           {alerta.categoria}
         </span>
+        {alerta.estado !== 'atendida' && (
+          <Badge tone={alerta.estado === 'en_atencion' ? 'info' : 'neutral'} className="self-center">
+            <span className="sr-only">Estado: </span>
+            {alerta.estado === 'en_atencion' ? 'En atención' : 'Pendiente'}
+          </Badge>
+        )}
       </div>
     </Link>
   )

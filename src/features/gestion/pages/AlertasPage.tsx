@@ -3,8 +3,9 @@
  * (Alta → Media → Baja) y fecha, con la urgencia diferenciada por color + icono + texto, filtros por
  * estado, tipo (catálogo Alertas) y prioridad (catálogo Prioridad), búsqueda y contadores. Las alertas de
  * "NECESIDAD ATRASADA" (Env_Necesidad.Umbral_alerta) muestran la necesidad que las originó. Solo muestra las
- * alertas al alcance del usuario (alertasVisibles).
- * Módulo: gestión (administrador y coordinador).
+ * alertas al alcance del usuario (alertasVisibles). Ciclo de vida: Pendiente → En atención → Atendida. El
+ * Cuidador (alertas:cerrar) ve solo las alertas de sus adultos asignados y puede cerrarlas con la acción tomada.
+ * Módulo: gestión (la monta también el área del cuidador con alertasRoutes()).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
@@ -14,12 +15,13 @@ import { EmptyState, SearchInput } from '@/components/ui'
 import { alertasVisibles } from '@/domain/api'
 import { useUser } from '@/domain/auth'
 import { relativo } from '@/domain/dates'
+import { puede } from '@/domain/permisos'
 import { useDB } from '@/domain/store'
 import type { EstadoAlerta, Prioridad, TipoAlerta } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
 import { FilaFiltros, FilterChip } from '../components/FilterChip'
-import { EstadoAlertaBadge, UrgenciaBadge, URGENCIA_VISUAL } from '../components/Piezas'
+import { EstadoAlertaBadge, NotaInfo, UrgenciaBadge, URGENCIA_VISUAL } from '../components/Piezas'
 import { necesidadDeAlerta, nombreCatalogo } from '../lib/datos'
 import { nombreAdulto, norm, PESO_SEVERIDAD, plural, TIPO_NECESIDAD_TEXTO } from '../lib/formato'
 import { ubicacionCorta } from '../lib/ubicacion'
@@ -36,7 +38,9 @@ const CONTADORES: Array<{ value: FiltroEstado; label: string; clase: string }> =
 export default function AlertasPage() {
   const { base } = useShell()
   const user = useUser()
-  const { back } = useVolver(`${base}/mas`)
+  // «Volver» de respaldo: los roles con menú «Más» regresan a él; el resto (p. ej. Cuidador) al inicio de su área.
+  const { back } = useVolver(puede(user, 'resumen:ver') ? `${base}/mas` : base)
+  const soloCierre = !puede(user, 'alertas:gestionar') && puede(user, 'alertas:cerrar')
   const alertas = useDB((s) => s.alertas)
   const adultos = useDB((s) => s.adultos)
   const necesidades = useDB((s) => s.necesidades)
@@ -97,6 +101,10 @@ export default function AlertasPage() {
           )
         })}
       </div>
+
+      {soloCierre && (
+        <NotaInfo>Ves las alertas de tus adultos asignados. Puedes cerrarlas indicando la acción tomada.</NotaInfo>
+      )}
 
       <SearchInput className="max-w-[560px]" placeholder="Buscar por adulto o tipo" aria-label="Buscar alertas" value={q} onChange={(e) => setQ(e.target.value)} />
 

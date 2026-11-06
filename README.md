@@ -82,12 +82,18 @@ Pruebas del acceso conectado: `npx playwright test --config playwright.access.co
 
 Se muestran únicamente con `VITE_AUTH_MODE=demo` durante desarrollo. Sus datos y contraseñas son simulados y no se migran a la identidad real. La configuración Playwright histórica habilita este modo explícitamente; no reutilizar un servidor ya iniciado en otro modo.
 
-| Rol | Correo |
-|---|---|
-| Administrador | admin@cuidared.do |
-| Coordinador | coordinador@cuidared.do |
-| Voluntario | voluntario@cuidared.do |
-| Familiar responsable | familiar@cuidared.do |
+Hay dos cuentas (Reglas de Negocio V2): la Organización **Fundación Esperanza** (plan Gestión Comunitaria Avanzada) y la Familia **Familia Méndez** (prueba gratuita de 7 días).
+
+| Rol | Correo | Cuenta |
+|---|---|---|
+| Administrador | admin@cuidared.do | Fundación Esperanza |
+| Coordinador | coordinador@cuidared.do | Fundación Esperanza |
+| Cuidador | cuidador@cuidared.do | Fundación Esperanza y Familia Méndez (selector de cuenta) |
+| Voluntario | voluntario@cuidared.do | Fundación Esperanza |
+| Familiar responsable | familiar@cuidared.do | Fundación Esperanza y Familia Méndez |
+| Coordinador (titular de la familia) | familia@cuidared.do | Familia Méndez |
+
+Solicitud de visita de ejemplo para un visitante externo: código `VIS-DEMO-2026` en «Consultar mi solicitud».
 
 En la pantalla de inicio, «Cuentas de demostración» rellena el formulario. Para volver al estado inicial: Mi perfil → «Restablecer datos de demostración».
 
@@ -113,6 +119,9 @@ docs/            RTM, mapeo con la BD (MAPEO-BD.md), manual de usuario y guía p
 ```bash
 npm run typecheck                    # tipos
 npm run lint                         # análisis estático
+npm run test:componentes             # componentes y guards por rol (Vitest + Testing Library)
+npm run test:access                  # acceso conectado con Auth/API interceptados
+npm run build && npm run verificar:cache   # precache ≤ 50 MB (RNF-5.2)
 npx playwright install chromium      # una sola vez
 npm run test:e2e                     # unitarias + E2E (móvil 360×640 y escritorio)
 npx playwright test --project=unit   # solo las unitarias del dominio
