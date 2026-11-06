@@ -40,7 +40,7 @@ export interface VisitaResumenVista {
   visitante?: string
   /** La visita también atendió a otros adultos del hogar. */
   compartida: boolean
-  /** Cómo encontraron al adulto (solo visitas realizadas). */
+  /** Cómo encontraron a ESTE adulto (solo visitas realizadas; ausente en visitas históricas sin estado por adulto). */
   estadoAdulto?: EstadoAdultoVisita
   /** Observación registrada PARA este adulto (solo visitas realizadas). */
   observacion?: string
@@ -58,7 +58,7 @@ export interface EvidenciaVista {
 export interface VisitaDetalleVista extends VisitaResumenVista {
   /** Adulto desde cuyo punto de vista se muestra la visita. */
   adulto: { id: string; nombre: string; nombres: string }
-  /** El adulto es el principal de la visita: solo entonces se informan su estado y las evidencias. */
+  /** El adulto es el principal de la visita: solo entonces se informan las evidencias (el estado se informa para cada adulto). */
   esPrincipal: boolean
   fin?: string
   /** Valores del catálogo de aspectos verificados (ASPECTOS_VISITA). */

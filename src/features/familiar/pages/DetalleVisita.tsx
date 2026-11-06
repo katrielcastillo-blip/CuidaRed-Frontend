@@ -3,7 +3,7 @@
  * (Visit_razon), fechas y horas (Visit_HoraInicio/Fin), responsable, estado del adulto, aspectos verificados,
  * observación y evidencias. Si la visita la hizo un visitante externo autorizado se muestra "Visitante: nombre"
  * (solo el nombre; sus datos de contacto no se exponen) y quién la autorizó. Una visita puede atender a varios
- * adultos del hogar: se muestra desde el punto de vista del adulto autorizado (?adulto=), con SU observación; de
+ * adultos del hogar: se muestra desde el punto de vista del adulto autorizado (?adulto=), con SU estado y SU observación; de
  * los demás solo se nombran los que la familia también está autorizada a ver. Si ningún adulto de la visita
  * está autorizado en la cuenta activa → "No encontrado o sin permiso".
  * Los datos llegan de `useVisitaFamiliar` (hoy el store; mañana GET /familiar/envejecientes/:id/visitas/:visitaId).
@@ -108,7 +108,7 @@ export default function DetalleVisita() {
 
       {realizada ? (
         <>
-          {v.esPrincipal && (
+          {(v.esPrincipal || v.estadoAdulto) && (
             <section className="flex flex-col gap-3">
               <h3 className="text-base font-bold text-ink">Estado durante la visita</h3>
               <ul className="grid grid-cols-3 gap-2 w-full max-w-[400px] mx-auto" aria-label="Estado del adulto mayor durante la visita">

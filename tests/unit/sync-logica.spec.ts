@@ -384,13 +384,13 @@ test.describe('Datos mínimos y sin credenciales', () => {
   })
 
   test('minimizarDatos elimina claves sensibles (en cualquier nivel) y las marcas de la vista', () => {
-    const sucio = { ...visita({ observaciones: 'Todo bien' }), pendienteSync: true, token: 'abc', detallesAdicionales: [{ adultoId: 'a-2', observacion: 'ok', passwordHash: 'x' }], extra: { sesion: { id: 1 }, nota: 'n' } }
+    const sucio = { ...visita({ observaciones: 'Todo bien' }), pendienteSync: true, token: 'abc', detallesAdicionales: [{ adultoId: 'a-2', observacion: 'ok', estadoAdulto: 'estable', passwordHash: 'x' }], extra: { sesion: { id: 1 }, nota: 'n' } }
     const limpio = minimizarDatos(sucio) as unknown as Record<string, unknown>
     expect(limpio).not.toHaveProperty('pendienteSync')
     expect(limpio).not.toHaveProperty('token')
     expect(JSON.stringify(limpio)).not.toMatch(/passwordHash|sesion|"token"/)
     expect(limpio.observaciones).toBe('Todo bien')
-    expect(limpio.detallesAdicionales).toEqual([{ adultoId: 'a-2', observacion: 'ok' }])
+    expect(limpio.detallesAdicionales).toEqual([{ adultoId: 'a-2', observacion: 'ok', estadoAdulto: 'estable' }]) // el estado de cada adulto viaja en la cola
     expect(limpio.extra).toEqual({ nota: 'n' })
     expect(sucio.token).toBe('abc') // no modifica el original
   })

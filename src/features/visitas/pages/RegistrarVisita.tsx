@@ -1,8 +1,8 @@
 /*
  * RegistrarVisita.tsx — Formulario móvil de registro de visita comunitaria (CU-05 · RF-02 · RF-06 · RF-10).
  * Tablas: Visita (Visit_razon, Visit_Fecha, Visit_HoraInicio/Fin, Visit_Estado) · RegistroVisita (User_Id
- * responsable, Autorizada_por_user_Id) · DetalleVisita (adulto principal + otros adultos del mismo hogar con
- * su observación).
+ * responsable, Autorizada_por_user_Id) · DetalleVisita (adulto principal + otros adultos del mismo hogar, cada
+ * uno con su estado y su observación).
  * Módulo: visitas (voluntario y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
@@ -11,9 +11,10 @@
  *   sin parámetros: lista desplegable obligatoria para elegir el adulto.
  *
  * RF-06: como máximo 5 campos de texto libre (observaciones, motivo «Otra» y hasta 3 observaciones cortas
- * de otros adultos del hogar); fecha, hora, motivo y responsable con listas; estado del adulto con tiles y
- * aspectos verificados con casillas. Los adultos adicionales van plegados para que el formulario quepa en un
- * desplazamiento a 360×640. El borrador se conserva si se cierra la pantalla (useBorrador). Funciona sin conexión.
+ * de otros adultos del hogar); fecha, hora, motivo y responsable con listas; estado de cada adulto (el principal y
+ * los adicionales) con tiles y aspectos verificados con casillas. Los adultos adicionales van plegados para que el
+ * formulario quepa en un desplazamiento a 360×640. El borrador se conserva si se cierra la pantalla (useBorrador).
+ * Funciona sin conexión.
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -43,9 +44,11 @@ import { enfocarPrimerInvalido } from '../lib/formularios'
 const TITULO = 'Registrar visita'
 const DETALLE_OFFLINE = 'Guardada en el dispositivo · Pendiente de sincronización'
 
-/** Otro adulto del mismo hogar atendido en la visita (fila adicional de DetalleVisita). */
+/** Otro adulto del mismo hogar atendido en la visita (fila adicional de DetalleVisita: adulto, estado y observación). */
 interface FilaAdicional {
   adultoId: string
+  /** Opcional en el tipo: un borrador guardado antes de que existiera este campo no lo trae. */
+  estadoAdulto?: EstadoAdultoVisita | ''
   observacion: string
 }
 
@@ -66,7 +69,7 @@ interface Borrador {
 }
 
 type Errores = Partial<Record<keyof Borrador | 'adulto' | 'responsable' | 'razon' | 'detallesAdicionales', string | undefined>>
-type ErrorFila = { adulto?: string; observacion?: string }
+type ErrorFila = { adulto?: string; estado?: string; observacion?: string }
 
 export function RegistrarVisita() {
   const { user } = useSession()
@@ -186,7 +189,15 @@ function Formulario({
   function setFila(i: number, cambio: Partial<FilaAdicional>) {
     setD((x) => ({ ...x, adicionales: filas.map((f, j) => (j === i ? { ...f, ...cambio } : f)) }))
     setErroresFilas((x) =>
-      x.map((e, j) => (j === i ? { adulto: 'adultoId' in cambio ? undefined : e?.adulto, observacion: 'observacion' in cambio ? undefined : e?.observacion } : e)),
+      x.map((e, j) =>
+        j === i
+          ? {
+              adulto: 'adultoId' in cambio ? undefined : e?.adulto,
+              estado: 'estadoAdulto' in cambio ? undefined : e?.estado,
+              observacion: 'observacion' in cambio ? undefined : e?.observacion,
+            }
+          : e,
+      ),
     )
     if (errores.detallesAdicionales) setErrores((x) => ({ ...x, detallesAdicionales: undefined }))
   }
@@ -194,7 +205,7 @@ function Formulario({
     // Si hay un adulto en el mismo domicilio que aún no está en la lista, se propone primero.
     const usados = new Set(filas.map((f) => f.adultoId))
     const sugerido = candidatos.find((c) => c.hogar && !usados.has(c.a.id))?.a.id ?? ''
-    setD((x) => ({ ...x, adicionales: [...filas, { adultoId: sugerido, observacion: '' }] }))
+    setD((x) => ({ ...x, adicionales: [...filas, { adultoId: sugerido, estadoAdulto: '', observacion: '' }] }))
   }
   function quitarFila(i: number) {
     setD((x) => ({ ...x, adicionales: filas.filter((_, j) => j !== i) }))
@@ -218,8 +229,8 @@ function Formulario({
   async function registrar(e: FormEvent) {
     e.preventDefault()
     if (enviando || subiendo) return
-    // Las filas vacías (sin adulto ni observación) se ignoran; las incompletas se señalan junto a su campo.
-    const llenas = filas.filter((f) => f.adultoId || f.observacion.trim())
+    // Las filas vacías (sin adulto, estado ni observación) se ignoran; las incompletas se señalan junto a su campo.
+    const llenas = filas.filter((f) => f.adultoId || f.estadoAdulto || f.observacion.trim())
     const datos: DatosVisita = {
       visitaId: visita?.id,
       adultoId: adulto?.id ?? '',
@@ -235,9 +246,10 @@ function Formulario({
     }
     const errFilas: ErrorFila[] = llenas.map((f, i) => ({
       adulto: !f.adultoId ? 'Elige el adulto.' : llenas.findIndex((g) => g.adultoId === f.adultoId) !== i ? 'Este adulto ya está en la lista.' : undefined,
+      estado: f.estadoAdulto ? undefined : 'Indica el estado de este adulto.',
       observacion: f.observacion.trim().length < 3 ? 'Escribe una observación corta.' : undefined,
     }))
-    const filasMal = errFilas.some((x) => x.adulto || x.observacion)
+    const filasMal = errFilas.some((x) => x.adulto || x.estado || x.observacion)
     const errs: Errores = {
       ...validarVisita(datos),
       hora: /^\d{2}:\d{2}$/.test(d.hora) ? undefined : 'Indica la hora de la visita.',
@@ -426,6 +438,14 @@ function Formulario({
                         options={candidatos
                           .filter((c) => !usados.has(c.a.id))
                           .map((c) => ({ value: c.a.id, label: `${nombreCompleto(c.a)}${c.hogar ? ' · mismo domicilio' : ''}` }))}
+                      />
+                      <TileSelect
+                        label={`Estado del adulto adicional ${i + 1}`}
+                        required
+                        value={f.estadoAdulto ?? ''}
+                        onChange={(v) => setFila(i, { estadoAdulto: v })}
+                        options={ESTADOS_ADULTO}
+                        error={err?.estado}
                       />
                       <TextField
                         label="Observación"

@@ -8,7 +8,7 @@
  */
 import type { Tone } from '@/components/ui'
 import { fechaCorta, fechaHora, hhmmA12 } from '@/domain/dates'
-import { observacionPara, visitaIncluye } from '@/domain/relaciones'
+import { estadoAdultoPara, observacionPara, visitaIncluye } from '@/domain/relaciones'
 import type { Adulto, Alerta, Catalogos, EnvRiesgo, EstadoAdultoVisita, Necesidad, Riesgo, SeveridadAlerta, Usuario, Visita } from '@/domain/types'
 import { nombreCatalogo, nombreUsuario } from './datos'
 import { ESTADO_ALERTA_TEXTO, ESTADO_NECESIDAD_TEXTO, ESTADO_RIESGO_TEXTO, nombreAdulto, TIPO_NECESIDAD_TEXTO, TONO_ALERTA, TONO_NECESIDAD, TONO_RIESGO_ESTADO } from './formato'
@@ -82,10 +82,11 @@ function eventosDeVisitas(adulto: Adulto, f: FuentesHistorial, verObservaciones:
       const realizada = v.estado === 'completada'
       const otros = [v.adultoId, ...v.detallesAdicionales.map((d) => d.adultoId)].filter((id) => id !== adulto.id)
       const obs = verObservaciones ? observacionPara(v, adulto.id) : undefined
+      const estadoDelAdulto = estadoAdultoPara(v, adulto.id) // el de este adulto, no el del principal de la visita
       const extras: string[] = []
       if (v.visitante) extras.push('Visitante externo')
       extras.push(`${v.visitante ? 'Autorizada por' : 'Responsable'}: ${nombreUsuario(f.usuarios, v.cuidadorId) ?? '—'}`)
-      if (realizada && verObservaciones && v.estadoAdulto) extras.push(`Estado del adulto: ${ESTADO_ADULTO_TEXTO[v.estadoAdulto]}`)
+      if (realizada && verObservaciones && estadoDelAdulto) extras.push(`Estado del adulto: ${ESTADO_ADULTO_TEXTO[estadoDelAdulto]}`)
       if (otros.length > 0) extras.push(`Visita compartida con ${otros.map(nombreDe).join(', ')}`)
       const referencia = realizada ? (v.fin ?? v.inicio ?? `${v.fecha}T${v.horaPautada}`) : `${v.fecha}T${v.horaPautada}`
       return {

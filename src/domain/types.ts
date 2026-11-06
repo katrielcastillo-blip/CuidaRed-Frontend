@@ -407,6 +407,12 @@ export interface MarcaSync {
 export interface DetalleVisita {
   adultoId: string
   observacion: string
+  /**
+   * Cómo se encontró a este adulto durante la visita. @col DetalleVisita.estado_general
+   * El contrato exige un estado por adulto (salvo el registro mínimo del Voluntario); es opcional en el tipo
+   * porque las visitas históricas, anteriores a este campo, no lo tienen.
+   */
+  estadoAdulto?: EstadoAdultoVisita
 }
 
 /**
@@ -430,6 +436,7 @@ export interface Visita extends MarcaSync {
   inicio?: string // ISO  @col Visit_HoraInicio
   fin?: string // ISO     @col Visit_HoraFin
   estado: EstadoVisita
+  /** Estado del adulto principal. @col DetalleVisita.estado_general (el de los demás va en `detallesAdicionales`). */
   estadoAdulto?: EstadoAdultoVisita
   /** @col DetalleVisita.Observacion del adulto principal */
   observaciones?: string

@@ -14,6 +14,7 @@ import type {
   Cuidador,
   DB,
   EnvRiesgo,
+  EstadoAdultoVisita,
   Membresia,
   Organizacion,
   Plan,
@@ -127,6 +128,13 @@ export const adultosDeVisita = (v: Visita) => [v.adultoId, ...v.detallesAdiciona
 /** Observación registrada para un adulto concreto de la visita. */
 export const observacionPara = (v: Visita, adultoId: string) =>
   v.adultoId === adultoId ? v.observaciones : v.detallesAdicionales.find((d) => d.adultoId === adultoId)?.observacion
+
+/**
+ * Estado registrado para un adulto concreto de la visita (DetalleVisita.estado_general). Es `undefined` si no hay:
+ * visitas históricas sin estado por adulto o registro mínimo del Voluntario (se guarda vacío).
+ */
+export const estadoAdultoPara = (v: Visita, adultoId: string): EstadoAdultoVisita | undefined =>
+  (v.adultoId === adultoId ? v.estadoAdulto : v.detallesAdicionales.find((d) => d.adultoId === adultoId)?.estadoAdulto) || undefined
 
 /* ───────────── Riesgos (Env_Riesgo) ───────────── */
 

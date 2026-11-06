@@ -59,7 +59,7 @@ export interface VisitaResumenDto {
   visitante_nombre: string | null
   /** La visita también atendió a otros adultos del hogar. */
   es_compartida: boolean
-  /** Solo en visitas realizadas y cuando el envejeciente es el principal de la visita. */
+  /** Solo en visitas realizadas: el estado registrado PARA este envejeciente (`estado_general` de su detalle); null si no hay. */
   estado_adulto: EstadoAdultoVisitaDto | null
   /** Observación registrada PARA este envejeciente (solo visitas realizadas). */
   observacion: string | null
@@ -75,7 +75,7 @@ export interface EvidenciaDto {
 
 export interface VisitaDetalleDto extends VisitaResumenDto {
   envejeciente: EnvejecienteRefDto
-  /** El envejeciente es el principal de la visita: solo entonces vienen `estado_adulto` y `evidencias`. */
+  /** El envejeciente es el principal de la visita: solo entonces vienen las `evidencias`. */
   es_adulto_principal: boolean
   /** ISO UTC; null si aún no terminó. */
   hora_fin: string | null

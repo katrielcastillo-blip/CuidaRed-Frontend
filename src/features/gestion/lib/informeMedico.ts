@@ -11,7 +11,7 @@
 import type { jsPDF } from 'jspdf'
 import { ROL_LABEL, nombreCompleto } from '@/domain/auth'
 import { edad, fechaCorta, fechaHora, todayISO } from '@/domain/dates'
-import { nombreMunicipio, observacionPara, provinciaDe, riesgosDe, visitaIncluye } from '@/domain/relaciones'
+import { estadoAdultoPara, nombreMunicipio, observacionPara, provinciaDe, riesgosDe, visitaIncluye } from '@/domain/relaciones'
 import { ultimaVisitaCompletada } from '@/domain/reglas'
 import type { Adulto, DB, Usuario } from '@/domain/types'
 import { nombreCatalogo, nombreUsuario } from './datos'
@@ -221,7 +221,8 @@ export async function generarInformeMedico(d: DatosInformeMedico): Promise<{ doc
       recientes.map((v) => {
         const responsable = v.visitante ? `${v.visitante.nombre} (visitante externo; autorizó ${nombreUsuario(db.usuarios, v.cuidadorId) ?? '-'})` : (nombreUsuario(db.usuarios, v.cuidadorId) ?? '-')
         const obs = d.verSensible ? (observacionPara(v, adulto.id) ?? '') : 'No disponible para tu rol'
-        return [fechaCorta(v.fecha), responsable, d.verSensible && v.estadoAdulto ? ESTADO_ADULTO_TEXTO[v.estadoAdulto] : '-', obs || 'Sin observaciones']
+        const estado = d.verSensible ? estadoAdultoPara(v, adulto.id) : undefined // el de este adulto, no el del principal de la visita
+        return [fechaCorta(v.fecha), responsable, estado ? ESTADO_ADULTO_TEXTO[estado] : '-', obs || 'Sin observaciones']
       }),
       [22, 44, 32, 82],
     )

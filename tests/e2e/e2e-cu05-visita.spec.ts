@@ -16,6 +16,7 @@ import { alturaDocumento, CUENTAS, CUENTA_FAMILIA, haceDiasISO, iniciarSesion, l
 
 const OBSERVACIONES = 'Visita de prueba E2E sin novedades, buen estado general.'
 const OBSERVACION_VOLUNTARIO = 'Conversamos un rato en el balcón; estaba de buen ánimo.'
+const OBSERVACION_ADICIONAL = 'Estaba en la sala con ella; se queja de dolor de espalda.'
 
 /** PNG válido de 1×1 px (la app comprueba la firma real del archivo y lo decodifica para reducirlo). */
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
@@ -154,6 +155,78 @@ test.describe('E2E-CU05-VISITA · Registrar visita comunitaria', () => {
     // Al corregir el campo, su error desaparece sin reenviar
     await form.getByRole('radio', { name: 'Estable' }).click()
     await expect(form.getByRole('alert').filter({ hasText: 'Indica el estado del adulto durante la visita.' })).toHaveCount(0)
+  })
+
+  test('Escenario: El cuidador registra una visita a dos adultos del hogar con el estado de cada uno', async ({ page }) => {
+    // Dado que Carlos Ruiz (cuidador) tiene asignados a Camila, Elena y José
+    await sesionDirecta(page, CUENTAS.cuidador.id, '/cuidador/visitas/nueva?adulto=a-camila')
+    const form = page.getByRole('form', { name: 'Registro de visita' })
+    await expect(form).toBeVisible()
+    // Cuando registra el estado y la observación del adulto principal
+    await form.getByRole('radio', { name: 'Estable' }).click()
+    await form.getByRole('textbox', { name: /Observaciones/ }).fill(OBSERVACIONES)
+    // Y añade a otro adulto con su propio estado y su observación
+    await form.getByRole('button', { name: /¿Visitaste a otro adulto del hogar\?/ }).click()
+    const fila = form.getByTestId('fila-adicional')
+    await fila.getByRole('combobox', { name: /Adulto mayor/ }).selectOption('a-jose')
+    await fila.getByRole('radio', { name: 'Requiere atención' }).click()
+    await fila.getByRole('textbox', { name: /Observación/ }).fill(OBSERVACION_ADICIONAL)
+    await form.getByRole('button', { name: 'Registrar visita' }).click()
+
+    // Entonces el sistema guarda el estado de cada adulto en su fila de DetalleVisita
+    await expect(page.getByRole('heading', { name: 'Visita registrada correctamente' })).toBeVisible()
+    const visita = (await leerDB(page)).visitas.find((v) => v.observaciones === OBSERVACIONES)
+    expect(visita).toMatchObject({
+      adultoId: 'a-camila',
+      estadoAdulto: 'estable',
+      detallesAdicionales: [{ adultoId: 'a-jose', estadoAdulto: 'requiere_atencion', observacion: OBSERVACION_ADICIONAL }],
+    })
+    // Y el detalle de la visita muestra el estado de cada adulto junto a su observación
+    await page.getByRole('link', { name: 'Ver la visita' }).click()
+    await expect(page).toHaveURL(new RegExp(`/cuidador/visitas/${visita!.id}$`))
+    const adultos = page.getByRole('region', { name: /Adultos visitados \(2\)/ })
+    await expect(adultos.getByRole('listitem').filter({ hasText: 'Camila Torres' })).toContainText('Estable')
+    const jose = adultos.getByRole('listitem').filter({ hasText: 'José Santana' })
+    await expect(jose).toContainText('Requiere atención')
+    await expect(jose).toContainText(OBSERVACION_ADICIONAL)
+  })
+
+  test('Escenario: Un adulto adicional sin estado impide registrar la visita', async ({ page }) => {
+    await sesionDirecta(page, CUENTAS.cuidador.id, '/cuidador/visitas/nueva?adulto=a-camila')
+    const form = page.getByRole('form', { name: 'Registro de visita' })
+    await expect(form).toBeVisible()
+    const antes = (await leerDB(page)).visitas.length
+    // Dado que el estado del principal y la observación están completos, y el adulto adicional tiene observación pero no estado
+    await form.getByRole('radio', { name: 'Estable' }).click()
+    await form.getByRole('textbox', { name: /Observaciones/ }).fill(OBSERVACIONES)
+    await form.getByRole('button', { name: /¿Visitaste a otro adulto del hogar\?/ }).click()
+    const fila = form.getByTestId('fila-adicional')
+    await fila.getByRole('combobox', { name: /Adulto mayor/ }).selectOption('a-jose')
+    await fila.getByRole('textbox', { name: /Observación/ }).fill(OBSERVACION_ADICIONAL)
+    // Cuando intenta registrar la visita
+    await form.getByRole('button', { name: 'Registrar visita' }).click()
+
+    // Entonces el sistema no la guarda y pide el estado junto a la fila de ese adulto (con foco en su primera opción)
+    await expect(page.getByRole('heading', { name: 'Visita registrada correctamente' })).toHaveCount(0)
+    expect((await leerDB(page)).visitas.length).toBe(antes)
+    await expect(fila.getByRole('alert').filter({ hasText: 'Indica el estado de este adulto.' })).toBeVisible()
+    await expect(fila.getByRole('radiogroup', { name: /Estado del adulto adicional 1/ })).toHaveAttribute('aria-invalid', 'true')
+    await expect(fila.getByRole('radio', { name: 'Estable' })).toBeFocused()
+    // Y no se pierde lo escrito
+    await expect(form.getByRole('textbox', { name: /Observaciones/ })).toHaveValue(OBSERVACIONES)
+    await expect(fila.getByRole('textbox', { name: /Observación/ })).toHaveValue(OBSERVACION_ADICIONAL)
+
+    // Al elegir el estado el error desaparece y la visita se registra
+    await fila.getByRole('radio', { name: 'Situación crítica' }).click()
+    await expect(fila.getByRole('alert')).toHaveCount(0)
+    await form.getByRole('button', { name: 'Registrar visita' }).click()
+    await expect(page.getByRole('heading', { name: 'Visita registrada correctamente' })).toBeVisible()
+    const db = await leerDB(page)
+    expect(db.visitas.find((v) => v.observaciones === OBSERVACIONES)?.detallesAdicionales).toEqual([
+      { adultoId: 'a-jose', estadoAdulto: 'situacion_critica', observacion: OBSERVACION_ADICIONAL },
+    ])
+    // Y la situación crítica de José genera su alerta de emergencia (la de Camila, que está estable, no)
+    expect(db.alertas.filter((a) => a.titulo === 'Situación crítica reportada en visita' && a.generadaPor === CUENTAS.cuidador.id).map((a) => a.adultoId)).toEqual(['a-jose'])
   })
 
   test('Escenario: Registrar una visita sin conexión', async ({ page, context }) => {

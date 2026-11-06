@@ -23,7 +23,7 @@ import type {
   Visita,
 } from './types'
 
-export const DB_VERSION = 6
+export const DB_VERSION = 7
 export const DEMO_PASSWORD = 'Demo1234'
 /** Hash PBKDF2-SHA256 (100 000 iteraciones) de DEMO_PASSWORD con DEMO_SALT: la semilla no guarda contraseñas en claro. */
 const DEMO_SALT = 'c7a1d2e3f4a5b6c7d8e9f0a1b2c3d4e5'
@@ -322,7 +322,7 @@ export function buildSeed(): DB {
       visita({ id: 'v-6', adultoId: 'a-camila', cuidadorId: 'u-cuid', tipo: 'Visita de Seguimiento', fecha: f(-6), horaPautada: '11:00', inicio: isoAt(-6, '11:05'), fin: isoAt(-6, '11:45'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Sin novedades.', evidencias: [] }),
       visita({ id: 'v-7', adultoId: 'a-maria', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', fecha: f(-3), horaPautada: '10:00', inicio: isoAt(-3, '10:10'), fin: isoAt(-3, '10:55'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Visita sin novedades.', evidencias: [] }),
       // Visita a un hogar con dos adultos (DetalleVisita con dos filas)
-      visita({ id: 'v-8', adultoId: 'a-elena', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', razon: 'Visita familiar conjunta', fecha: f(-9), horaPautada: '10:00', inicio: isoAt(-9, '10:00'), fin: isoAt(-9, '10:40'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Control rutinario.', detallesAdicionales: [{ adultoId: 'a-maria', observacion: 'Estaba de visita en casa de Elena; buen estado general.' }], evidencias: [] }),
+      visita({ id: 'v-8', adultoId: 'a-elena', cuidadorId: 'u-giselle', tipo: 'Visita de Seguimiento', razon: 'Visita familiar conjunta', fecha: f(-9), horaPautada: '10:00', inicio: isoAt(-9, '10:00'), fin: isoAt(-9, '10:40'), estado: 'completada', estadoAdulto: 'estable', observaciones: 'Control rutinario.', detallesAdicionales: [{ adultoId: 'a-maria', estadoAdulto: 'estable', observacion: 'Estaba de visita en casa de Elena; buen estado general.' }], evidencias: [] }),
       // Voluntario: una visita de hoy por registrar y una ya realizada
       visita({ id: 'v-sol-2', adultoId: 'a-camila', cuidadorId: 'u-coord', tipo: 'Visita de voluntario ocasional', razon: 'Visita de compañía de la junta de vecinos.', fecha: hoy, horaPautada: '11:00', estado: 'pendiente', notas: 'Visita de voluntario ocasional autorizada a partir de una solicitud.', visitante: { nombre: 'Pedro Castillo', solicitudId: 'sv-2' }, evidencias: [] }),
       visita({ id: 'v-9', adultoId: 'a-alicia', cuidadorId: 'u-vol', tipo: 'Visita de Seguimiento', razon: 'Visita de acompañamiento', fecha: hoy, horaPautada: '17:00', estado: 'pendiente', evidencias: [] }),

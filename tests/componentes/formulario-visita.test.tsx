@@ -2,17 +2,20 @@
  * formulario-visita.test.tsx — Pruebas de componente del formulario «Registrar visita» del cuidador (CU-05 · RF-02 ·
  * RF-06 · RF-10 · SRS §8.2.2.1.22 «sin perder lo escrito» · CR-188): errores junto al campo y foco al primer campo
  * inválido, conservación de lo escrito tras un error, registro en el store, borrador recuperable, visita programada,
- * alcance por vínculo, trabajo sin conexión y bloqueo por rol (el voluntario no entra al área del cuidador).
+ * estado obligatorio de cada adulto adicional del hogar (DetalleVisita.estado_general), alcance por vínculo, trabajo
+ * sin conexión y bloqueo por rol (el voluntario no entra al área del cuidador).
  * Módulo: pruebas · visitas (src/features/visitas/pages/RegistrarVisita.tsx).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequireRole } from '@/app/guards'
 import { ToastProvider } from '@/components/ui'
+import { registrarVisita, validarVisita, type DatosVisita } from '@/domain/api'
 import { setSimularSinConexion } from '@/domain/conectividad'
+import { todayISO } from '@/domain/dates'
 import { puede } from '@/domain/permisos'
 import { abrirSesion, cerrarSesionLocal } from '@/domain/sesion'
 import { getDB, getServidor, resetDemo } from '@/domain/store'
@@ -192,6 +195,118 @@ describe('Registrar visita · validación y foco', () => {
 
     await u.type(motivo, 'Acompañamiento a una diligencia')
     expect(motivo).not.toHaveAttribute('aria-invalid')
+  })
+})
+
+describe('Registrar visita · estado de cada adulto adicional (DetalleVisita.estado_general)', () => {
+  const OBS_ADICIONAL = 'Estaba en la sala, buen ánimo'
+  const ERROR_ESTADO = 'Indica el estado de cada adulto adicional.'
+  const datos = (cambio: Partial<DatosVisita> = {}): DatosVisita => ({
+    adultoId: 'a-camila',
+    responsableId: 'u-cuid',
+    razon: 'Seguimiento periódico',
+    detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'estable' }],
+    fecha: todayISO(),
+    hora: '10:00',
+    estadoAdulto: 'estable',
+    observaciones: OBSERVACION,
+    checklist: [],
+    evidencias: [],
+    ...cambio,
+  })
+  const actor = () => getDB().usuarios.find((x) => x.id === 'u-cuid')!
+  const fueraDelCatalogo = [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'bien' as never }]
+
+  it('validarVisita exige un estado válido para cada adulto adicional', () => {
+    expect(validarVisita(datos()).detallesAdicionales).toBeUndefined()
+    expect(validarVisita(datos({ detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL }] })).detallesAdicionales).toBe(ERROR_ESTADO)
+    expect(validarVisita(datos({ detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: '' }] })).detallesAdicionales).toBe(ERROR_ESTADO)
+    expect(validarVisita(datos({ detallesAdicionales: fueraDelCatalogo })).detallesAdicionales).toBe(ERROR_ESTADO)
+    // Basta con que falte en uno solo.
+    const dos = [
+      { adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'estable' as const },
+      { adultoId: 'a-elena', observacion: OBS_ADICIONAL },
+    ]
+    expect(validarVisita(datos({ detallesAdicionales: dos })).detallesAdicionales).toBe(ERROR_ESTADO)
+  })
+
+  it('en el registro mínimo del voluntario el estado sigue siendo opcional, pero uno inválido no se acepta', () => {
+    const sinEstado = [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL }]
+    const minimo = validarVisita(datos({ minima: true, estadoAdulto: '', detallesAdicionales: sinEstado }))
+    expect(minimo.estadoAdulto).toBeUndefined()
+    expect(minimo.detallesAdicionales).toBeUndefined()
+    expect(validarVisita(datos({ minima: true, detallesAdicionales: fueraDelCatalogo })).detallesAdicionales).toBe(ERROR_ESTADO)
+  })
+
+  it('registrarVisita rechaza el envío sin el estado de un adulto adicional y, con él, lo guarda en su detalle', async () => {
+    const antes = getDB().visitas.length
+    const mal = await registrarVisita(actor(), datos({ detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL }] }))
+    expect(mal.ok).toBe(false)
+    expect(!mal.ok && mal.errores?.detallesAdicionales).toBe(ERROR_ESTADO)
+    expect(getDB().visitas).toHaveLength(antes)
+
+    const bien = await registrarVisita(actor(), datos({ detallesAdicionales: [{ adultoId: 'a-jose', observacion: ` ${OBS_ADICIONAL} `, estadoAdulto: 'requiere_atencion' }] }))
+    expect(bien.ok).toBe(true)
+    expect(getDB().visitas.find((v) => v.observaciones === OBSERVACION)).toMatchObject({
+      adultoId: 'a-camila',
+      estadoAdulto: 'estable',
+      detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'requiere_atencion' }],
+    })
+  })
+
+  it('una situación crítica en un adulto adicional genera su propia alerta de emergencia (y no la del principal)', async () => {
+    const res = await registrarVisita(actor(), datos({ detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'situacion_critica' }] }))
+    expect(res.ok).toBe(true)
+    const alertas = getDB().alertas.filter((a) => a.titulo === 'Situación crítica reportada en visita' && a.generadaPor === 'u-cuid')
+    expect(alertas.map((a) => a.adultoId)).toEqual(['a-jose'])
+    expect(alertas[0]).toMatchObject({ tipo: 'emergencia', severidad: 'alta', estado: 'pendiente' })
+  })
+
+  it('en el formulario, cada fila adicional pide su estado junto a la fila, con foco y sin perder lo escrito', async () => {
+    const u = userEvent.setup()
+    abrir('/cuidador/visitas/nueva?adulto=a-camila')
+    const antes = getDB().visitas.length
+    await completar(u, { adulto: '' }) // estado y observaciones del adulto principal
+    await u.click(await screen.findByRole('button', { name: /Visitaste a otro adulto del hogar/ }))
+    const fila = screen.getByTestId('fila-adicional')
+    await u.selectOptions(within(fila).getByLabelText(/^Adulto mayor/), 'a-jose')
+    await u.type(within(fila).getByLabelText(/^Observación/), OBS_ADICIONAL)
+    await u.click(botonRegistrar())
+
+    // El error está en la fila (no en el estado del principal); nada se registró y se conserva lo escrito.
+    const grupo = within(fila).getByRole('radiogroup', { name: /Estado del adulto adicional 1/ })
+    expect(grupo).toHaveAttribute('aria-invalid', 'true')
+    expect(within(fila).getByText('Indica el estado de este adulto.')).toHaveAttribute('role', 'alert')
+    expect(screen.getAllByRole('radiogroup', { name: /Estado del adulto/ }).filter((g) => g.getAttribute('aria-invalid') === 'true')).toEqual([grupo])
+    await waitFor(() => expect(within(fila).getByRole('radio', { name: 'Estable' })).toHaveFocus())
+    expect(getDB().visitas).toHaveLength(antes)
+    expect(within(fila).getByLabelText(/^Observación/)).toHaveValue(OBS_ADICIONAL)
+    expect(campoObservaciones()).toHaveValue(OBSERVACION)
+
+    // Al elegir el estado el error desaparece y la visita se registra con el estado de cada adulto.
+    await u.click(within(fila).getByRole('radio', { name: 'Requiere atención' }))
+    expect(within(fila).queryByText('Indica el estado de este adulto.')).not.toBeInTheDocument()
+    await u.click(botonRegistrar())
+    expect(await screen.findByRole('heading', { name: 'Visita registrada correctamente' })).toBeInTheDocument()
+    expect(getDB().visitas.find((v) => v.observaciones === OBSERVACION)).toMatchObject({
+      estadoAdulto: 'estable',
+      detallesAdicionales: [{ adultoId: 'a-jose', observacion: OBS_ADICIONAL, estadoAdulto: 'requiere_atencion' }],
+    })
+  })
+
+  it('una fila con solo el estado elegido no se descarta en silencio: se pide el adulto y la observación', async () => {
+    const u = userEvent.setup()
+    abrir('/cuidador/visitas/nueva?adulto=a-camila')
+    const antes = getDB().visitas.length
+    await completar(u, { adulto: '' })
+    await u.click(await screen.findByRole('button', { name: /Visitaste a otro adulto del hogar/ }))
+    const fila = screen.getByTestId('fila-adicional')
+    await u.click(within(fila).getByRole('radio', { name: 'Estable' }))
+    await u.click(botonRegistrar())
+
+    expect(within(fila).getByText('Elige el adulto.')).toBeInTheDocument()
+    expect(within(fila).getByText('Escribe una observación corta.')).toBeInTheDocument()
+    expect(getDB().visitas).toHaveLength(antes)
   })
 })
 

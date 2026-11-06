@@ -16,6 +16,9 @@ import { enLista, errorFechaPasada, errorTexto, fechaValida, hayErrores } from '
 import { todayISO } from '../dates'
 import { ERROR_NO_ENCONTRADO, ERROR_VALIDACION, exito, fallo, sinConexion, verificar, type Resultado } from './comun'
 
+/** Fila adicional de DetalleVisita tal como llega del formulario: el estado puede estar aún sin elegir (''). */
+export type DetalleVisitaDatos = Omit<DetalleVisita, 'estadoAdulto'> & { estadoAdulto?: EstadoAdultoVisita | '' }
+
 export interface DatosVisita {
   /** Si viene, se completa esa visita programada; si no, se crea una visita nueva ya realizada. */
   visitaId?: string
@@ -24,8 +27,11 @@ export interface DatosVisita {
   responsableId: string
   /** Motivo de la visita (Visit_razon). */
   razon: string
-  /** Otros adultos del mismo hogar atendidos en la visita (filas adicionales de DetalleVisita). */
-  detallesAdicionales: DetalleVisita[]
+  /**
+   * Otros adultos del mismo hogar atendidos en la visita (filas adicionales de DetalleVisita), cada uno con su
+   * observación y su estado (estado_general): obligatorio salvo en el registro mínimo del Voluntario (`minima`).
+   */
+  detallesAdicionales: DetalleVisitaDatos[]
   fecha: string // YYYY-MM-DD
   hora: string // HH:MM
   estadoAdulto: EstadoAdultoVisita | ''
@@ -42,6 +48,9 @@ export interface DatosVisita {
 const ESTADOS_ADULTO: EstadoAdultoVisita[] = ['estable', 'requiere_atencion', 'situacion_critica']
 const ASPECTOS = ASPECTOS_VISITA.map((a) => a.value)
 
+/** Estado de un adulto de la visita: uno del catálogo; solo el registro mínimo del Voluntario puede dejarlo vacío. */
+const estadoValido = (estado: string, minima?: boolean) => enLista(estado, ESTADOS_ADULTO) || (!!minima && estado === '')
+
 export function validarVisita(d: DatosVisita) {
   const errores: Record<string, string | undefined> = {
     adulto: d.adultoId ? undefined : 'Selecciona un perfil de adulto mayor válido.',
@@ -52,9 +61,11 @@ export function validarVisita(d: DatosVisita) {
         ? 'Cada adulto puede aparecer una sola vez en la visita.'
         : d.detallesAdicionales.some((x) => x.observacion.trim().length < 3)
           ? 'Escribe una observación para cada adulto adicional.'
-          : undefined,
+          : d.detallesAdicionales.some((x) => !estadoValido(x.estadoAdulto ?? '', d.minima))
+            ? 'Indica el estado de cada adulto adicional.'
+            : undefined,
     fecha: errorFechaPasada(d.fecha, 'la fecha de la visita'),
-    estadoAdulto: enLista(d.estadoAdulto, ESTADOS_ADULTO) || (d.minima && d.estadoAdulto === '') ? undefined : 'Indica el estado del adulto durante la visita.',
+    estadoAdulto: estadoValido(d.estadoAdulto, d.minima) ? undefined : 'Indica el estado del adulto durante la visita.',
     observaciones: errorTexto(d.observaciones, 'las observaciones', 3, 1000),
     checklist: d.checklist.every((c) => ASPECTOS.includes(c)) ? undefined : 'Hay aspectos no válidos en la lista.',
   }
@@ -90,7 +101,7 @@ export async function registrarVisita(actor: Usuario, d: DatosVisita): Promise<R
     cuidadorId: responsable.id,
     autorizadaPor: previa?.autorizadaPor ?? (actor.rol === 'coordinador' ? actor.id : undefined),
     razon: d.razon.trim(),
-    detallesAdicionales: d.detallesAdicionales.map((x) => ({ adultoId: x.adultoId, observacion: x.observacion.trim() })),
+    detallesAdicionales: d.detallesAdicionales.map((x) => ({ adultoId: x.adultoId, observacion: x.observacion.trim(), ...(x.estadoAdulto ? { estadoAdulto: x.estadoAdulto } : {}) })),
     fecha: d.fecha,
     horaPautada: previa?.horaPautada ?? d.hora,
     inicio: previa?.inicio ?? new Date(`${d.fecha}T${d.hora}:00`).toISOString(),
@@ -115,15 +126,20 @@ export async function registrarVisita(actor: Usuario, d: DatosVisita): Promise<R
     if (i >= 0) draft.visitas[i] = visita
     else draft.visitas.push(visita)
     auditar(draft, actor, { accion: 'visita.registrar', entidad: 'visita', registroId: visita.id, detalle: `Adulto ${adulto.id} · estado ${visita.estadoAdulto}` })
-    if (visita.estadoAdulto === 'situacion_critica') {
+    // Una alerta por cada adulto en situación crítica (el principal y los adicionales: el contrato avisa si algún estado lo es).
+    const criticos = [
+      ...(visita.estadoAdulto === 'situacion_critica' ? [{ adultoId: adulto.id, observacion: visita.observaciones ?? '' }] : []),
+      ...visita.detallesAdicionales.filter((x) => x.estadoAdulto === 'situacion_critica'),
+    ]
+    for (const critico of criticos) {
       const alerta: Alerta = {
         id: uid('al'),
-        adultoId: adulto.id,
+        adultoId: critico.adultoId,
         tipo: 'emergencia',
         severidad: 'alta',
         categoria: 'EMERGENCIA MÉDICA',
         titulo: 'Situación crítica reportada en visita',
-        descripcion: `${nombreCompleto(actor)} reportó una situación crítica durante la visita: ${visita.observaciones}`,
+        descripcion: `${nombreCompleto(actor)} reportó una situación crítica durante la visita: ${critico.observacion}`,
         condiciones: ['Situación crítica reportada en visita'],
         creadaEn: ahora,
         estado: 'pendiente',

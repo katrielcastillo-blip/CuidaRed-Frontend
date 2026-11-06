@@ -22,6 +22,7 @@ import {
   contactosDe,
   cuidadoresDe,
   direccionCompleta,
+  estadoAdultoPara,
   nombreContacto,
   observacionPara,
   visitaIncluye,
@@ -91,7 +92,8 @@ function visitaResumen(v: Visita, adultoId: string, usuarios: Usuario[]): Visita
     responsable: nombreDe(usuarios, v.cuidadorId, 'Sin asignar'),
     visitante: v.visitante?.nombre,
     compartida: !principal || v.detallesAdicionales.length > 0,
-    estadoAdulto: realizada && principal ? v.estadoAdulto : undefined,
+    // El estado de ESTE adulto (el principal o el de su fila en DetalleVisita); vacío en visitas históricas sin estado por adulto.
+    estadoAdulto: realizada ? estadoAdultoPara(v, adultoId) : undefined,
     observacion: realizada ? observacionPara(v, adultoId) : undefined,
     pendienteSync: v.pendienteSync,
   }

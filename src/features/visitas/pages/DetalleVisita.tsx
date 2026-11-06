@@ -1,7 +1,7 @@
 /*
  * DetalleVisita.tsx — Detalle de una visita comunitaria (CU-06 · RF-02): motivo (Visit_razon), fecha, hora
  * pautada, hora de inicio y fin (Visit_HoraInicio/Fin), responsable (RegistroVisita.User_Id), autorizada por
- * (Autorizada_por_user_Id), todos los adultos visitados con su observación (DetalleVisita), estado del adulto,
+ * (Autorizada_por_user_Id), todos los adultos visitados con su estado y su observación (DetalleVisita),
  * aspectos verificados y evidencias. Iniciar visita funciona sin conexión (RF-10).
  * El coordinador puede reasignar o cancelar visitas programadas. Familiar y administrador: solo lectura.
  * Módulo: visitas.
@@ -16,9 +16,9 @@ import { ASPECTOS_VISITA } from '@/domain/catalogos'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, hhmmA12, hora12 } from '@/domain/dates'
 import { alcanzaAdulto, puede } from '@/domain/permisos'
-import { asignadosDe, esRolDeCampo } from '@/domain/relaciones'
+import { asignadosDe, esRolDeCampo, estadoAdultoPara } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
-import type { Adulto, Usuario, Visita } from '@/domain/types'
+import type { Adulto, EstadoAdultoVisita, Usuario, Visita } from '@/domain/types'
 import { Button, Card, Datum, SelectField, Sheet, useToast } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
@@ -108,7 +108,8 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
     toast('Visita cancelada')
   }
 
-  const resultado = visita.estadoAdulto ? estadoAdulto(visita.estadoAdulto) : null
+  // Con varios adultos el estado va en la tarjeta de cada uno; el bloque «Estado del adulto» es solo de la visita individual.
+  const resultado = visita.estadoAdulto && visita.detallesAdicionales.length === 0 ? estadoAdulto(visita.estadoAdulto) : null
   const verificados = new Set(visita.checklist ?? [])
 
   return (
@@ -203,7 +204,7 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
                 <Caja>{visita.observaciones?.trim() || 'Sin observaciones registradas.'}</Caja>
               ) : (
                 <ul className="flex flex-col gap-3 m-0 p-0 list-none">
-                  <AdultoVisitado nombre={nombreCompleto(adulto)} principal observacion={visita.observaciones} />
+                  <AdultoVisitado nombre={nombreCompleto(adulto)} principal estado={estadoAdultoPara(visita, adulto.id)} observacion={visita.observaciones} />
                   {visita.detallesAdicionales.map((det) => {
                     const otro = adultos.find((a) => a.id === det.adultoId)
                     // Un adulto fuera del alcance del usuario no se identifica ni se muestra su observación (RBAC).
@@ -213,6 +214,7 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
                         key={det.adultoId}
                         nombre={visible ? nombreCompleto(otro) : 'Otro adulto del hogar'}
                         to={visible ? `${base}/adultos/${otro.id}` : undefined}
+                        estado={visible ? estadoAdultoPara(visita, det.adultoId) : undefined}
                         observacion={visible ? det.observacion : undefined}
                         oculto={!visible}
                       />
@@ -302,8 +304,23 @@ function Contenido({ visita, adulto, user }: { visita: Visita; adulto: Adulto; u
   )
 }
 
-/** Un adulto atendido en la visita (fila de DetalleVisita) con su observación. */
-function AdultoVisitado({ nombre, observacion, principal, to, oculto }: { nombre: string; observacion?: string; principal?: boolean; to?: string; oculto?: boolean }) {
+/** Un adulto atendido en la visita (fila de DetalleVisita) con su estado y su observación. Sin estado registrado (visitas históricas) no se muestra nada. */
+function AdultoVisitado({
+  nombre,
+  estado,
+  observacion,
+  principal,
+  to,
+  oculto,
+}: {
+  nombre: string
+  estado?: EstadoAdultoVisita
+  observacion?: string
+  principal?: boolean
+  to?: string
+  oculto?: boolean
+}) {
+  const resultado = estado ? estadoAdulto(estado) : null
   return (
     <li className="flex flex-col gap-2 p-3 rounded-sm bg-bg">
       <div className="flex flex-wrap items-center gap-2">
@@ -317,6 +334,13 @@ function AdultoVisitado({ nombre, observacion, principal, to, oculto }: { nombre
         )}
         {principal && <span className="text-xs font-semibold text-muted">(principal)</span>}
       </div>
+      {resultado && (
+        <p className={cn('inline-flex items-center gap-1.5 w-fit min-h-8 px-3 rounded-pill border text-sm font-bold', RESULTADO_TONO[resultado.tone])}>
+          <resultado.icon size={18} aria-hidden />
+          <span className="sr-only">Estado: </span>
+          {resultado.label}
+        </p>
+      )}
       <p className="text-base text-ink-2 leading-relaxed whitespace-pre-wrap wrap-anywhere">
         {oculto ? 'No tienes acceso a los datos de este adulto.' : observacion?.trim() || 'Sin observaciones registradas.'}
       </p>
