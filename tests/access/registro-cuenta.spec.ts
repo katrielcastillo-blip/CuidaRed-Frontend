@@ -94,7 +94,7 @@ test('autorregistro completo de una familia: persona, código del correo, cuenta
   await expect(page).toHaveURL(/\/cuenta$/)
   await expect(page.getByRole('heading', { name: 'Mis cuentas' })).toBeVisible()
   await expect(page.getByTestId('cuentas-conectadas').getByRole('button', { name: /Familia Pérez/ })).toHaveAttribute('aria-current', 'true')
-  await expect(page.getByText('Te quedan 7 días de prueba gratuita')).toBeVisible()
+  await expect(page.getByText(/La prueba gratuita termina el/)).toBeVisible()
 
   // signUp lleva los datos del perfil en `options.data` (el trigger del backend crea el perfil con ellos).
   const alta = sim.peticiones.find((p) => p.ruta.endsWith('/signup'))!

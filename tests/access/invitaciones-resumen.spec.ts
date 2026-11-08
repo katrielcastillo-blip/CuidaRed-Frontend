@@ -14,7 +14,7 @@ const cuentasConInvitacion = () => [
   invitacionPendiente({ cuenta_id: 'org-luz', nombre: 'Fundación Luz', rol: 'coordinador', membresia_id: '41' }),
 ]
 
-test('aceptar una invitación pendiente: POST de aceptación, /me se refresca y la cuenta pasa a "Mis cuentas"', async ({ page }) => {
+test('aceptar una invitación refresca el listado independiente de cuentas', async ({ page }) => {
   const sim = await simular(page, { cuentas: cuentasConInvitacion() })
   await iniciarSesion(page, CORREO)
 
@@ -23,7 +23,7 @@ test('aceptar una invitación pendiente: POST de aceptación, /me se refresca y 
   // La invitación no es una cuenta activa: aún no aparece en la lista ni da permisos.
   await expect(page.getByTestId('cuentas-conectadas').getByRole('button')).toHaveCount(1)
 
-  const consultasAntes = sim.llamadas('GET', '/me').length
+  const consultasAntes = sim.llamadas('GET', '/cuentas').length
   await invitaciones.getByRole('button', { name: 'Aceptar' }).click()
 
   await expect(page.getByText('Aceptaste la invitación a Fundación Luz.')).toBeVisible()
@@ -32,7 +32,7 @@ test('aceptar una invitación pendiente: POST de aceptación, /me se refresca y 
   await expect(page.getByTestId('cuentas-conectadas').getByRole('button', { name: /Fundación Luz/ })).toBeVisible()
   expect(sim.llamadas('POST', '/me/membresias/41/aceptar')).toHaveLength(1)
   expect(sim.llamadas('POST', '/me/membresias/41/aceptar')[0]!.cuerpo).toEqual({})
-  expect(sim.llamadas('GET', '/me').length).toBeGreaterThan(consultasAntes)
+  expect(sim.llamadas('GET', '/cuentas').length).toBeGreaterThan(consultasAntes)
 })
 
 test('rechazar una invitación pendiente: POST de rechazo y la invitación desaparece', async ({ page }) => {
@@ -88,7 +88,7 @@ test('resumen de la cuenta activa: tipo, rol, suscripción y días de prueba, y 
   await expect(resumen).toContainText('Coordinador · titular')
   await expect(resumen).toContainText('Prueba gratuita')
   await expect(resumen).toContainText('Con acceso operativo')
-  await expect(resumen).toContainText('Te quedan 3 días de prueba gratuita')
+  await expect(resumen).toContainText('La prueba gratuita termina el')
   await expect(resumen).not.toContainText('no tiene acceso operativo')
   expect(sim.llamadas('GET', '/cuentas/fam-b/suscripcion').length).toBeGreaterThan(0)
 
@@ -96,8 +96,8 @@ test('resumen de la cuenta activa: tipo, rol, suscripción y días de prueba, y 
   await page.getByTestId('cuentas-conectadas').getByRole('button', { name: /Fundación Esperanza/ }).click()
   await expect(resumen).toContainText('Resumen de Fundación Esperanza')
   await expect(resumen).toContainText('Sin acceso operativo')
-  await expect(resumen).toContainText('Esta cuenta no tiene acceso operativo porque su prueba gratuita o su plan venció.')
-  await expect(resumen).not.toContainText('Te quedan')
+  await expect(resumen).toContainText('Esta cuenta no tiene acceso operativo.')
+  await expect(resumen).not.toContainText('La prueba gratuita termina el')
   // Como cuidador no gestiona miembros: el resumen no ofrece ese acceso.
   await expect(resumen.getByRole('link', { name: 'Miembros de la cuenta' })).toHaveCount(0)
   expect(sim.llamadas('GET', '/cuentas/org-a/suscripcion').length).toBeGreaterThan(0)

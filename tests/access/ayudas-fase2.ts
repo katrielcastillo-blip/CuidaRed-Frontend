@@ -86,7 +86,7 @@ export const miembro = (membresia_id: string, nombres: string, apellidos: string
 export const suscripcionDePrueba = (diasRestantes: number, extra: Json = {}): Json => ({
   estado: 'prueba',
   acceso_operativo: true,
-  prueba: { gratuita: true, vigente: true, fecha_inicio: '2026-11-06', fecha_fin: '2026-11-13', dias_restantes: diasRestantes },
+  prueba: { gratuita: true, vigente: true, fecha_inicio: '2026-11-06T12:00:00Z', fecha_fin: '2026-11-13T12:00:00Z', dias_restantes: diasRestantes },
   plan: null,
   fecha_fin_vigencia: null,
   limites: { envejecientes: 2, usuarios: 4, familiares: 2 },
@@ -215,7 +215,18 @@ export async function simular(page: Page, opciones: OpcionesSimulacion = {}) {
     const cuentaDe = (cuentaId: string) => estado.cuentas.find((c) => c.cuenta_id === cuentaId && c.estado_membresia === 'activa')
 
     if (metodo === 'GET' && ruta === '/me') {
-      await ok({ identity: { id, email: correo }, profile: perfil, cuentas: estado.cuentas, cuenta_activa_id: null })
+      await ok({ identity: { id, email: correo }, profile: perfil })
+      return
+    }
+    if (metodo === 'GET' && ruta === '/cuentas') {
+      const page = Number(url.searchParams.get('page') ?? 1)
+      const limit = Number(url.searchParams.get('limit') ?? 20)
+      const activas = estado.cuentas.filter((c) => c.estado_membresia === 'activa')
+      await route.fulfill({ json: { data: activas.slice((page - 1) * limit, page * limit), meta: { page, limit, total: activas.length, totalPages: Math.ceil(activas.length / limit) } } })
+      return
+    }
+    if (metodo === 'GET' && ruta === '/me/membresias') {
+      await ok(estado.cuentas.filter((c) => c.estado_membresia === 'pendiente'))
       return
     }
 

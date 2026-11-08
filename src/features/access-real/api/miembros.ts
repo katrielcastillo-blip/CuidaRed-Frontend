@@ -112,9 +112,6 @@ export const guardarCuidador = (
   datos: { tipo_cuidado_id: number; cuidador_independiente: boolean },
 ) => api<PerfilCuidador>(`${rutaMiembro(cuentaId, membresiaId)}/cuidador`, token, 'POST', datos)
 
-export const finalizarCuidador = (token: string, cuentaId: string, membresiaId: string) =>
-  api<Miembro>(`${rutaMiembro(cuentaId, membresiaId)}/cuidador/finalizar`, token, 'POST')
-
 /** Acepta una invitación propia pendiente (vuelve a comprobar el cupo del plan). */
 export const aceptarMembresia = (token: string, membresiaId: string) =>
   api<MembresiaAceptada>(`/me/membresias/${encodeURIComponent(membresiaId)}/aceptar`, token, 'POST')

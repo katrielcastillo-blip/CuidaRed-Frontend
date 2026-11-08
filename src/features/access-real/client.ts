@@ -131,7 +131,7 @@ export interface LimitesPlan {
   familiares: number | null
 }
 /**
- * Membresía de la persona en una cuenta, tal como la publica GET /me (CR-164, fase 2). Campos en snake_case según
+ * Membresía de la persona en una cuenta (CR-164, fase 2). Campos en snake_case según
  * CR-162. Todo es informativo para la interfaz: el servidor valida. Las cuentas `pendiente` son invitaciones sin
  * aceptar: no dan permisos ni acceso (permisos vacíos, sin suscripción) y traen `membresia_id` para aceptarlas.
  */
@@ -147,7 +147,7 @@ export interface CuentaMe {
   /** Funcionalidades del plan (feature gating, CR-157/CR-187). */
   funcionalidades?: string[]
   es_titular?: boolean
-  /** `false` con la prueba o el plan vencidos: solo se gestiona la cuenta, sus miembros y la suscripción. */
+  /** Con la prueba o plan vencidos solo quedan lectura de cuenta y gestión de suscripción. */
   acceso_operativo?: boolean
   limites?: LimitesPlan | null
   /** Solo en invitaciones pendientes: identifica la membresía que se acepta o rechaza. */
@@ -156,10 +156,6 @@ export interface CuentaMe {
 export interface CurrentUser {
   identity: { id: string; email: string }
   profile: Profile
-  /** [CR-164] Cuentas activas y luego pendientes. Ausente mientras el backend solo publique la fase 1. */
-  cuentas?: CuentaMe[]
-  /** [CR-164] El servidor responde siempre `null`: la cuenta activa la elige el cliente y viaja en la ruta. */
-  cuenta_activa_id?: string | null
 }
 
 export function passwordError(value: string) {

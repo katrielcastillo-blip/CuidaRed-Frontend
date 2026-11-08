@@ -145,7 +145,7 @@ test('login, perfil persistido por API, recarga y cierre sin datos del simulador
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   await page.getByLabel(/^Nombres/).fill('Anabel')
   await page.getByRole('button', { name: 'Guardar cambios' }).click()
-  await expect(page.getByRole('status')).toContainText('Cambios guardados')
+  await expect(page.getByText('Cambios guardados.')).toBeVisible()
   expect(requests.some((r) => r.path === '/api/v1/me' && r.body.nombres === 'Anabel')).toBe(true)
   await page.reload()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Anabel')

@@ -1,5 +1,5 @@
 /*
- * cuentas.spec.ts — CR-175: contexto de cuenta y rol activo del acceso conectado (consume GET /me).
+ * cuentas.spec.ts — CR-175: cuentas activas independientes del perfil.
  * Auth y API interceptados: no usa correo ni base reales.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -30,7 +30,7 @@ const cuentas = [
 ]
 
 async function mock(page: Page, conCuentas: boolean) {
-  let consultasMe = 0
+  let consultasCuentas = 0
   await page.route('https://auth.cuidared.test/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     await route.fulfill({ json: path.endsWith('/token') || path.endsWith('/verify') ? session : path.endsWith('/user') ? authUser : {} })
@@ -38,11 +38,17 @@ async function mock(page: Page, conCuentas: boolean) {
   await page.route('http://localhost:3301/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/me') && route.request().method() === 'GET') {
-      consultasMe++
-      await route.fulfill({ json: { data: { identity: { id: userId, email: authUser.email }, profile, ...(conCuentas ? { cuentas, cuenta_activa_id: 'org-a' } : {}) } } })
+      await route.fulfill({ json: { data: { identity: { id: userId, email: authUser.email }, profile } } })
+    } else if (path.endsWith('/cuentas')) {
+      consultasCuentas++
+      if (conCuentas) {
+        await route.fulfill({ json: { data: cuentas.filter((c) => c.estado_membresia === 'activa'), meta: { page: 1, limit: 20, total: 2, totalPages: 1 } } })
+      } else await route.fulfill({ status: 503, json: { error: { code: 'DEPENDENCY_UNAVAILABLE' } } })
+    } else if (path.endsWith('/me/membresias')) {
+      await route.fulfill({ json: { data: [] } })
     } else await route.fulfill({ status: 204 })
   })
-  return () => consultasMe
+  return () => consultasCuentas
 }
 
 async function entrar(page: Page) {
@@ -50,7 +56,7 @@ async function entrar(page: Page) {
   await page.getByLabel(/^Correo electrónico/).fill(authUser.email)
   await page.getByLabel(/^Contraseña/).fill('Fuerte123!')
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Mis cuentas' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mi cuenta', exact: true })).toBeVisible()
 }
 
 test('CR-175: lista solo las cuentas activas y cambia de cuenta recalculando permisos', async ({ page }) => {
@@ -73,9 +79,10 @@ test('CR-175: lista solo las cuentas activas y cambia de cuenta recalculando per
   await expect(page.getByTestId('cuentas-conectadas').getByRole('button', { name: /Familia Méndez/ })).toHaveAttribute('aria-current', 'true')
 })
 
-test('CR-175: sin cuentas en /me (fase 1) explica la situación sin inventar datos', async ({ page }) => {
+test('CR-175: las cuentas no disponibles conservan el perfil de fase 1', async ({ page }) => {
   await mock(page, false)
   await entrar(page)
-  await expect(page.getByText(/Todavía no perteneces a ninguna familia u organización/)).toBeVisible()
+  await expect(page.getByText('No se pudieron consultar tus cuentas.')).toBeVisible()
+  await expect(page.getByLabel(/^Nombres/)).toHaveValue('Carla')
   await expect(page.getByTestId('cuentas-conectadas')).toHaveCount(0)
 })

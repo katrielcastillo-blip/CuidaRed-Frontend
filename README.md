@@ -14,7 +14,9 @@ Proyecto académico del curso **IDS352-01 Anteproyecto de Grado**, Instituto Tec
 
 El contrato de errores, paginación, orden y filtros está definido en [Convenciones de API — CR-162](../CuidaRed-Backend/docs/CONVENCIONES-API.md), aprobado por el usuario el 31/10/2026. El cliente conectado distingue 401/403/404 y dispone de `apiPage` para los listados que se integren en las siguientes fases.
 
-El acceso conectado es el modo predeterminado: activación de invitaciones con códigos de Supabase, inicio de sesión, recuperación y perfil propio en `src/features/access-real/`. La identidad real no accede a los datos del prototipo. Las cuentas, membresías y módulos operativos se incorporarán según las ocho fases de [la hoja de ruta](../CuidaRed-Backend/PLAN-DESARROLLO-BACKEND.md).
+El acceso conectado es el modo predeterminado. Incluye activación de invitaciones con códigos de Supabase, inicio de sesión, recuperación y perfil propio. Desde **Mi cuenta → Abrir cuenta** se accede a las pantallas conectadas de cuentas, expedientes, visitas y agenda. Para probar los cambios de `Edgardo-CuidaRed-Desarrollo` se necesita la API de esa misma rama y sus propuestas de persistencia aprobadas. Las capturas offline de visitas autorizadas se conservan en la pestaña de la sesión. El prototipo sigue separado.
+
+`Edgardo-CuidaRed-Desarrollo` y `Katriel-Cuidared-Desarrollo` son las ramas de trabajo en paralelo. Sus cambios se revisan y prueban en `integracion/fases-2-4` antes de pasar a la rama principal.
 
 La persistencia de fase 1 fue aprobada y aplicada el 25/10/2026; consultar [su verificación](../CuidaRed-Backend/docs/VERIFICACION-FASE-1-SUPABASE.md). Quedan pendientes configuración Auth y pruebas con usuarios reales, que requieren revisión aparte. El esquema no se crea al iniciar la aplicación. V2 prevalece sobre el SRS donde exista contradicción; la descripción histórica siguiente corresponde al prototipo y no define las reglas del backend.
 

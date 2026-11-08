@@ -8,8 +8,8 @@
  */
 import {
   api,
+  apiPage,
   type CuentaMe,
-  type CurrentUser,
   type EstadoSuscripcion,
   type LimitesPlan,
   type TipoCuenta,
@@ -63,7 +63,7 @@ export interface PlanOfertado {
   es_actual?: boolean
 }
 
-/** Estado de la prueba gratuita: `dias_restantes` llega a 0 el último día, que todavía es vigente. */
+/** Inicio y fin son instantes ISO 8601. El servidor decide si la prueba sigue vigente. */
 export interface PruebaGratuita {
   gratuita: boolean
   vigente: boolean
@@ -87,10 +87,11 @@ export interface Suscripcion {
 
 const rutaCuenta = (cuentaId: string) => `/cuentas/${encodeURIComponent(cuentaId)}`
 
-/** Contexto de la persona: identidad, perfil y cuentas activas y pendientes (GET /me). */
-export const obtenerMe = (token: string) => api<CurrentUser>('/me', token)
+export const listarCuentas = (token: string, page: number) => apiPage<CuentaMe>('/cuentas', token, { page })
 
-/** Alta por autorregistro: el usuario de la sesión queda como titular y la prueba gratuita de 7 días empieza hoy. */
+export const listarInvitaciones = (token: string) => api<CuentaMe[]>('/me/membresias', token)
+
+/** Alta por autorregistro con prueba automática de 168 horas. */
 export const crearCuenta = (token: string, datos: DatosNuevaCuenta) => api<CuentaMe>('/cuentas', token, 'POST', datos)
 
 export const obtenerCuenta = (token: string, cuentaId: string) => api<DetalleCuenta>(rutaCuenta(cuentaId), token)

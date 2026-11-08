@@ -1,6 +1,6 @@
 /*
  * resumen-cuenta.tsx — Invitaciones pendientes y resumen de la cuenta activa en la pantalla "Mi cuenta".
- * Módulo: access-real (fase 2 · cuentas y membresías desde GET /me).
+ * Módulo: access-real (fase 2 · cuentas y membresías).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
  * Las invitaciones se aceptan o rechazan con POST /me/membresias/:id/aceptar|rechazar y luego se vuelve a consultar
@@ -13,14 +13,13 @@ import { Badge, Button, ButtonLink, Datum } from '@/components/ui'
 import { Aviso } from '../auth/components/Piezas'
 import { obtenerSuscripcion, type Suscripcion } from './api/cuentas'
 import { aceptarMembresia, rechazarMembresia } from './api/miembros'
-import type { CuentaMe, CurrentUser } from './client'
-import { pendientesDe, puedeGestionarMiembros, ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
+import type { CuentaMe } from './client'
+import { puedeGestionarMiembros, ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
 import { mensajeDeError } from './errores'
 
 /* ───────────── Invitaciones pendientes ───────────── */
 
-export function InvitacionesPendientes({ user, token, onResuelta }: { user: CurrentUser; token: string; onResuelta: () => void }) {
-  const pendientes = pendientesDe(user)
+export function InvitacionesPendientes({ pendientes, token, onResuelta }: { pendientes: CuentaMe[]; token: string; onResuelta: () => void }) {
   const [ocupada, setOcupada] = useState<string | null>(null)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [aviso, setAviso] = useState('')
@@ -90,23 +89,15 @@ export function InvitacionesPendientes({ user, token, onResuelta }: { user: Curr
 
 /* ───────────── Resumen de la cuenta activa ───────────── */
 
-/** "13 de noviembre de 2026" a partir de YYYY-MM-DD, sin desplazar el día por la zona horaria. */
-function fechaLarga(iso: string | null) {
-  const partes = iso?.split('-').map(Number)
-  if (!partes || partes.length !== 3 || partes.some((n) => !Number.isFinite(n))) return null
-  return new Date(partes[0]!, partes[1]! - 1, partes[2]!).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
 function textoPrueba(prueba: Suscripcion['prueba']) {
   if (!prueba.vigente) return null
-  const hasta = fechaLarga(prueba.fecha_fin)
-  const cuando = prueba.dias_restantes === 0 ? 'Hoy es el último día de la prueba gratuita' : `Te quedan ${prueba.dias_restantes} ${prueba.dias_restantes === 1 ? 'día' : 'días'} de prueba gratuita`
-  return hasta ? `${cuando} (hasta el ${hasta}).` : `${cuando}.`
+  if (!prueba.fecha_fin) return 'Prueba gratuita vigente.'
+  return `La prueba gratuita termina el ${new Date(prueba.fecha_fin).toLocaleString('es-DO', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Santo_Domingo' })} (hora dominicana).`
 }
 
 type EstadoCarga = { tipo: 'cargando' } | { tipo: 'lista'; datos: Suscripcion } | { tipo: 'error' }
 
-export function ResumenCuenta({ cuenta, token }: { cuenta: CuentaMe; token: string }) {
+export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuenta: CuentaMe; token: string; mostrarAcciones?: boolean }) {
   const [estado, setEstado] = useState<EstadoCarga>({ tipo: 'cargando' })
   const [intento, setIntento] = useState(0)
 
@@ -161,11 +152,13 @@ export function ResumenCuenta({ cuenta, token }: { cuenta: CuentaMe; token: stri
       {prueba && <Aviso tono="info">{prueba}</Aviso>}
       {sinAcceso && (
         <Aviso tono="warning">
-          Esta cuenta no tiene acceso operativo porque su prueba gratuita o su plan venció. Mientras tanto solo puedes gestionar la cuenta, sus
-          miembros y la suscripción.
+          Esta cuenta no tiene acceso operativo. Puedes consultar sus datos y acceder a la suscripción según tu rol.
         </Aviso>
       )}
-      {puedeGestionarMiembros(cuenta) && (
+      {mostrarAcciones && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/cuenta`} variant="outline" size="sm" className="self-start">
+        Abrir cuenta
+      </ButtonLink>}
+      {mostrarAcciones && !sinAcceso && puedeGestionarMiembros(cuenta) && (
         <ButtonLink to="/cuenta/miembros" variant="outline" size="sm" className="self-start">
           Miembros de la cuenta
         </ButtonLink>

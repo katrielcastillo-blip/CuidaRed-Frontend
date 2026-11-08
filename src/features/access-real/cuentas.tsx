@@ -1,26 +1,21 @@
 /*
- * cuentas.tsx — Contexto de cuenta y rol activo del acceso conectado (CR-175 · consume GET /api/v1/me).
+ * cuentas.tsx — Contexto de cuenta y rol activo del acceso conectado (CR-175).
  * Módulo: access-real.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
  * Reglas de Negocio V2: un usuario puede pertenecer a varias cuentas (Familia u Organización) con un rol distinto
- * en cada una. El contrato ampliado de /me (CR-164, fase 2) agrega `cuentas` con la membresía, el rol, los permisos
- * efectivos y el estado de suscripción de cada cuenta: primero las activas y luego las invitaciones pendientes.
- * Con el backend de la fase 1, /me solo trae identidad y perfil: el panel lo explica y no inventa datos.
+ * en cada una. GET /cuentas lista las membresías activas y el rol de cada cuenta.
  *
  * La cuenta elegida se recuerda en sessionStorage (dura lo que la sesión del navegador) y nunca se envía como
  * parámetro de autorización: el servidor vuelve a validar membresía y permisos en cada petición (CR-162).
  */
 import { Building2, Check, House } from 'lucide-react'
-import { Badge, ButtonLink } from '@/components/ui'
+import { Badge, Button, ButtonLink } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import type { CuentaMe, CurrentUser } from './client'
+import type { CuentaMe } from './client'
 import { ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
 
 export const CLAVE_CUENTA_ACTIVA = 'cuidared.cuenta.activa'
-
-/** Cuentas activas que devuelve /me (vacío si el backend aún no las informa). */
-export const cuentasDe = (user: CurrentUser | null): CuentaMe[] => (user?.cuentas ?? []).filter((c) => c.estado_membresia === 'activa')
 
 export function leerCuentaActiva(): string | null {
   try {
@@ -39,19 +34,12 @@ export function guardarCuentaActiva(id: string | null) {
   }
 }
 
-/**
- * Cuenta en la que actúa el usuario: la que eligió en esta sesión, la que el servidor marca como activa o la
- * primera. Si la elegida ya no aparece (membresía desactivada), se descarta.
- */
-export function cuentaVigente(user: CurrentUser | null, elegida: string | null): CuentaMe | undefined {
-  const cuentas = cuentasDe(user)
-  return cuentas.find((c) => c.cuenta_id === elegida) ?? cuentas.find((c) => c.cuenta_id === user?.cuenta_activa_id) ?? cuentas[0]
-}
-
 /** Lista de cuentas con su rol; permite cambiar de cuenta (los permisos de la nueva se aplican al instante). */
-export function PanelCuentas({ user, activa, onCambiar }: { user: CurrentUser; activa: CuentaMe | undefined; onCambiar: (id: string) => void }) {
-  const cuentas = cuentasDe(user)
-  if (cuentas.length === 0) {
+export function PanelCuentas({ cuentas, activa, onCambiar, pagina, totalPaginas, onPagina }: {
+  cuentas: CuentaMe[]; activa: CuentaMe | undefined; onCambiar: (id: string) => void
+  pagina: number; totalPaginas: number; onPagina: (page: number) => void
+}) {
+  if (cuentas.length === 0 && pagina === 1) {
     return (
       <section aria-labelledby="titulo-cuentas" className="mt-6 flex flex-col gap-2">
         <h2 id="titulo-cuentas" className="text-base font-semibold text-ink">
@@ -96,6 +84,13 @@ export function PanelCuentas({ user, activa, onCambiar }: { user: CurrentUser; a
           )
         })}
       </ul>
+      {(totalPaginas > 1 || pagina > 1) && (
+        <nav aria-label="Páginas de cuentas" className="flex items-center gap-2">
+          <Button variant="outline" disabled={pagina === 1} onClick={() => onPagina(pagina - 1)}>Anterior</Button>
+          <span>Página {pagina}</span>
+          <Button variant="outline" disabled={pagina >= totalPaginas} onClick={() => onPagina(pagina + 1)}>Siguiente</Button>
+        </nav>
+      )}
       {activa && (
         <p className="text-sm text-muted" data-testid="permisos-cuenta">
           Permisos en {activa.nombre}: {activa.permisos.length ? `${activa.permisos.length} funciones habilitadas para tu rol` : 'ninguno'}.

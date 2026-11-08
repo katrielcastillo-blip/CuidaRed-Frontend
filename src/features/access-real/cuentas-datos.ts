@@ -5,7 +5,7 @@
  *
  * Todo es informativo para la interfaz: el servidor valida roles, permisos y estado en cada petición (CR-162).
  */
-import type { CuentaMe, CurrentUser, EstadoSuscripcion, RolCuenta, TipoCuenta } from './client'
+import type { CuentaMe, EstadoSuscripcion, RolCuenta, TipoCuenta } from './client'
 
 export const ROL_TEXTO: Record<RolCuenta, string> = {
   administrador: 'Administrador',
@@ -33,9 +33,6 @@ const SUSCRIPCION_TEXTO: Record<EstadoSuscripcion, string> = {
 }
 export const suscripcionTexto = (estado: CuentaMe['estado_suscripcion']) => (estado ? SUSCRIPCION_TEXTO[estado] : 'Sin suscripción')
 
-/** Invitaciones pendientes de aceptar: no dan acceso ni permisos hasta que la persona las acepta. */
-export const pendientesDe = (user: CurrentUser | null): CuentaMe[] =>
-  (user?.cuentas ?? []).filter((c) => c.estado_membresia === 'pendiente' && !!c.membresia_id)
-
 /** La gestión de miembros exige `usuarios:gestionar` en la cuenta activa (Coordinador en Familia, Administrador en Organización). */
-export const puedeGestionarMiembros = (cuenta: CuentaMe | undefined) => !!cuenta?.permisos.includes('usuarios:gestionar')
+export const puedeGestionarMiembros = (cuenta: CuentaMe | undefined) =>
+  cuenta?.acceso_operativo === true && cuenta.permisos.includes('usuarios:gestionar')

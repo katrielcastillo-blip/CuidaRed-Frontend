@@ -26,7 +26,9 @@ const POR_CODIGO: Record<string, string> = {
   LAST_MANAGER: 'La cuenta debe conservar al menos una persona gestora activa. Nombra a otra antes de hacer este cambio.',
   INVALID_STATE: 'Este cambio ya no es posible en el estado actual de la persona. Actualiza la lista e intenta de nuevo.',
   RATE_LIMITED: 'Hiciste demasiadas invitaciones seguidas. Espera unos minutos e intenta de nuevo.',
-  SUBSCRIPTION_INACTIVE: 'La cuenta no tiene una prueba o un plan vigente. Solo puedes gestionar la cuenta y sus miembros.',
+  SUBSCRIPTION_INACTIVE: 'La cuenta no tiene una prueba o un plan vigente. Puedes consultar la cuenta y su suscripción.',
+  EVIDENCE_REQUIRED: 'La tarea requiere una evidencia validada para completarse.',
+  VISIT_CLOSED: 'La visita ya está cerrada.',
   FORBIDDEN: 'No tienes permiso para realizar esta acción en esta cuenta.',
 }
 
