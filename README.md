@@ -14,7 +14,9 @@ Proyecto académico del curso **IDS352-01 Anteproyecto de Grado**, Instituto Tec
 
 El contrato de errores, paginación, orden y filtros está definido en [Convenciones de API — CR-162](../CuidaRed-Backend/docs/CONVENCIONES-API.md), aprobado por el usuario el 31/10/2026. El cliente conectado distingue 401/403/404 y dispone de `apiPage` para los listados que se integren en las siguientes fases.
 
-El acceso conectado es el modo predeterminado: activación de invitaciones con códigos de Supabase, inicio de sesión, recuperación y perfil propio en `src/features/access-real/`. La identidad real no accede a los datos del prototipo. Las cuentas, membresías y módulos operativos se incorporarán según las ocho fases de [la hoja de ruta](../CuidaRed-Backend/PLAN-DESARROLLO-BACKEND.md).
+El acceso conectado es el modo predeterminado. Incluye activación de invitaciones con códigos de Supabase, inicio de sesión, recuperación y perfil propio. Desde **Mi cuenta → Abrir cuenta** se accede a las pantallas conectadas de cuentas, expedientes, visitas y agenda. Para probar los cambios de `Edgardo-CuidaRed-Desarrollo` se necesita la API de esa misma rama y sus propuestas de persistencia aprobadas. Las capturas offline de visitas autorizadas se conservan en la pestaña de la sesión. El prototipo sigue separado.
+
+`Edgardo-CuidaRed-Desarrollo` y `Katriel-Cuidared-Desarrollo` son las ramas de trabajo en paralelo. Sus cambios se revisan y prueban en `integracion/fases-2-4` antes de pasar a la rama principal.
 
 La persistencia de fase 1 fue aprobada y aplicada el 25/10/2026; consultar [su verificación](../CuidaRed-Backend/docs/VERIFICACION-FASE-1-SUPABASE.md). Quedan pendientes configuración Auth y pruebas con usuarios reales, que requieren revisión aparte. El esquema no se crea al iniciar la aplicación. V2 prevalece sobre el SRS donde exista contradicción; la descripción histórica siguiente corresponde al prototipo y no define las reglas del backend.
 
@@ -82,12 +84,18 @@ Pruebas del acceso conectado: `npx playwright test --config playwright.access.co
 
 Se muestran únicamente con `VITE_AUTH_MODE=demo` durante desarrollo. Sus datos y contraseñas son simulados y no se migran a la identidad real. La configuración Playwright histórica habilita este modo explícitamente; no reutilizar un servidor ya iniciado en otro modo.
 
-| Rol | Correo |
-|---|---|
-| Administrador | admin@cuidared.do |
-| Coordinador | coordinador@cuidared.do |
-| Voluntario | voluntario@cuidared.do |
-| Familiar responsable | familiar@cuidared.do |
+Hay dos cuentas (Reglas de Negocio V2): la Organización **Fundación Esperanza** (plan Gestión Comunitaria Avanzada) y la Familia **Familia Méndez** (prueba gratuita de 7 días).
+
+| Rol | Correo | Cuenta |
+|---|---|---|
+| Administrador | admin@cuidared.do | Fundación Esperanza |
+| Coordinador | coordinador@cuidared.do | Fundación Esperanza |
+| Cuidador | cuidador@cuidared.do | Fundación Esperanza y Familia Méndez (selector de cuenta) |
+| Voluntario | voluntario@cuidared.do | Fundación Esperanza |
+| Familiar responsable | familiar@cuidared.do | Fundación Esperanza y Familia Méndez |
+| Coordinador (titular de la familia) | familia@cuidared.do | Familia Méndez |
+
+Solicitud de visita de ejemplo para un visitante externo: código `VIS-DEMO-2026` en «Consultar mi solicitud».
 
 En la pantalla de inicio, «Cuentas de demostración» rellena el formulario. Para volver al estado inicial: Mi perfil → «Restablecer datos de demostración».
 
@@ -113,6 +121,9 @@ docs/            RTM, mapeo con la BD (MAPEO-BD.md), manual de usuario y guía p
 ```bash
 npm run typecheck                    # tipos
 npm run lint                         # análisis estático
+npm run test:componentes             # componentes y guards por rol (Vitest + Testing Library)
+npm run test:access                  # acceso conectado con Auth/API interceptados
+npm run build && npm run verificar:cache   # precache ≤ 50 MB (RNF-5.2)
 npx playwright install chromium      # una sola vez
 npm run test:e2e                     # unitarias + E2E (móvil 360×640 y escritorio)
 npx playwright test --project=unit   # solo las unitarias del dominio

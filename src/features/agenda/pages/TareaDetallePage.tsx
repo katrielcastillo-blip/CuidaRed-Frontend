@@ -1,56 +1,54 @@
 /*
  * TareaDetallePage.tsx — Detalle de una tarea de la agenda (Tarea_agenda) y sus evidencias (Evidencias).
- *  - Todos los campos de la tarea: adulto, cuidador (usuario + tipo de cuidado), indicación relacionada,
- *    fecha y hora programadas, prioridad, estado, requiere evidencia, repetitiva y quién la creó (User_creador).
- *  - Acciones de estado con cambiarEstadoTarea: Iniciar y Completar (cuidador asignado o quien gestiona la
- *    agenda) y Cancelar (solo agenda:gestionar).
- *  - Evidencias: lista (miniatura o nombre de archivo, fecha de registro, observación, estado de validación,
- *    quién la registró y quién la validó), "Agregar evidencia" (registrarEvidencia) y validar/rechazar
- *    (validarEvidencia, permiso evidencias:validar).
+ *  - Todos los campos de la tarea: adulto, cuidador (usuario + tipo de cuidado), indicación relacionada, fecha y
+ *    hora programadas, prioridad, estado, requiere evidencia, serie (ocurrencia N de M) y quién la creó (User_creador).
+ *  - Acciones de estado con cambiarEstadoTarea: Iniciar y Completar (cuidador asignado o quien gestiona la agenda;
+ *    una tarea que requiere evidencia solo se completa con una evidencia validada) y Cancelar (solo agenda:gestionar,
+ *    esta o esta y las siguientes de la serie).
+ *  - Evidencias: situación (sin adjuntar · por validar · validada · rechazada con su motivo), lista con miniatura
+ *    ampliable, "Agregar evidencia" (tomar foto / elegir archivo, RS-013) y Validar / Rechazar con motivo
+ *    (permiso evidencias:validar).
  * Si el usuario no alcanza la tarea → "No encontrado o sin permiso".
  * Módulo: agenda.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { Ban, Camera, CircleCheck, CircleX, Clock, FileText, Paperclip, Pencil, Pill, Play, Repeat, Upload, WifiOff } from 'lucide-react'
-import { Badge, Button, ButtonLink, Sheet, Spinner, TextareaField, useToast } from '@/components/ui'
-import { cambiarEstadoTarea, registrarEvidencia, validarEvidencia } from '@/domain/api'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { Ban, Camera, CircleCheck, CircleX, Clock, Hourglass, Paperclip, Pencil, Pill, Play, Repeat, ShieldCheck, WifiOff } from 'lucide-react'
+import { Badge, Button, ButtonLink, ChoicePills, Sheet } from '@/components/ui'
+import { EVIDENCIA_MAX_POR_TAREA, motivoSinEvidenciaValidada, ocurrenciasDeSerie, siguientesDeSerie } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, fechaHora, todayISO } from '@/domain/dates'
 import { puede } from '@/domain/permisos'
-import type { EstadoTarea, Evidencia } from '@/domain/types'
-import { esMiniatura, procesarEvidencias } from '@/features/visitas/lib/evidencias'
 import { Page, useShell } from '@/layouts/AppShell'
-import { useBorrador } from '@/lib/useBorrador'
+import { AdjuntarEvidencia } from '../components/AdjuntarEvidencia'
+import { EvidenciaItem } from '../components/EvidenciaItem'
 import { NoEncontrado } from '../components/NoEncontrado'
-import { cuandoTarea, ESTADO_EVIDENCIA, ESTADO_TAREA, evidenciaValida, horaTarea, PRIORIDAD, tareaAbierta, useAgenda } from '../lib/agenda'
-
-const MAX_OBSERVACION = 300
+import { useAccionesTarea } from '../lib/acciones'
+import { cuandoTarea, ESTADO_TAREA, horaTarea, PRIORIDAD, rechazoVigente, situacionEvidencia, tareaAbierta, useAgenda } from '../lib/agenda'
 
 export default function TareaDetallePage() {
   const { tareaId } = useParams()
+  const { hash } = useLocation()
   const { base } = useShell()
-  const toast = useToast()
   const enLinea = useEnLinea()
   const { user, tareas, evidencias, adultoPorId, cuidadorPorId, indicacionPorId, nombreDe, veIndicacion, vinculos, catalogos } = useAgenda()
+  const { cambiar, cancelar, validar, rechazar } = useAccionesTarea()
 
   const tarea = tareas.find((t) => t.id === tareaId)
   const susEvidencias = useMemo(
     () => evidencias.filter((e) => e.tareaId === tareaId).sort((a, b) => b.fechaRegistro.localeCompare(a.fechaRegistro)),
     [evidencias, tareaId],
   )
-
-  const [nueva, setNueva, descartarNueva] = useBorrador<{ archivo: string; nombre: string; observacion: string }>(`evidencia:${tareaId}:${user.id}`, {
-    archivo: '',
-    nombre: '',
-    observacion: '',
-  })
-  const [errEv, setErrEv] = useState<{ archivo?: string; observacion?: string }>({})
-  const [procesando, setProcesando] = useState(false)
   const [confirmarCancelar, setConfirmarCancelar] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [alcance, setAlcance] = useState<'esta' | 'siguientes'>('esta')
+
+  // Desde las tarjetas de la agenda ("Adjuntar evidencia") se llega directo a la sección de evidencias.
+  useEffect(() => {
+    if (hash !== '#evidencias' || !tarea) return
+    document.getElementById('evidencias')?.scrollIntoView({ block: 'start' })
+  }, [hash, tarea])
 
   if (!tarea) return <NoEncontrado titulo="Detalle de tarea" />
 
@@ -65,57 +63,22 @@ export default function TareaDetallePage() {
   const opera = gestiona || ejecuta
   const valida = puede(user, 'evidencias:validar', adulto, vinculos)
   const abierta = tareaAbierta(tarea)
-  const faltaEvidencia = tarea.requiereEvidencia && !susEvidencias.some(evidenciaValida)
+  const situacion = situacionEvidencia(susEvidencias)
+  const motivoBloqueo = motivoSinEvidenciaValidada(tarea, susEvidencias)
+  const rechazo = tarea.requiereEvidencia && abierta ? rechazoVigente(susEvidencias) : undefined
   const estado = ESTADO_TAREA[tarea.estado]
   const prioridad = PRIORIDAD[tarea.prioridad]
   const vencida = abierta && tarea.fechaProgramada < todayISO()
+  const vigentes = susEvidencias.filter((e) => e.estadoValidacion !== 'rechazada').length
 
-  const cambiar = (nuevo: EstadoTarea) => {
-    const r = cambiarEstadoTarea(user, tarea.id, nuevo)
-    if (!r.ok) return toast(r.error, 'error')
-    const textos: Record<EstadoTarea, string> = {
-      pendiente: 'Tarea reabierta.',
-      en_curso: 'Tarea iniciada.',
-      completada: tarea.repetitiva ? 'Tarea completada. Se programó la de mañana.' : 'Tarea completada.',
-      cancelada: 'Tarea cancelada.',
-    }
-    toast(textos[nuevo], 'ok')
-  }
+  const serie = ocurrenciasDeSerie(tareas, tarea)
+  const siguientes = siguientesDeSerie(tareas, tarea)
+  const cuantasSiguientes = siguientes.length - 1
+  const posicion = serie.findIndex((t) => t.id === tarea.id) + 1
 
-  const elegirArchivo = async (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    e.target.value = ''
-    if (!f) return
-    if (f.size > 15 * 1024 * 1024) {
-      setErrEv((x) => ({ ...x, archivo: 'El archivo es demasiado grande (máximo 15 MB).' }))
-      return
-    }
-    setProcesando(true)
-    try {
-      const [archivo] = await procesarEvidencias([f])
-      setNueva((n) => ({ ...n, archivo: archivo ?? f.name, nombre: f.name }))
-      setErrEv((x) => ({ ...x, archivo: undefined }))
-    } finally {
-      setProcesando(false)
-    }
-  }
-
-  const guardarEvidencia = () => {
-    const r = registrarEvidencia(user, tarea.id, nueva.archivo, nueva.observacion)
-    if (!r.ok) {
-      setErrEv((r.errores as typeof errEv | undefined) ?? {})
-      return toast(r.error, 'error')
-    }
-    descartarNueva()
-    setNueva({ archivo: '', nombre: '', observacion: '' })
-    setErrEv({})
-    toast(tarea.requiereEvidencia && abierta ? 'Evidencia guardada. Ya puedes completar la tarea.' : 'Evidencia guardada.', 'ok')
-  }
-
-  const decidir = (ev: Evidencia, decision: 'validada' | 'rechazada') => {
-    const r = validarEvidencia(user, ev.id, decision)
-    if (!r.ok) return toast(r.error, 'error')
-    toast(decision === 'validada' ? 'Evidencia validada.' : 'Evidencia rechazada. El cuidador deberá adjuntar otra.', decision === 'validada' ? 'ok' : 'info')
+  const confirmar = () => {
+    setConfirmarCancelar(false)
+    cancelar(tarea, alcance)
   }
 
   return (
@@ -167,9 +130,10 @@ export default function TareaDetallePage() {
                 <Camera size={18} className="text-navy" aria-hidden /> {tarea.requiereEvidencia ? 'Sí' : 'No'}
               </span>
             </Dato>
-            <Dato etiqueta="Tarea repetitiva">
+            <Dato etiqueta="Se repite">
               <span className="inline-flex items-center gap-1.5">
-                <Repeat size={18} className="text-navy" aria-hidden /> {tarea.repetitiva ? 'Sí, a diario' : 'No'}
+                <Repeat size={18} className="text-navy" aria-hidden />
+                {tarea.repetitiva ? (serie.length > 1 ? `Sí · ${posicion} de ${serie.length}` : 'Sí') : 'No'}
               </span>
             </Dato>
             <Dato etiqueta="Creada por">{nombreDe(tarea.creadaPor)}</Dato>
@@ -198,23 +162,24 @@ export default function TareaDetallePage() {
               {!enLinea && <SinConexion />}
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {tarea.estado === 'pendiente' && (
-                  <Button variant="outline" disabled={!enLinea} onClick={() => cambiar('en_curso')} icon={<Play size={20} aria-hidden />} className="sm:flex-1">
+                  <Button variant="outline" disabled={!enLinea} onClick={() => cambiar(tarea, 'en_curso')} icon={<Play size={20} aria-hidden />} className="sm:flex-1">
                     Iniciar tarea
                   </Button>
                 )}
                 <Button
-                  disabled={!enLinea || faltaEvidencia}
-                  onClick={() => cambiar('completada')}
+                  disabled={!enLinea || !!motivoBloqueo}
+                  onClick={() => cambiar(tarea, 'completada')}
                   icon={<CircleCheck size={22} aria-hidden />}
                   className="sm:flex-1"
+                  aria-describedby={motivoBloqueo ? 'motivo-completar' : undefined}
                 >
                   Completar tarea
                 </Button>
               </div>
-              {faltaEvidencia && (
-                <p className="flex items-start gap-2 text-sm text-warning-700 font-semibold">
+              {motivoBloqueo && (
+                <p id="motivo-completar" className="flex items-start gap-2 text-sm text-warning-700 font-semibold">
                   <Camera size={18} className="flex-none mt-px" aria-hidden />
-                  Esta tarea requiere evidencia: adjunta una foto o documento antes de completarla.
+                  {motivoBloqueo}
                 </p>
               )}
               {gestiona && (
@@ -226,7 +191,10 @@ export default function TareaDetallePage() {
                     variant="danger-soft"
                     size="sm"
                     disabled={!enLinea}
-                    onClick={() => setConfirmarCancelar(true)}
+                    onClick={() => {
+                      setAlcance('esta')
+                      setConfirmarCancelar(true)
+                    }}
                     icon={<Ban size={18} aria-hidden />}
                     className="sm:flex-1"
                   >
@@ -245,12 +213,25 @@ export default function TareaDetallePage() {
         </section>
 
         {/* ───────── Evidencias ───────── */}
-        <section className="flex flex-col gap-4 min-w-0" aria-labelledby="tarea-evidencias">
+        <section id="evidencias" className="flex flex-col gap-4 min-w-0 scroll-mt-20" aria-labelledby="tarea-evidencias">
           <div className="flex items-center justify-between gap-3">
             <h2 id="tarea-evidencias" className="text-xl font-bold text-ink">
               Evidencias <span className="text-base font-normal text-muted">({susEvidencias.length})</span>
             </h2>
           </div>
+
+          {tarea.requiereEvidencia && <SituacionEvidenciaTarea situacion={situacion} valida={valida} explicadaArriba={opera && abierta && !!motivoBloqueo} />}
+          {rechazo && (
+            <p className="flex items-start gap-2 p-3 rounded-sm bg-danger-100 border border-danger text-sm text-ink" role="status">
+              <CircleX size={18} className="flex-none mt-0.5 text-danger" aria-hidden />
+              <span className="wrap-anywhere">
+                <strong>Evidencia rechazada:</strong> {rechazo.motivoRechazo ?? 'adjunta una nueva evidencia.'}
+                <span className="block text-xs text-muted">
+                  {rechazo.validadaPor ? `Por ${nombreDe(rechazo.validadaPor)} · ` : ''}La tarea volvió a pendiente{situacion === 'pendiente' ? '.' : ': hay que adjuntar una nueva evidencia.'}
+                </span>
+              </span>
+            </p>
+          )}
 
           {susEvidencias.length === 0 ? (
             <div className="flex items-center justify-between gap-3 min-h-12 px-4 py-3 rounded-sm bg-surface-2 border border-line-soft text-muted">
@@ -258,133 +239,25 @@ export default function TareaDetallePage() {
               <Paperclip size={22} aria-hidden />
             </div>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {susEvidencias.map((e, i) => {
-                const est = ESTADO_EVIDENCIA[e.estadoValidacion]
-                return (
-                  <li key={e.id} className="flex flex-col gap-3 p-3 rounded-sm border border-line bg-bg">
-                    <div className="flex items-start gap-3">
-                      {esMiniatura(e.archivo) ? (
-                        <img
-                          src={e.archivo}
-                          alt={`Evidencia ${susEvidencias.length - i}: ${e.observacion ?? 'foto adjunta'}`}
-                          className="size-20 flex-none rounded-sm object-cover border border-line-soft"
-                        />
-                      ) : (
-                        <span className="grid place-items-center size-20 flex-none rounded-sm bg-surface-2 text-navy">
-                          <FileText size={32} aria-hidden />
-                        </span>
-                      )}
-                      <div className="flex flex-col flex-1 min-w-0 gap-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone={est.tono}>{est.label}</Badge>
-                          <span className="text-xs text-muted">{fechaHora(e.fechaRegistro)}</span>
-                        </div>
-                        {!esMiniatura(e.archivo) && <span className="text-sm font-semibold text-ink wrap-anywhere">{e.archivo}</span>}
-                        <p className="text-sm text-ink-2 wrap-anywhere">{e.observacion || <span className="text-muted">Sin observación.</span>}</p>
-                        <p className="text-xs text-muted">
-                          Registrada por {nombreDe(e.registradaPor)}
-                          {e.validadaPor && ` · ${e.estadoValidacion === 'rechazada' ? 'Rechazada' : 'Validada'} por ${nombreDe(e.validadaPor)}`}
-                        </p>
-                      </div>
-                    </div>
-                    {valida && e.estadoValidacion === 'pendiente' && (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="soft"
-                          size="sm"
-                          className="flex-1 text-base"
-                          disabled={!enLinea}
-                          onClick={() => decidir(e, 'validada')}
-                          icon={<CircleCheck size={18} aria-hidden />}
-                        >
-                          Validar
-                        </Button>
-                        <Button
-                          variant="danger-soft"
-                          size="sm"
-                          className="flex-1 text-base"
-                          disabled={!enLinea}
-                          onClick={() => decidir(e, 'rechazada')}
-                          icon={<CircleX size={18} aria-hidden />}
-                        >
-                          Rechazar
-                        </Button>
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
+            <ul className="flex flex-col gap-3 m-0 p-0 list-none">
+              {susEvidencias.map((e, i) => (
+                <EvidenciaItem
+                  key={e.id}
+                  evidencia={e}
+                  titulo={`Evidencia ${susEvidencias.length - i}`}
+                  nombreDe={nombreDe}
+                  puedeValidar={valida}
+                  enLinea={enLinea}
+                  onValidar={validar}
+                  onRechazar={rechazar}
+                />
+              ))}
             </ul>
           )}
 
           {/* ───── Agregar evidencia ───── */}
-          {opera && tarea.estado !== 'cancelada' && (
-            <div className="flex flex-col gap-4 p-4 rounded-sm bg-blue-100 border border-blue">
-              <h3 className="flex items-center gap-2 text-base font-bold text-ink">
-                <Upload size={20} className="text-navy" aria-hidden /> Agregar evidencia
-              </h3>
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                className="sr-only"
-                id="evidencia-archivo"
-                onChange={elegirArchivo}
-                tabIndex={-1}
-                aria-hidden
-              />
-              {nueva.archivo ? (
-                <div className="flex items-center gap-3 p-2 rounded-sm bg-bg border border-line-soft">
-                  {esMiniatura(nueva.archivo) ? (
-                    <img src={nueva.archivo} alt="Vista previa de la evidencia" className="size-16 flex-none rounded-sm object-cover" />
-                  ) : (
-                    <FileText size={28} className="flex-none text-navy" aria-hidden />
-                  )}
-                  <span className="flex-1 min-w-0 text-sm font-semibold text-ink wrap-anywhere">{nueva.nombre || nueva.archivo}</span>
-                  <Button variant="ghost" size="sm" onClick={() => setNueva((n) => ({ ...n, archivo: '', nombre: '' }))} aria-label="Quitar archivo">
-                    Quitar
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => inputRef.current?.click()}
-                    disabled={procesando}
-                    icon={procesando ? <Spinner /> : <Camera size={20} aria-hidden />}
-                  >
-                    {procesando ? 'Procesando…' : 'Tomar foto o elegir archivo'}
-                  </Button>
-                  {errEv.archivo ? (
-                    <p className="text-sm text-danger" role="alert">
-                      {errEv.archivo}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted">Foto (se reduce para ahorrar espacio) o documento PDF.</p>
-                  )}
-                </div>
-              )}
-              <TextareaField
-                label="Observación"
-                className="min-h-[96px] bg-bg"
-                maxLength={MAX_OBSERVACION}
-                placeholder="Ej.: Tomó la tableta a las 8:05 a.m."
-                value={nueva.observacion}
-                onChange={(e) => {
-                  setNueva((n) => ({ ...n, observacion: e.target.value }))
-                  setErrEv((x) => ({ ...x, observacion: undefined }))
-                }}
-                error={errEv.observacion}
-                hint={`Opcional · ${nueva.observacion.length}/${MAX_OBSERVACION}`}
-                help="Describe brevemente lo que muestra la evidencia. La coordinación la revisará y la marcará como validada o rechazada."
-              />
-              {!enLinea && <SinConexion />}
-              <Button onClick={guardarEvidencia} disabled={!enLinea || !nueva.archivo || procesando} icon={<Upload size={20} aria-hidden />}>
-                Guardar evidencia
-              </Button>
-            </div>
+          {opera && tarea.estado !== 'cancelada' && !(tarea.requiereEvidencia && situacion === 'validada') && (
+            <AdjuntarEvidencia tarea={tarea} user={user} enLinea={enLinea} restantes={EVIDENCIA_MAX_POR_TAREA - vigentes} />
           )}
         </section>
       </div>
@@ -398,26 +271,64 @@ export default function TareaDetallePage() {
             <Button variant="outline" size="sm" onClick={() => setConfirmarCancelar(false)}>
               Volver
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                setConfirmarCancelar(false)
-                cambiar('cancelada')
-              }}
-            >
+            <Button variant="danger" size="sm" onClick={confirmar}>
               Sí, cancelar
             </Button>
           </>
         }
       >
         <p className="text-ink-2">
-          «{tarea.titulo}» dejará de aparecer en la agenda de {cuidador?.nombre ?? 'el cuidador'}.
-          {tarea.repetitiva && ' Al ser repetitiva, no se programarán más repeticiones.'}
+          «{tarea.titulo}» dejará de aparecer como pendiente en la agenda de {cuidador?.nombre ?? 'el cuidador'}, que recibirá un aviso.
         </p>
+        {cuantasSiguientes > 0 && (
+          <ChoicePills<'esta' | 'siguientes'>
+            label="¿Qué tareas cancelar?"
+            value={alcance}
+            onChange={setAlcance}
+            options={[
+              { value: 'esta', label: 'Solo esta' },
+              { value: 'siguientes', label: `Esta y las ${cuantasSiguientes} siguientes` },
+            ]}
+            help="Cada repetición es una tarea individual. Puedes cancelar solo esta ocurrencia o también las siguientes de la serie que sigan abiertas."
+          />
+        )}
       </Sheet>
     </Page>
   )
+}
+
+/**
+ * Mensaje con la situación de la evidencia de una tarea que la requiere. Si quien la mira puede operar la tarea, el
+ * motivo por el que aún no se completa ya se explica bajo el botón "Completar" (`explicadaArriba`) y no se repite.
+ */
+function SituacionEvidenciaTarea({
+  situacion,
+  valida,
+  explicadaArriba,
+}: {
+  situacion: ReturnType<typeof situacionEvidencia>
+  valida: boolean
+  explicadaArriba: boolean
+}) {
+  if (situacion === 'validada') {
+    return (
+      <p className="flex items-start gap-2 p-3 rounded-sm bg-success-100 border border-success-700 text-sm text-ink" role="status">
+        <ShieldCheck size={18} className="flex-none mt-0.5 text-success-700" aria-hidden />
+        Evidencia validada: la tarea requería evidencia y ya la tiene.
+      </p>
+    )
+  }
+  if (situacion === 'pendiente') {
+    if (explicadaArriba && !valida) return null
+    return (
+      <p className="flex items-start gap-2 p-3 rounded-sm bg-warning-100 border border-warning text-sm text-ink" role="status">
+        <Hourglass size={18} className="flex-none mt-0.5 text-warning-700" aria-hidden />
+        {valida ? 'Hay una evidencia por validar. Al validarla, la tarea queda completada.' : 'La evidencia está en revisión. La tarea se completará cuando la coordinación la valide.'}
+      </p>
+    )
+  }
+  // Rechazada: la explica el aviso con su motivo (más arriba). Sin evidencia: el motivo bajo "Completar" y la lista vacía.
+  return null
 }
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {

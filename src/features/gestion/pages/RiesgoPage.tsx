@@ -15,7 +15,7 @@ import { guardarEvaluacionRiesgo } from '@/domain/api'
 import { useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { alcanzaAdulto } from '@/domain/permisos'
-import { riesgosDe, voluntariosDe } from '@/domain/relaciones'
+import { riesgosDe, asignadosDe } from '@/domain/relaciones'
 import { fechaHora } from '@/domain/dates'
 import { useDB } from '@/domain/store'
 import type { Adulto } from '@/domain/types'
@@ -86,7 +86,7 @@ function Evaluacion({ adulto }: { adulto: Adulto }) {
   const factores = useDB((s) => s.catalogos.riesgos)
   const perfil = `${base}/adultos/${adulto.id}`
   const { back } = useVolver(perfil)
-  const [respuestas, setRespuestas] = useState<Respuestas>(() => respuestasIniciales(adulto, voluntariosDe(vinculos, adulto.id).length > 0))
+  const [respuestas, setRespuestas] = useState<Respuestas>(() => respuestasIniciales(adulto, asignadosDe(vinculos, adulto.id).length > 0))
   const [intentado, setIntentado] = useState(false)
   const [resultado, setResultado] = useState<(ResultadoRiesgo & { anterior: Adulto['riesgo']; fecha: string }) | null>(null)
   // Registro de Env_Riesgo creado por esta evaluación y factores vigentes tras guardarla.

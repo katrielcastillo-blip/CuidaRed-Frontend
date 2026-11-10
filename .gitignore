@@ -27,3 +27,4 @@ shots/
 # Pruebas
 playwright-report/
 test-results/
+test-results*/

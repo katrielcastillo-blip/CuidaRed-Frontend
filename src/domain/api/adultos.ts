@@ -12,8 +12,7 @@ import type { Adulto, Autonomia, ContactoEmergencia, DB, EnvRiesgo, Evaluacion, 
 import { enLista, errorCedula, errorFechaNacimiento, errorNombre, errorTelefono, errorTexto, hayErrores, limpiarTexto } from '../validacion'
 import { ERROR_NO_ENCONTRADO, ERROR_VALIDACION, exito, fallo, sinConexion, verificar, type Resultado } from './comun'
 
-/** Parentescos predefinidos para los contactos de emergencia (Contacto_emergencia.Contacto_Parentesco). */
-export const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Hermano/a', 'Nieto/a', 'Sobrino/a', 'Otro familiar', 'Vecino/a', 'Amigo/a', 'Otro']
+export { PARENTESCOS } from '../catalogos'
 
 /** Datos del formulario de perfil (registro y edición). El contacto es el principal (los demás se gestionan en el perfil). */
 export interface DatosAdulto {
@@ -342,8 +341,11 @@ export function asignarVinculos(actor: Usuario, adultoId: string, tipo: TipoVinc
   if (!a) return fallo(ERROR_NO_ENCONTRADO)
   const denegado = verificar(actor, 'adultos:asignar', 'adulto', a)
   if (denegado) return denegado
-  const rolEsperado = tipo === 'voluntario_asignado' ? 'voluntario' : tipo === 'familiar_responsable' ? 'familiar' : null
-  const validos = getDB().usuarios.filter((u) => usuarioIds.includes(u.id) && u.orgId === a.orgId && (!rolEsperado || u.rol === rolEsperado))
+  const rolEsperado = tipo === 'cuidador_asignado' ? 'cuidador' : tipo === 'voluntario_asignado' ? 'voluntario' : tipo === 'familiar_responsable' ? 'familiar' : null
+  // El rol se comprueba con la membresía activa en la cuenta del adulto (V2: un usuario puede tener varias cuentas).
+  const db0 = getDB()
+  const rolEnCuenta = (u: Usuario) => db0.membresias.find((m) => m.usuarioId === u.id && m.orgId === a.orgId && m.estado === 'activa')?.rol ?? (u.orgId === a.orgId ? u.rol : undefined)
+  const validos = db0.usuarios.filter((u) => usuarioIds.includes(u.id) && rolEnCuenta(u) !== undefined && (!rolEsperado || rolEnCuenta(u) === rolEsperado))
   if (validos.length !== usuarioIds.length) return fallo(rolEsperado ? `Solo se pueden vincular usuarios con rol ${rolEsperado} de la organización.` : 'Hay usuarios no válidos.')
   mutate((db) => {
     const ahora = new Date().toISOString()
@@ -366,8 +368,18 @@ export function asignarVinculos(actor: Usuario, adultoId: string, tipo: TipoVinc
   return exito(undefined)
 }
 
-/** Compatibilidad: asignar voluntarios = vínculos "voluntario_asignado". */
+/** Asignar voluntarios = vínculos "voluntario_asignado" (solo registran la visita y su observación). */
 export const asignarVoluntarios = (actor: Usuario, adultoId: string, voluntarioIds: string[]) => asignarVinculos(actor, adultoId, 'voluntario_asignado', voluntarioIds)
+
+/** Asignar cuidadores = vínculos "cuidador_asignado" (V2: todos los cuidadores asignados tienen el mismo nivel). */
+export const asignarCuidadores = (actor: Usuario, adultoId: string, cuidadorIds: string[]) => asignarVinculos(actor, adultoId, 'cuidador_asignado', cuidadorIds)
+
+/** Autorizar familiares = vínculos "familiar_responsable" (V2: permiso explícito por envejeciente). */
+export const autorizarFamiliares = (actor: Usuario, adultoId: string, familiarIds: string[]): Resultado => {
+  const denegado = verificar(actor, 'familiares:autorizar', 'adulto')
+  if (denegado) return denegado
+  return asignarVinculos(actor, adultoId, 'familiar_responsable', familiarIds)
+}
 
 /* ───────────── Riesgos (Env_Riesgo) ───────────── */
 

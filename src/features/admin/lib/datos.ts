@@ -1,14 +1,15 @@
 /*
- * datos.ts — Utilidades del área de administración: texto, fechas relativas y usuarios de la organización.
+ * datos.ts — Utilidades del área de administración: texto, fechas relativas y miembros de la cuenta (por membresía).
  * Módulo: admin (RF-09 · CU-13).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
+import { membresiaEnCuenta, estadoEnCuenta } from '@/domain/api'
 import { useSession } from '@/domain/auth'
 import { useDB } from '@/domain/store'
 import { fechaCorta } from '@/domain/dates'
-import type { Usuario } from '@/domain/types'
+import type { EstadoMiembro, Membresia, Rol, Usuario } from '@/domain/types'
 
 /* ───────────── Utilidades de texto y fecha ───────────── */
 
@@ -54,11 +55,32 @@ export function volver(navigate: NavigateFunction, fallback: string) {
   else navigate(fallback, { replace: true })
 }
 
-/* ───────────── Usuarios de la organización ───────────── */
+/* ───────────── Miembros de la cuenta (a partir de las membresías) ───────────── */
 
-/** Todas las cuentas de la organización del administrador (los 4 roles y todos los estados). */
-export function useUsuariosOrg(): Usuario[] {
+/** Una persona de la cuenta activa: su usuario, su membresía en ESTA cuenta (vigente o la más reciente) y su estado. */
+export interface Miembro {
+  usuario: Usuario
+  membresia: Membresia
+  rol: Rol
+  estado: EstadoMiembro
+}
+
+/**
+ * Miembros de la cuenta activa. Se listan por Membresia (m.orgId === cuenta activa), NO por Usuario.orgId (que es solo
+ * la cuenta principal de la persona): así aparecen también quienes pertenecen a varias cuentas, con el rol que tienen
+ * en esta. Quien dejó la cuenta aparece como inactivo (su membresía queda cerrada con fecha de fin).
+ */
+export function useMiembros(): Miembro[] {
   const { org } = useSession()
   const usuarios = useDB((s) => s.usuarios)
-  return useMemo(() => (org ? usuarios.filter((u) => u.orgId === org.id) : []), [usuarios, org])
+  const membresias = useDB((s) => s.membresias)
+  return useMemo(() => {
+    if (!org) return []
+    const ids = new Set(membresias.filter((m) => m.orgId === org.id).map((m) => m.usuarioId))
+    return usuarios.flatMap((usuario) => {
+      if (!ids.has(usuario.id)) return []
+      const membresia = membresiaEnCuenta(membresias, usuario.id, org.id)
+      return membresia ? [{ usuario, membresia, rol: membresia.rol, estado: estadoEnCuenta(usuario, membresia) }] : []
+    })
+  }, [usuarios, membresias, org])
 }

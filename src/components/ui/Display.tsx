@@ -4,7 +4,7 @@
  * Módulo: kit de componentes UI.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useId, useState, type HTMLAttributes, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CircleCheck, CircleHelp, Diamond, TriangleAlert, UserRound } from 'lucide-react'
 import type { Riesgo } from '@/domain/types'
@@ -251,6 +251,7 @@ export function StepBar({ step, total }: { step: number; total: number }) {
       aria-valuemin={1}
       aria-valuemax={total}
       aria-valuenow={step}
+      aria-valuetext={`Paso ${step} de ${total}`}
     >
       <span className="block h-full bg-navy rounded-sm transition-[width] duration-200" style={{ width: `${(step / total) * 100}%` }} />
     </div>
@@ -263,7 +264,20 @@ export function StepBar({ step, total }: { step: number; total: number }) {
  */
 export function HelpTip({ children, label = 'Ayuda' }: { children: ReactNode; label?: string }) {
   const [abierto, setAbierto] = useState(false)
+  // Desplazamiento horizontal para que la burbuja no quede cortada en el borde de pantallas estrechas.
+  const [ajuste, setAjuste] = useState(0)
+  const burbuja = useRef<HTMLSpanElement>(null)
   const id = useId()
+
+  useLayoutEffect(() => {
+    if (!abierto || !burbuja.current) return
+    const r = burbuja.current.getBoundingClientRect()
+    const margen = 8
+    const ancho = document.documentElement.clientWidth
+    if (r.left < margen) setAjuste(margen - r.left)
+    else if (r.right > ancho - margen) setAjuste(ancho - margen - r.right)
+  }, [abierto])
+
   return (
     <span className="relative inline-flex align-middle">
       <button
@@ -272,16 +286,27 @@ export function HelpTip({ children, label = 'Ayuda' }: { children: ReactNode; la
         aria-label={label}
         aria-expanded={abierto}
         aria-controls={id}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={() => {
+          setAjuste(0)
+          setAbierto((v) => !v)
+        }}
         onBlur={() => setAbierto(false)}
+        onKeyDown={(e) => {
+          // Esc cierra la ayuda (WCAG 1.4.13) sin cerrar el panel que la contiene.
+          if (e.key !== 'Escape' || !abierto) return
+          e.stopPropagation()
+          setAbierto(false)
+        }}
       >
         <CircleHelp size={20} aria-hidden />
       </button>
       <span
+        ref={burbuja}
         id={id}
         role="tooltip"
         hidden={!abierto}
-        className="absolute z-40 top-full left-1/2 -translate-x-1/2 mt-1 w-[min(280px,80vw)] rounded-md bg-navy text-white text-sm font-normal leading-snug p-3 shadow-2"
+        style={ajuste ? { marginLeft: ajuste } : undefined}
+        className="absolute z-40 top-full left-1/2 -translate-x-1/2 mt-1 w-[min(280px,80vw)] max-h-[min(60vh,22rem)] overflow-y-auto rounded-md bg-navy text-white text-sm font-normal leading-snug p-3 shadow-2"
       >
         {children}
       </span>

@@ -2,7 +2,7 @@
 // © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
 // Captura una ruta del prototipo en móvil (390px) y escritorio (1280px) para revisión visual.
 // Uso: node scripts/shot.mjs <ruta> <rol|anon> <nombre> [--port 5173] [--full]
-//   node scripts/shot.mjs /voluntario voluntario dashboard
+//   node scripts/shot.mjs /cuidador cuidador dashboard   (roles: cuidador|voluntario|familiar|admin|coordinador|familia=coordinadora de la cuenta Familia|anon)
 //   node scripts/shot.mjs /inicio anon login
 // Salida: shots/<nombre>-mobile.png y shots/<nombre>-desktop.png (+ -tablet con --tablet)
 import { chromium } from 'playwright'
@@ -14,7 +14,7 @@ const ruta = '/' + rutaArg.replace(/^[A-Za-z]:\/.*?\/Git\//, '').replace(/^\/+/,
 const port = flags.includes('--port') ? flags[flags.indexOf('--port') + 1] : '5173'
 const full = flags.includes('--full')
 const base = `http://localhost:${port}`
-const IDS = { voluntario: 'u-cuid', familiar: 'u-fam', admin: 'u-admin', coordinador: 'u-coord' }
+const IDS = { cuidador: 'u-cuid', voluntario: 'u-vol', familiar: 'u-fam', admin: 'u-admin', coordinador: 'u-coord', familia: 'u-fcoord' }
 
 mkdirSync('shots', { recursive: true })
 const browser = await chromium.launch()

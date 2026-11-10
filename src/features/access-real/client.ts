@@ -1,4 +1,8 @@
-/* Supabase Auth real y API de perfil · ID01. © 2026 Equipo CuidaRed – INTEC. */
+/*
+ * client.ts — Cliente de Supabase Auth, cliente HTTP de la API Express y tipos base del acceso conectado.
+ * Módulo: access-real (ID01 · ID02).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { collectionSearch, readPaginatedResponse, type CollectionQuery, type PaginatedResponse } from '../../lib/api-contract'
 
@@ -117,6 +121,38 @@ export interface Profile {
   telefono: string | null
   estado: 'activo'
 }
+export type TipoCuenta = 'familia' | 'organizacion'
+export type RolCuenta = 'administrador' | 'coordinador' | 'cuidador' | 'familiar' | 'voluntario'
+export type EstadoSuscripcion = 'prueba' | 'activa' | 'vencida' | 'cancelada' | 'suspendida'
+/** Límites del plan de la cuenta; `null` = ilimitado. */
+export interface LimitesPlan {
+  envejecientes: number | null
+  usuarios: number | null
+  familiares: number | null
+}
+/**
+ * Membresía de la persona en una cuenta (CR-164, fase 2). Campos en snake_case según
+ * CR-162. Todo es informativo para la interfaz: el servidor valida. Las cuentas `pendiente` son invitaciones sin
+ * aceptar: no dan permisos ni acceso (permisos vacíos, sin suscripción) y traen `membresia_id` para aceptarlas.
+ */
+export interface CuentaMe {
+  cuenta_id: string
+  nombre: string
+  tipo: TipoCuenta
+  rol: RolCuenta
+  estado_membresia: 'activa' | 'inactiva' | 'pendiente'
+  /** Acciones permitidas para el rol en esa cuenta (p. ej. "visitas:registrar"). */
+  permisos: string[]
+  estado_suscripcion: EstadoSuscripcion | null
+  /** Funcionalidades del plan (feature gating, CR-157/CR-187). */
+  funcionalidades?: string[]
+  es_titular?: boolean
+  /** Con la prueba o plan vencidos solo quedan lectura de cuenta y gestión de suscripción. */
+  acceso_operativo?: boolean
+  limites?: LimitesPlan | null
+  /** Solo en invitaciones pendientes: identifica la membresía que se acepta o rechaza. */
+  membresia_id?: string
+}
 export interface CurrentUser {
   identity: { id: string; email: string }
   profile: Profile
@@ -143,6 +179,7 @@ export async function logout() {
     await client.auth.signOut({ scope: 'local' })
   } finally {
     window.sessionStorage.removeItem(STORAGE_KEY)
+    window.sessionStorage.removeItem('cuidared.cuenta.activa')
     window.location.assign(revoked ? '/inicio' : '/inicio?cierre=pendiente')
   }
 }

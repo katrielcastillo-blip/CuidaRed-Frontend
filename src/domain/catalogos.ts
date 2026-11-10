@@ -10,9 +10,12 @@ export interface Opcion<T extends string = string> {
   label: string
 }
 
+export const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Hermano/a', 'Nieto/a', 'Sobrino/a', 'Otro familiar', 'Vecino/a', 'Amigo/a', 'Otro']
+
 export const ROLES: Array<Opcion<Rol>> = [
   { value: 'admin', label: 'Administrador' },
   { value: 'coordinador', label: 'Coordinador' },
+  { value: 'cuidador', label: 'Cuidador' },
   { value: 'voluntario', label: 'Voluntario' },
   { value: 'familiar', label: 'Familiar responsable' },
 ]

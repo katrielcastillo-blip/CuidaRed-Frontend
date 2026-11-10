@@ -1,8 +1,13 @@
-/* Formularios ID01 conectados, sin contraseñas locales · acceso. © 2026 Equipo CuidaRed – INTEC. */
+/*
+ * forms.tsx — Formularios conectados del acceso: inicio de sesión, activación de invitación, recuperación y perfil.
+ * Módulo: access-real (ID01), sin contraseñas locales.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { Button, ButtonLink, Checkbox, PasswordField, StepBar, TextField } from '@/components/ui'
+import { Mail } from 'lucide-react'
+import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
 import { AuthScreen } from '../auth/components/AuthScreen'
 import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
 import { LogoBadge } from '../auth/components/LogoBadge'
@@ -14,7 +19,6 @@ const normalEmail = (email: string) => email.trim().toLowerCase()
 const message = (error: unknown) => (error instanceof Error ? error.message : 'No se pudo completar la operación. Intenta de nuevo.')
 
 export function AccessForm({ notice }: { notice: string }) {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -30,11 +34,7 @@ export function AccessForm({ notice }: { notice: string }) {
       setPassword('')
       if (issue || !data.session) {
         setError('Correo o contraseña incorrectos.')
-        return
       }
-      // La API vuelve a comprobar la identidad, la sesión actual y el estado del usuario.
-      await api<CurrentUser>('/me', data.session.access_token)
-      navigate('/cuenta', { replace: true })
     } catch (issue) {
       setError(message(issue))
     } finally {
@@ -73,6 +73,9 @@ export function AccessForm({ notice }: { notice: string }) {
         </ButtonLink>
         <ButtonLink to="/registro" variant="outline">
           Activar mi cuenta
+        </ButtonLink>
+        <ButtonLink to="/crear-cuenta" variant="ghost">
+          Crear una cuenta
         </ButtonLink>
         <nav className="flex justify-center gap-4">
           <Link className="inline-flex min-h-12 items-center" to="/terminos">
@@ -474,7 +477,13 @@ export function ProfileForm({ token, profile, onSaved }: { token: string; profil
   }
   return (
     <form className="flex flex-col gap-5" onSubmit={submit}>
-      <p className="break-all">{profile.correo}</p>
+      <div className="flex min-w-0 items-center gap-3 rounded-md border border-line-soft bg-surface p-3">
+        <IconTile size={40}><Mail size={20} aria-hidden /></IconTile>
+        <dl className="min-w-0">
+          <dt className="text-sm font-semibold text-navy">Correo electrónico</dt>
+          <dd className="wrap-anywhere font-medium text-ink">{profile.correo}</dd>
+        </dl>
+      </div>
       <PersonalFields data={data} setData={setData} showCedula />
       {error && <Aviso tono="error">{error}</Aviso>}
       {notice && <p role="status">{notice}</p>}
