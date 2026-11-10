@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { expect, test } from '@playwright/test'
-import { cuentaActiva, invitacionPendiente, iniciarSesion, PERMISOS_CAMPO, simular, suscripcionDePrueba } from './ayudas-fase2'
+import { cuentaActiva, invitacionPendiente, iniciarSesionEnMiCuenta, PERMISOS_CAMPO, simular, suscripcionDePrueba } from './ayudas-fase2'
 
 const CORREO = 'laura@example.test'
 
@@ -16,7 +16,7 @@ const cuentasConInvitacion = () => [
 
 test('aceptar una invitación refresca el listado independiente de cuentas', async ({ page }) => {
   const sim = await simular(page, { cuentas: cuentasConInvitacion() })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
 
   const invitaciones = page.getByTestId('invitaciones-pendientes')
   await expect(invitaciones).toContainText('Te invitaron a Fundación Luz como Coordinador')
@@ -37,7 +37,7 @@ test('aceptar una invitación refresca el listado independiente de cuentas', asy
 
 test('rechazar una invitación pendiente: POST de rechazo y la invitación desaparece', async ({ page }) => {
   const sim = await simular(page, { cuentas: cuentasConInvitacion() })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
   await page.getByTestId('invitaciones-pendientes').getByRole('button', { name: 'Rechazar' }).click()
 
   await expect(page.getByText('Rechazaste la invitación a Fundación Luz.')).toBeVisible()
@@ -49,7 +49,7 @@ test('rechazar una invitación pendiente: POST de rechazo y la invitación desap
 
 test('si el cupo del plan cambió, aceptar muestra el motivo y la invitación sigue disponible', async ({ page }) => {
   const sim = await simular(page, { cuentas: cuentasConInvitacion(), errorAlAceptar: { estado: 409, codigo: 'PLAN_LIMIT_REACHED' } })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
   const invitaciones = page.getByTestId('invitaciones-pendientes')
   await invitaciones.getByRole('button', { name: 'Aceptar' }).click()
 
@@ -80,7 +80,7 @@ test('resumen de la cuenta activa: tipo, rol, suscripción y días de prueba, y 
       }),
     },
   })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
 
   const resumen = page.getByTestId('resumen-cuenta')
   await expect(resumen).toContainText('Resumen de Familia Méndez')
@@ -109,7 +109,7 @@ test('si no se puede consultar la suscripción, el resumen sigue con lo que info
   await page.route('http://localhost:3301/api/v1/cuentas/org-a/suscripcion', async (route) => {
     await route.fulfill({ status: 503, json: { error: { code: 'DEPENDENCY_UNAVAILABLE', message: 'mensaje_privado' } } })
   })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
   const resumen = page.getByTestId('resumen-cuenta')
   await expect(resumen).toContainText('No se pudo consultar el detalle de la suscripción.')
   await expect(resumen).toContainText('Sin acceso operativo')

@@ -10,12 +10,14 @@
  * activación de una invitación). Quien ya tiene sesión salta los pasos de persona: solo elige tipo y datos de la cuenta.
  * Cada pantalla tiene como máximo 5 campos de texto, valida junto al campo y conserva lo escrito ante cualquier error.
  */
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { AuthError, Session } from '@supabase/supabase-js'
-import { Button, Checkbox, ChoicePills, PasswordField, SelectField, StepBar, TextField } from '@/components/ui'
+import { Button, ButtonLink, Checkbox, PasswordField, SelectField, StepBar, TextField } from '@/components/ui'
 import { DIAS_PRUEBA_GRATUITA } from '@/domain/planes'
+import { cn } from '@/lib/cn'
 import { AuthScreen } from '../auth/components/AuthScreen'
+import { LogoBadge } from '../auth/components/LogoBadge'
 import { Aviso, ENLACE, RequisitosPassword } from '../auth/components/Piezas'
 import { crearCuenta } from './api/cuentas'
 import {
@@ -36,6 +38,13 @@ type Fallo = { tipo: 'texto'; texto: string } | { tipo: 'deshabilitado' } | { ti
 
 const PASOS_COMPLETOS: Paso[] = ['tipo', 'datos', 'clave', 'codigo', 'cuenta']
 const PASOS_CON_SESION: Paso[] = ['tipo', 'cuenta']
+const TITULO_PASO: Record<Paso, string> = {
+  tipo: '¿Para quién vas a usar CuidaRed?',
+  datos: 'Tus datos personales',
+  clave: 'Crea tu contraseña',
+  codigo: 'Confirma tu correo',
+  cuenta: 'Datos de la cuenta',
+}
 
 const DESCRIPCION_TIPO: Record<TipoCuenta, string> = {
   familia:
@@ -142,6 +151,8 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
   const [aviso, setAviso] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [creada, setCreada] = useState<CuentaMe | null>(null)
+  const encabezadoPaso = useRef<HTMLHeadingElement>(null)
+  const formulario = useRef<HTMLFormElement>(null)
 
   // Catálogos del último paso; se piden con la sesión que ya existe (la del código o la que ya tenía la persona).
   const token = conSesionPrevia ? (session?.access_token ?? null) : (sesionTemporal?.access_token ?? null)
@@ -149,11 +160,20 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
   const [provincias, setProvincias] = useState<Provincia[]>([])
   const [municipios, setMunicipios] = useState<Municipio[]>([])
   const [errorCatalogos, setErrorCatalogos] = useState('')
+  const [errorMunicipios, setErrorMunicipios] = useState('')
   const [intentoCatalogos, setIntentoCatalogos] = useState(0)
+  const [intentoMunicipios, setIntentoMunicipios] = useState(0)
   // "Cargando" se deriva de qué consulta terminó, sin cambiar estados al empezar el efecto.
   const consultaCatalogos = `${tipo}|${token}|${intentoCatalogos}`
   const [consultaTerminada, setConsultaTerminada] = useState('')
+  const [consultaMunicipiosTerminada, setConsultaMunicipiosTerminada] = useState('')
   const cargandoCatalogos = paso === 'cuenta' && !!tipo && !!token && consultaTerminada !== consultaCatalogos
+  const consultaMunicipios = `${cuenta.provincia}|${token}|${intentoMunicipios}`
+  const cargandoMunicipios = paso === 'cuenta' && !!cuenta.provincia && !!token && consultaMunicipios !== consultaMunicipiosTerminada
+
+  useEffect(() => {
+    encabezadoPaso.current?.focus()
+  }, [paso])
 
   useEffect(() => {
     if (paso !== 'cuenta' || !tipo || !token) return
@@ -176,12 +196,17 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
     if (paso !== 'cuenta' || !token || !cuenta.provincia) return
     let vigente = true
     listarMunicipios(token, cuenta.provincia)
-      .then((lista) => vigente && setMunicipios(lista))
-      .catch((issue) => vigente && setErrorCatalogos(mensajeDeError(issue)))
+      .then((lista) => {
+        if (!vigente) return
+        setMunicipios(lista)
+        setErrorMunicipios('')
+      })
+      .catch((issue) => vigente && setErrorMunicipios(mensajeDeError(issue)))
+      .finally(() => vigente && setConsultaMunicipiosTerminada(consultaMunicipios))
     return () => {
       vigente = false
     }
-  }, [paso, token, cuenta.provincia, intentoCatalogos])
+  }, [paso, token, cuenta.provincia, consultaMunicipios])
 
   const limpiar = () => {
     setErrores({})
@@ -237,6 +262,10 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
   }
 
   const hayErrores = (valores: Errores) => Object.values(valores).some(Boolean)
+  const enfocarError = (valores: Errores) => {
+    const campo = Object.keys(valores).find((nombre) => valores[nombre])
+    if (campo) formulario.current?.querySelector<HTMLElement>('#registro-' + campo)?.focus()
+  }
 
   const registrarPersona = async () => {
     const { data, error } = await temporal.auth.signUp({
@@ -268,6 +297,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
     const problema = /^\d{6}$/.test(codigo) ? undefined : 'Escribe los 6 dígitos del código que llegó a tu correo.'
     if (problema) {
       setErrores({ codigo: problema })
+      enfocarError({ codigo: problema })
       return
     }
     const resultado = await temporal.auth.verifyOtp({ email: normalizaCorreo(persona.correo), token: codigo, type: 'signup' })
@@ -300,6 +330,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
     const validos = validarCuenta()
     if (hayErrores(validos)) {
       setErrores(validos)
+      enfocarError(validos)
       return
     }
     if (!token || !tipo) {
@@ -349,15 +380,18 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
     setOcupado(true)
     try {
       if (paso === 'tipo') {
-        if (!tipo) setErrores({ tipo: 'Elige el tipo de cuenta para continuar.' })
+        if (!tipo) {
+          setErrores({ tipo: 'Elige el tipo de cuenta para continuar.' })
+          enfocarError({ tipo: 'Elige el tipo de cuenta para continuar.' })
+        }
         else irA(siguienteDeTipo())
       } else if (paso === 'datos') {
         const validos = validarDatos()
-        if (hayErrores(validos)) setErrores(validos)
+        if (hayErrores(validos)) { setErrores(validos); enfocarError(validos) }
         else irA('clave')
       } else if (paso === 'clave') {
         const validos = validarClave()
-        if (hayErrores(validos)) setErrores(validos)
+        if (hayErrores(validos)) { setErrores(validos); enfocarError(validos) }
         else await registrarPersona()
       } else if (paso === 'codigo') await verificarCodigo()
       else await registrarCuenta()
@@ -376,32 +410,49 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
   if (paso === 'tipo') {
     contenido = (
       <>
-        <ChoicePills<TipoCuenta>
-          label="Tipo de cuenta"
-          required
-          value={tipo}
-          error={errores.tipo}
-          options={[
-            { value: 'familia', label: TIPO_TEXTO.familia },
-            { value: 'organizacion', label: TIPO_TEXTO.organizacion },
-          ]}
-          onChange={(valor) => {
-            if (valor !== tipo) setCuenta((actual) => ({ ...actual, categoria: '' }))
-            setTipo(valor)
-            setErrores({})
-          }}
-        />
+        <fieldset aria-describedby={errores.tipo ? 'registro-tipo-error' : undefined} className="grid grid-cols-2 gap-3">
+          <legend className="sr-only">Tipo de cuenta</legend>
+          {(['familia', 'organizacion'] as const).map((opcion) => (
+            <label key={opcion} className={cn(
+              'relative flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border px-2 py-3 text-center font-semibold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-blue',
+              tipo === opcion ? 'border-navy bg-blue-100 text-navy' : 'border-line bg-surface text-ink-2 hover:border-navy',
+            )}>
+              <input
+                id={opcion === 'familia' ? 'registro-tipo' : 'registro-tipo-organizacion'}
+                type="radio"
+                name="tipo-cuenta"
+                className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
+                checked={tipo === opcion}
+                onChange={() => {
+                  if (opcion !== tipo) setCuenta((actual) => ({ ...actual, categoria: '' }))
+                  setTipo(opcion)
+                  setErrores({})
+                }}
+              />
+              <img src={'/figma-miembros/' + opcion + '.svg'} alt="" width={opcion === 'familia' ? 31 : 34} height={opcion === 'familia' ? 31 : 35} />
+              {TIPO_TEXTO[opcion]}
+            </label>
+          ))}
+          {errores.tipo && <p id="registro-tipo-error" className="col-span-2 text-sm font-semibold text-danger" role="alert">{errores.tipo}</p>}
+        </fieldset>
         {tipo && <p className="rounded-sm border border-line-soft bg-surface px-3.5 py-3 text-sm leading-snug text-ink-2">{DESCRIPCION_TIPO[tipo]}</p>}
         <Aviso tono="info">Incluye {DIAS_PRUEBA_GRATUITA} días de prueba gratuita, sin tarjeta.</Aviso>
+        {!conSesionPrevia && !sesionTemporal && (
+          <p className="text-center text-sm text-ink-2">
+            ¿Te invitaron a una cuenta? <Link to="/registro" className={ENLACE}>Activa tu invitación</Link>.
+          </p>
+        )}
       </>
     )
   } else if (paso === 'datos') {
     contenido = (
       <>
         <TextField
+          id="registro-cedula"
           label="Cédula"
           required
           inputMode="numeric"
+          placeholder="00000000000"
           autoComplete="off"
           value={persona.cedula}
           error={errores.cedula}
@@ -409,6 +460,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           onChange={(e) => cambiarPersona('cedula', e.target.value.replace(/\D/g, '').slice(0, 11))}
         />
         <TextField
+          id="registro-nombres"
           label="Nombres"
           required
           maxLength={100}
@@ -418,6 +470,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           onChange={(e) => cambiarPersona('nombres', e.target.value)}
         />
         <TextField
+          id="registro-apellidos"
           label="Apellidos"
           required
           maxLength={100}
@@ -427,8 +480,10 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           onChange={(e) => cambiarPersona('apellidos', e.target.value)}
         />
         <TextField
+          id="registro-correo"
           label="Correo electrónico"
           type="email"
+          placeholder="nombre@correo.com"
           required
           maxLength={254}
           autoComplete="email"
@@ -443,6 +498,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
     contenido = (
       <>
         <PasswordField
+          id="registro-clave"
           label="Contraseña"
           required
           autoComplete="new-password"
@@ -454,6 +510,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           }}
         />
         <PasswordField
+          id="registro-confirmar"
           label="Confirmar contraseña"
           required
           autoComplete="new-password"
@@ -466,6 +523,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
         />
         <RequisitosPassword password={clave} confirmar={confirmar} />
         <Checkbox
+          id="registro-acepta"
           checked={acepta}
           error={errores.acepta}
           onChange={(e) => {
@@ -495,6 +553,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           Te enviamos un código de verificación a <strong className="break-all">{normalizaCorreo(persona.correo)}</strong>. Escríbelo para confirmar tu correo.
         </p>
         <TextField
+          id="registro-codigo"
           label="Código de verificación"
           required
           inputMode="numeric"
@@ -502,20 +561,24 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           maxLength={6}
           value={codigo}
           error={errores.codigo}
-          help="Caduca a los 15 minutos y es de un solo uso."
+          hint="6 dígitos. Caduca a los 15 minutos."
           onChange={(e) => {
             setCodigo(e.target.value.replace(/\D/g, ''))
             setErrores({})
           }}
         />
-        <Button variant="ghost" className="self-start" disabled={ocupado} onClick={() => void reenviarCodigo()}>
-          Reenviar código
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" disabled={ocupado} onClick={() => void reenviarCodigo()}>Reenviar código</Button>
+          <Button variant="ghost" disabled={ocupado} onClick={atras}>Cambiar correo</Button>
+        </div>
       </>
     )
   } else {
     contenido = (
       <>
+        {!conSesionPrevia && sesionTemporal && (
+          <Aviso tono="info">Tu correo ya está verificado. Completa estos datos para crear una cuenta a tu cargo o <Link to="/inicio" className={ENLACE}>inicia sesión</Link> para aceptar una invitación existente.</Aviso>
+        )}
         {errorCatalogos && (
           <Aviso tono="error">
             <p>{errorCatalogos}</p>
@@ -532,6 +595,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           </Aviso>
         )}
         <TextField
+          id="registro-nombre"
           label={etiquetaNombre}
           required
           maxLength={120}
@@ -542,38 +606,66 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           onChange={(e) => cambiarCuenta('nombre', e.target.value)}
         />
         <SelectField
-          label="Categoría"
+          id="registro-categoria"
+          label={tipo === 'organizacion' ? 'Tipo de organización' : 'Categoría'}
           required
+          disabled={cargandoCatalogos || !!errorCatalogos}
           placeholder={cargandoCatalogos ? 'Cargando categorías…' : 'Elige una categoría'}
           options={categorias.map((c) => ({ value: String(c.categoria_cuenta_id), label: c.nombre }))}
           value={cuenta.categoria}
           error={errores.categoria}
           onChange={(e) => cambiarCuenta('categoria', e.target.value)}
         />
+        <TextField
+          id="registro-telefono"
+          label={tipo === 'organizacion' ? 'Teléfono institucional (opcional)' : 'Teléfono (opcional)'}
+          type="tel"
+          maxLength={20}
+          autoComplete="tel"
+          placeholder="809 555 1234"
+          value={cuenta.telefono}
+          error={errores.telefono}
+          onChange={(e) => cambiarCuenta('telefono', e.target.value)}
+        />
         <SelectField
+          id="registro-provincia"
           label="Provincia"
           required
+          disabled={cargandoCatalogos || !!errorCatalogos}
           placeholder={cargandoCatalogos ? 'Cargando provincias…' : 'Elige una provincia'}
           options={provincias.map((p) => ({ value: p.provincia_cod, label: p.nombre }))}
           value={cuenta.provincia}
           error={errores.provincia}
           onChange={(e) => {
             setMunicipios([])
+            setErrorMunicipios('')
+            setConsultaMunicipiosTerminada('')
             setCuenta((actual) => ({ ...actual, provincia: e.target.value, municipio: '' }))
             setErrores((actuales) => ({ ...actuales, provincia: undefined, municipio: undefined }))
           }}
         />
         <SelectField
+          id="registro-municipio"
           label="Municipio"
           required
-          disabled={!cuenta.provincia}
-          placeholder={cuenta.provincia ? 'Elige un municipio' : 'Elige primero la provincia'}
+          disabled={!cuenta.provincia || cargandoMunicipios || !!errorMunicipios}
+          placeholder={!cuenta.provincia ? 'Elige primero la provincia' : cargandoMunicipios ? 'Cargando municipios…' : 'Elige un municipio'}
           options={municipiosDeLaProvincia.map((m) => ({ value: m.municipio_cod, label: m.nombre }))}
           value={cuenta.municipio}
           error={errores.municipio}
           onChange={(e) => cambiarCuenta('municipio', e.target.value)}
         />
+        {errorMunicipios && (
+          <Aviso tono="error">
+            <p>{errorMunicipios}</p>
+            <Button variant="ghost" onClick={() => {
+              setErrorMunicipios('')
+              setIntentoMunicipios((n) => n + 1)
+            }}>Reintentar municipios</Button>
+          </Aviso>
+        )}
         <TextField
+          id="registro-direccion"
           label="Dirección (opcional)"
           maxLength={150}
           autoComplete="street-address"
@@ -581,34 +673,29 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
           error={errores.direccion}
           onChange={(e) => cambiarCuenta('direccion', e.target.value)}
         />
-        <TextField
-          label="Teléfono (opcional)"
-          type="tel"
-          maxLength={20}
-          autoComplete="tel"
-          value={cuenta.telefono}
-          error={errores.telefono}
-          onChange={(e) => cambiarCuenta('telefono', e.target.value)}
-        />
       </>
     )
   }
 
   return (
     <AuthScreen title={titulo} back={atras}>
+      <LogoBadge />
       <StepBar step={pasos.indexOf(paso) + 1} total={pasos.length} />
-      <form className="mt-5 flex flex-col gap-5" onSubmit={(e) => void enviar(e)} noValidate>
+      <form ref={formulario} className="mt-6 flex flex-col gap-5" onSubmit={(e) => void enviar(e)} noValidate>
+        <h2 ref={encabezadoPaso} tabIndex={-1} className="text-lg font-bold text-ink outline-none">{TITULO_PASO[paso]}</h2>
         {contenido}
         {aviso && <Aviso tono="info">{aviso}</Aviso>}
         {fallo && <AvisoFallo fallo={fallo} />}
-        <Button type="submit" loading={ocupado}>
-          {paso === 'cuenta' ? 'Crear cuenta' : paso === 'clave' ? 'Registrarme' : paso === 'codigo' ? 'Verificar correo' : 'Continuar'}
+        <Button type="submit" variant={paso === 'tipo' || paso === 'datos' ? 'outline' : 'primary'} loading={ocupado} disabled={paso === 'cuenta' && (cargandoCatalogos || !!errorCatalogos || cargandoMunicipios || !!errorMunicipios)}>
+          {paso === 'cuenta' ? (tipo === 'organizacion' ? 'Guardar organización' : 'Crear cuenta') : paso === 'clave' ? 'Registrarme' : paso === 'codigo' ? 'Verificar correo' : 'Continuar'}
         </Button>
-        {paso !== 'tipo' && (
+        {paso === 'cuenta' && conSesionPrevia ? (
+          <ButtonLink to="/cuenta" variant="outline">Cancelar</ButtonLink>
+        ) : paso === 'datos' || paso === 'clave' ? (
           <Button variant="ghost" disabled={ocupado} onClick={atras}>
             Volver
           </Button>
-        )}
+        ) : null}
       </form>
     </AuthScreen>
   )

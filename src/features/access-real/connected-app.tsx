@@ -3,7 +3,7 @@
  * Módulo: access-real (ID01 · ID02: contexto de cuenta y rol activo CR-175, autorregistro, invitaciones y miembros).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
- * Rutas: /inicio, /registro (activar invitación), /recuperar, /restablecer, /cuenta (perfil, invitaciones, cuentas y
+ * Rutas: /inicio (acceso o entrada al portal), /registro (activar invitación), /recuperar, /restablecer, /cuenta (perfil, invitaciones, cuentas y
  * resumen), /cuenta/miembros (solo con `usuarios:gestionar`), /crear-cuenta, /registro-familia y /registro-organizacion
  * (autorregistro del titular).
  */
@@ -213,30 +213,54 @@ function AccessRoutes() {
   const datosInvitaciones = invitaciones?.usuarioId === session?.user.id ? invitaciones : undefined
   const cuentas = datosCuentas?.resultado?.data ?? []
   const cuentaActiva = cuentaElegida ? cuentas.find((c) => c.cuenta_id === cuentaElegida) : cuentas[0]
+  const listaCuentas = datosCuentas?.resultado ? (
+    <PanelCuentas cuentas={cuentas} activa={cuentaActiva} onCambiar={elegirCuenta} pagina={pagina}
+      totalPaginas={datosCuentas.resultado.meta.totalPages} onPagina={setPagina} />
+  ) : (
+    <section aria-label="Mis cuentas" className="mt-5">
+      {datosCuentas?.error ? <p role="status">No se pudieron consultar tus cuentas.</p> : <p role="status">Consultando tus cuentas…</p>}
+      {datosCuentas?.error && <Button variant="outline" onClick={refrescarCuentas}>Reintentar cuentas</Button>}
+    </section>
+  )
+  const panelInvitaciones = session && perfilListo ? (
+    <>
+      <InvitacionesPendientes key={`invitaciones:${user.identity.id}`} pendientes={datosInvitaciones?.datos ?? []} token={session.access_token} onResuelta={refrescarCuentas} />
+      {datosInvitaciones?.error && <p className="text-sm text-muted">No se pudieron consultar las invitaciones.</p>}
+    </>
+  ) : null
+
+  const inicio = session ? (
+    perfilListo && cuentaActiva ? (
+      <Navigate to={`/operacion/${encodeURIComponent(cuentaActiva.cuenta_id)}/cuenta`} replace />
+    ) : (
+      <AuthScreen title="Inicio">
+        {error && <p role="alert">{error}</p>}
+        {!perfilListo && !error && <p role="status">Comprobando perfil…</p>}
+        {perfilListo && <>
+          {panelInvitaciones}
+          {listaCuentas}
+          <ButtonLink to="/cuenta" variant="outline" className="mt-5">Mi cuenta</ButtonLink>
+        </>}
+        {error && <Button onClick={refrescar}>Reintentar</Button>}
+        <Button variant="ghost" className="mt-3" onClick={() => void logout()}>Cerrar sesión</Button>
+      </AuthScreen>
+    )
+  ) : <AccessForm notice={error} />
 
   const account = session ? (
-    <AuthScreen title="Mi cuenta">
+    <AuthScreen title="Mi cuenta" back="/inicio">
       {error && <p role="alert">{error}</p>}
       {!user && !error && <p role="status">Comprobando perfil…</p>}
       {perfilListo && (
         <>
-          <InvitacionesPendientes key={`invitaciones:${user.identity.id}`} pendientes={datosInvitaciones?.datos ?? []} token={session.access_token} onResuelta={refrescarCuentas} />
+          {panelInvitaciones}
           <ProfileForm
             key={user.identity.id}
             token={session.access_token}
             profile={user.profile}
             onSaved={() => setRevision((value) => value + 1)}
           />
-          {datosCuentas?.resultado ? (
-            <PanelCuentas cuentas={cuentas} activa={cuentaActiva} onCambiar={elegirCuenta} pagina={pagina}
-              totalPaginas={datosCuentas.resultado.meta.totalPages} onPagina={setPagina} />
-          ) : (
-            <section aria-label="Mis cuentas" className="mt-5">
-              {datosCuentas?.error ? <p role="status">No se pudieron consultar tus cuentas.</p> : <p role="status">Consultando tus cuentas…</p>}
-              {datosCuentas?.error && <Button variant="outline" onClick={refrescarCuentas}>Reintentar cuentas</Button>}
-            </section>
-          )}
-          {datosInvitaciones?.error && <p className="text-sm text-muted">No se pudieron consultar las invitaciones.</p>}
+          {listaCuentas}
           {cuentaActiva && <ResumenCuenta key={cuentaActiva.cuenta_id} cuenta={cuentaActiva} token={session.access_token} />}
         </>
       )}
@@ -263,7 +287,7 @@ function AccessRoutes() {
 
   return (
     <Routes>
-      <Route path="/inicio" element={session ? <Navigate to="/cuenta" replace /> : <AccessForm notice={error} />} />
+      <Route path="/inicio" element={inicio} />
       <Route path="/registro" element={session ? <Navigate to="/cuenta" replace /> : <InvitationForm />} />
       <Route path="/recuperar" element={<RecoveryForm />} />
       <Route path="/restablecer" element={<ResetForm />} />
@@ -272,7 +296,7 @@ function AccessRoutes() {
       <Route path="/operacion/:cuentaId/:seccion" element={perfilListo && session ? (
         <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} cola={cola} />
       ) : account} />
-      <Route path="/" element={session ? <Navigate to="/cuenta" replace /> : bienvenida} />
+      <Route path="/" element={session ? <Navigate to="/inicio" replace /> : bienvenida} />
       <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onCreada={alCrearCuenta} />} />
       <Route
         path="/registro-familia"
@@ -285,7 +309,7 @@ function AccessRoutes() {
       <Route path="/solicitud-visita" element={<SolicitudPendiente titulo="Consultar mi solicitud" />} />
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/privacidad" element={<Privacidad />} />
-      <Route path="*" element={<Navigate to={session ? '/cuenta' : '/inicio'} replace />} />
+      <Route path="*" element={<Navigate to="/inicio" replace />} />
     </Routes>
   )
 }

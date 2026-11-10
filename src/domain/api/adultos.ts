@@ -12,8 +12,7 @@ import type { Adulto, Autonomia, ContactoEmergencia, DB, EnvRiesgo, Evaluacion, 
 import { enLista, errorCedula, errorFechaNacimiento, errorNombre, errorTelefono, errorTexto, hayErrores, limpiarTexto } from '../validacion'
 import { ERROR_NO_ENCONTRADO, ERROR_VALIDACION, exito, fallo, sinConexion, verificar, type Resultado } from './comun'
 
-/** Parentescos predefinidos para los contactos de emergencia (Contacto_emergencia.Contacto_Parentesco). */
-export const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Hermano/a', 'Nieto/a', 'Sobrino/a', 'Otro familiar', 'Vecino/a', 'Amigo/a', 'Otro']
+export { PARENTESCOS } from '../catalogos'
 
 /** Datos del formulario de perfil (registro y edición). El contacto es el principal (los demás se gestionan en el perfil). */
 export interface DatosAdulto {

@@ -138,13 +138,13 @@ test('autorregistro de una organización: la ruta de entrada fija el tipo y filt
   await verificarCodigo(page)
 
   await expect(page.getByLabel(/^Nombre de la organización/)).toBeVisible()
-  await expect(page.getByLabel(/^Categoría/).locator('option')).toHaveText(['Elige una categoría', 'Iglesia o parroquia', 'Fundación u ONG'])
+  await expect(page.getByLabel(/^Tipo de organización/).locator('option')).toHaveText(['Elige una categoría', 'Iglesia o parroquia', 'Fundación u ONG'])
   await page.getByLabel(/^Nombre de la organización/).fill('Fundación Esperanza')
-  await page.getByLabel(/^Categoría/).selectOption({ label: 'Fundación u ONG' })
+  await page.getByLabel(/^Tipo de organización/).selectOption({ label: 'Fundación u ONG' })
   await page.getByLabel(/^Provincia/).selectOption({ label: 'Santiago' })
   await expect(page.getByLabel(/^Municipio/).locator('option')).toHaveText(['Elige un municipio', 'Santiago de los Caballeros', 'Bisonó'])
   await page.getByLabel(/^Municipio/).selectOption({ label: 'Bisonó' })
-  await page.getByRole('button', { name: 'Crear cuenta' }).click()
+  await page.getByRole('button', { name: 'Guardar organización' }).click()
 
   await expect(page).toHaveURL(/\/cuenta$/)
   expect(sim.llamadas('GET', '/catalogos/categorias-cuenta')[0]!.consulta.get('tipo')).toBe('organizacion')
@@ -312,10 +312,10 @@ test('quien ya tiene sesión y ninguna cuenta crea la suya sin repetir el regist
   // Salta persona, contraseña y código: ya hay sesión.
   await expect(page.getByLabel(/^Nombre de la organización/)).toBeVisible()
   await page.getByLabel(/^Nombre de la organización/).fill('Hogar San José')
-  await page.getByLabel(/^Categoría/).selectOption({ label: 'Iglesia o parroquia' })
+  await page.getByLabel(/^Tipo de organización/).selectOption({ label: 'Iglesia o parroquia' })
   await page.getByLabel(/^Provincia/).selectOption({ label: 'Distrito Nacional' })
   await page.getByLabel(/^Municipio/).selectOption({ label: 'Santo Domingo de Guzmán' })
-  await page.getByRole('button', { name: 'Crear cuenta' }).click()
+  await page.getByRole('button', { name: 'Guardar organización' }).click()
 
   await expect(page).toHaveURL(/\/cuenta$/)
   await expect(page.getByTestId('cuentas-conectadas').getByRole('button', { name: /Hogar San José/ })).toHaveAttribute('aria-current', 'true')

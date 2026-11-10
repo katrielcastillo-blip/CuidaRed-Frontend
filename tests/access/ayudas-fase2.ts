@@ -332,6 +332,10 @@ export async function simular(page: Page, opciones: OpcionesSimulacion = {}) {
         await fallo(404, 'NOT_FOUND')
         return
       }
+      if (metodo === 'GET' && !accion) {
+        await ok(objetivo)
+        return
+      }
       if (metodo === 'PATCH') {
         const gestores = cuenta.tipo === 'familia' ? ['coordinador'] : ['administrador']
         if (propia(objetivo)) await fallo(409, 'OWN_MEMBERSHIP')
@@ -388,5 +392,11 @@ export async function iniciarSesion(page: Page, correo: string) {
   await page.getByLabel(/^Correo electrónico/).fill(correo)
   await page.getByLabel(/^Contraseña/).fill(CLAVE)
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Mi cuenta', exact: true })).toBeVisible()
+}
+
+export async function iniciarSesionEnMiCuenta(page: Page, correo: string) {
+  await iniciarSesion(page, correo)
+  await page.getByRole('link', { name: 'Mi cuenta', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Mis cuentas' })).toBeVisible()
 }

@@ -11,12 +11,15 @@
 import { useMemo } from 'react'
 import { cuidadoresAsignables, esCuidadorDeCuenta, tareasVisibles, type EvidenciaDetallada } from '@/domain/api'
 import { nombreCompleto, useUser } from '@/domain/auth'
-import { addDays, fechaCorta, hhmmA12, pad, toISODate, todayISO } from '@/domain/dates'
+import { addDays, fechaCorta, toISODate, todayISO } from '@/domain/dates'
 import { adultosVisibles, puede } from '@/domain/permisos'
 import { cuidadorDeUsuario, nombreUsuario } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Tone } from '@/components/ui'
 import type { Adulto, Cuidador, EstadoTarea, Evidencia, IndicacionMedica, Prioridad, Tarea } from '@/domain/types'
+import { horaTarea } from './fechas'
+
+export { DIAS_SEMANA, fechaDiaCorta, fechaDiaLarga, fechaHoraBreve, horaTarea, sumarDias } from './fechas'
 
 /* ───────────── Etiquetas ───────────── */
 
@@ -177,9 +180,6 @@ export function evidenciasPorTarea(evidencias: EvidenciaDetallada[]): Map<string
 
 /* ───────────── Formatos ───────────── */
 
-/** "08:00" → "8:00 a.m." */
-export const horaTarea = (hhmm: string) => hhmmA12(hhmm).replace(/^0/, '')
-
 /** "Hoy" · "Mañana" · "Ayer" · "24/08/2026" para una fecha YYYY-MM-DD. */
 export function etiquetaDia(fecha: string) {
   if (fecha === todayISO()) return 'Hoy'
@@ -190,43 +190,6 @@ export function etiquetaDia(fecha: string) {
 
 /** "Hoy · 8:00 a.m." */
 export const cuandoTarea = (t: Pick<Tarea, 'fechaProgramada' | 'horaProgramada'>) => `${etiquetaDia(t.fechaProgramada)} · ${horaTarea(t.horaProgramada)}`
-
-const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-
-const aFecha = (iso: string) => new Date(`${iso}T00:00:00`)
-
-/** "jueves 6 de noviembre" (con el año si no es el actual). */
-export function fechaDiaLarga(iso: string) {
-  const d = aFecha(iso)
-  const anio = d.getFullYear() === new Date().getFullYear() ? '' : ` de ${d.getFullYear()}`
-  return `${DIAS_LARGOS[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()]}${anio}`
-}
-
-/** "jue 6 nov" */
-export function fechaDiaCorta(iso: string) {
-  const d = aFecha(iso)
-  return `${DIAS_CORTOS[d.getDay()]} ${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`
-}
-
-/** Suma `n` días (negativo = restar) a una fecha YYYY-MM-DD. */
-export const sumarDias = (iso: string, n: number) => toISODate(addDays(aFecha(iso), n))
-
-/** Días de la semana para las repeticiones semanales: valor = Date.getDay() (0 = domingo). Empiezan en lunes. */
-export const DIAS_SEMANA: Array<{ value: number; label: string; largo: string }> = [1, 2, 3, 4, 5, 6, 0].map((v) => ({
-  value: v,
-  label: DIAS_CORTOS[v]!.replace(/^./, (c) => c.toUpperCase()),
-  largo: DIAS_LARGOS[v]!,
-}))
-
-/** "9 nov 2026, 8:05 a.m." en hora local, a partir de un ISO UTC. */
-export function fechaHoraBreve(iso: string) {
-  const d = new Date(iso)
-  const h = d.getHours()
-  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]} ${d.getFullYear()}, ${h % 12 || 12}:${pad(d.getMinutes())} ${h >= 12 ? 'p.m.' : 'a.m.'}`
-}
 
 /** Minúsculas y sin tildes (búsquedas). */
 export const normaliza = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

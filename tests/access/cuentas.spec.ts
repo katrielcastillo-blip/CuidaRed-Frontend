@@ -56,6 +56,7 @@ async function entrar(page: Page) {
   await page.getByLabel(/^Correo electrónico/).fill(authUser.email)
   await page.getByLabel(/^Contraseña/).fill('Fuerte123!')
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await expect(page.getByRole('heading', { name: 'Mi cuenta', exact: true })).toBeVisible()
 }
 

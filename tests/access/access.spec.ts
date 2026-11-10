@@ -117,6 +117,7 @@ for (const [status, code, message] of [
   test(`CR-162: ${code} conserva el formulario sin mostrar detalles técnicos`, async ({ page }) => {
     const requests = await mockServices(page, { patchError: { status, code } })
     await login(page)
+    await page.getByRole('link', { name: 'Mi cuenta' }).click()
     await page.getByLabel(/^Nombres/).fill('Anabel')
     await page.getByRole('button', { name: 'Guardar cambios' }).click()
     await expect(page.getByRole('alert')).toContainText(message)
@@ -131,7 +132,8 @@ for (const [status, code, message] of [
 test('CR-162: un 403 de permisos oculta el perfil sin cerrar una sesión válida', async ({ page }) => {
   const requests = await mockServices(page, { profileDenied: true })
   await login(page)
-  await expect(page).toHaveURL(/\/cuenta$/)
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/inicio$/)
   await expect(page.getByRole('alert')).toContainText('Tu usuario no tiene acceso.')
   await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
@@ -141,6 +143,9 @@ test('CR-162: un 403 de permisos oculta el perfil sin cerrar una sesión válida
 test('login, perfil persistido por API, recarga y cierre sin datos del simulador', async ({ page }) => {
   const requests = await mockServices(page)
   await login(page)
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+  await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await expect(page.getByRole('heading', { name: 'Mi cuenta', exact: true })).toBeVisible()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   await page.getByLabel(/^Nombres/).fill('Anabel')
@@ -152,9 +157,11 @@ test('login, perfil persistido por API, recarga y cierre sin datos del simulador
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([])
   expect(await page.evaluate(() => Object.values(sessionStorage).join(' '))).not.toContain('Fuerte123!')
   await page.goto('/admin')
-  await expect(page).toHaveURL(/\/cuenta$/)
+  await expect(page).toHaveURL(/\/inicio$/)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page).toHaveURL(/\/inicio$/)
+  await expect(page.getByRole('button', { name: 'Iniciar sesión', exact: true })).toBeVisible()
   expect(requests.some((r) => r.path.endsWith('/session/logout'))).toBe(true)
   expect(await page.evaluate(() => sessionStorage.getItem('cuidared.auth.real'))).toBeNull()
 })
@@ -234,6 +241,7 @@ test('la sesión vencida en servidor pierde acceso al perfil', async ({ page }) 
   const options = { expired: false }
   await mockServices(page, options)
   await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   options.expired = true
   await page.reload()
@@ -246,6 +254,7 @@ test('un fallo de API al guardar conserva los datos escritos y no anuncia éxito
   const options = { unavailable: false }
   await mockServices(page, options)
   await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   await page.getByLabel(/^Nombres/).fill('Nombre pendiente')
   options.unavailable = true

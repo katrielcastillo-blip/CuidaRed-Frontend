@@ -8,9 +8,10 @@
 import type { ChangeEventHandler } from 'react'
 import { Check } from 'lucide-react'
 import { ChoicePills, TextField } from '@/components/ui'
-import { fechasDeSerie, MAX_OCURRENCIAS, type DatosTarea, type Repeticion } from '@/domain/api'
+import { fechasDeSerie, MAX_OCURRENCIAS, type Repeticion } from '@/domain/recurrencia'
+import type { DatosTarea } from '@/domain/api/agenda'
 import { cn } from '@/lib/cn'
-import { DIAS_SEMANA, fechaDiaCorta, horaTarea, sumarDias } from '../lib/agenda'
+import { DIAS_SEMANA, fechaDiaCorta, horaTarea, sumarDias } from '../lib/fechas'
 
 const OPCIONES: Array<{ value: Repeticion; label: string }> = [
   { value: 'ninguna', label: 'No se repite' },

@@ -21,6 +21,7 @@ import { estaEnLinea } from '../conectividad'
 import { todayISO } from '../dates'
 import { nombreCompleto } from '../nombres'
 import { puede } from '../permisos'
+import { fechasDeSerie, MAX_OCURRENCIAS, type Repeticion } from '../recurrencia'
 import { cuidadoresDe, cuidadorDeUsuario } from '../relaciones'
 import { getDB, mutate, uid } from '../store'
 import type { Adulto, Cuidador, DB, Evidencia, IndicacionMedica, Prioridad, Tarea, Usuario } from '../types'
@@ -128,36 +129,7 @@ export function guardarIndicacion(actor: Usuario, adultoId: string, d: DatosIndi
 
 /* ───────────── Series de tareas (una Tarea por ocurrencia) ───────────── */
 
-export type Repeticion = 'ninguna' | 'diaria' | 'semanal'
-
-/** Tope de ocurrencias que puede crear una repetición. */
-export const MAX_OCURRENCIAS = 60
-
-const DIA_MS = 86_400_000
-const aMs = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return Date.UTC(y!, m! - 1, d!)
-}
-const aISO = (ms: number) => new Date(ms).toISOString().slice(0, 10)
-
-/**
- * Fechas (YYYY-MM-DD) de cada ocurrencia, en orden. Sin repetición es solo la fecha indicada. Diaria: todos los días
- * del inicio a la fecha de fin. Semanal: los días de la semana elegidos (0 = domingo … 6 = sábado). Devuelve hasta
- * MAX_OCURRENCIAS + 1 fechas para que quien valida detecte el exceso sin recorrer años enteros. Sin datos válidos: [].
- */
-export function fechasDeSerie(d: Pick<DatosTarea, 'fechaProgramada' | 'repeticion' | 'diasSemana' | 'fechaFin'>): string[] {
-  if (!fechaValida(d.fechaProgramada)) return []
-  if (d.repeticion === 'ninguna') return [d.fechaProgramada]
-  if (!fechaValida(d.fechaFin) || d.fechaFin < d.fechaProgramada) return []
-  if (d.repeticion === 'semanal' && d.diasSemana.length === 0) return []
-  const out: string[] = []
-  const fin = aMs(d.fechaFin)
-  let pasos = 0
-  for (let t = aMs(d.fechaProgramada); t <= fin && out.length <= MAX_OCURRENCIAS && pasos < 3700; t += DIA_MS, pasos++) {
-    if (d.repeticion === 'diaria' || d.diasSemana.includes(new Date(t).getUTCDay())) out.push(aISO(t))
-  }
-  return out
-}
+export { fechasDeSerie, MAX_OCURRENCIAS, type Repeticion } from '../recurrencia'
 
 /**
  * Clave que agrupa las ocurrencias de una serie: su `serieId` o, en las tareas repetitivas anteriores a las series,

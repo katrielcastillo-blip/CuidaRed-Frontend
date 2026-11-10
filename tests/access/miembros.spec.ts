@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { expect, test, type Page } from '@playwright/test'
-import { cuentaActiva, iniciarSesion, miembro, PERMISOS_CAMPO, simular, type MiembroSim } from './ayudas-fase2'
+import { cuentaActiva, iniciarSesionEnMiCuenta, miembro, PERMISOS_CAMPO, simular, type MiembroSim } from './ayudas-fase2'
 
 const CORREO = 'laura@example.test'
 /** Identificador de la persona que inicia sesión en el simulador (para su propia membresía). */
@@ -30,7 +30,7 @@ function equipo(): MiembroSim[] {
 }
 
 async function abrirMiembros(page: Page) {
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
   await page.getByRole('link', { name: 'Miembros de la cuenta' }).click()
   await expect(page.getByRole('heading', { name: 'Miembros', exact: true })).toBeVisible()
 }
@@ -38,8 +38,15 @@ async function abrirMiembros(page: Page) {
 const filas = (page: Page) => page.getByTestId('lista-miembros').getByRole('listitem')
 
 async function abrirInvitacion(page: Page) {
-  await page.getByRole('button', { name: 'Invitar', exact: true }).click()
+  await page.getByRole('button', { name: 'Agregar miembros', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Agregar miembro', exact: true })).toBeVisible()
   await expect(page.getByLabel(/^Correo electrónico de la persona/)).toBeVisible()
+}
+
+async function abrirPerfil(page: Page, nombre: string) {
+  await page.getByRole('button', { name: `Ver más de ${nombre}`, exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Perfil miembro' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: nombre, exact: true })).toBeVisible()
 }
 
 async function llenarInvitacion(page: Page, rol = 'Cuidador') {
@@ -85,7 +92,24 @@ test('lista paginada con filtros de rol y estado, con la consulta del contrato',
   expect(sim.llamadas('GET', '/cuentas/org-a/miembros').at(-1)!.consulta.get('filter[estado]')).toBe('pendiente')
 
   await page.getByLabel('Filtrar por rol').selectOption({ label: 'Voluntario' })
-  await expect(page.getByText('No hay personas con esos filtros')).toBeVisible()
+  await expect(page.getByText('No hay resultados', { exact: true })).toBeVisible()
+})
+
+test('busca miembros fuera de la página actual y abre su perfil', async ({ page }) => {
+  const sim = await simular(page, { cuentas: [organizacion()], miembros: { 'org-a': equipo() } })
+  await abrirMiembros(page)
+  await expect(filas(page)).toHaveCount(10)
+  await expect(filas(page).filter({ hasText: 'Persona12 Prueba' })).toHaveCount(0)
+
+  await page.getByRole('searchbox', { name: 'Buscar miembros por nombre o correo' }).fill('persona12')
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click()
+  await expect(filas(page)).toHaveCount(1)
+  await expect(filas(page).first()).toContainText('Persona12 Prueba')
+  expect(sim.llamadas('GET', '/cuentas/org-a/miembros').at(-1)!.consulta.get('limit')).toBe('100')
+
+  await abrirPerfil(page, 'Persona12 Prueba')
+  await expect(page.getByText('Correo electrónico', { exact: true })).toBeVisible()
+  expect(sim.llamadas('GET', '/cuentas/org-a/miembros/12').length).toBeGreaterThan(0)
 })
 
 test('invitar con éxito: roles válidos de la organización, cuerpo estricto y lista actualizada', async ({ page }) => {
@@ -93,9 +117,9 @@ test('invitar con éxito: roles válidos de la organización, cuerpo estricto y 
   await abrirMiembros(page)
   await abrirInvitacion(page)
 
-  await expect(page.getByLabel(/^Rol en la cuenta/).locator('option')).toHaveText(['Elige un rol', 'Administrador', 'Coordinador', 'Cuidador', 'Familiar responsable', 'Voluntario'])
+  await expect(page.getByLabel(/^Rol en la cuenta/).locator('option')).toHaveText(['Selecciona un rol', 'Administrador', 'Coordinador', 'Cuidador', 'Familiar responsable', 'Voluntario'])
   await llenarInvitacion(page)
-  await page.getByRole('button', { name: 'Enviar invitación' }).click()
+  await page.getByRole('button', { name: 'Guardar y enviar invitación' }).click()
 
   await expect(page.getByText('Invitación enviada a nuevo.cuidador@example.test. Recibirá un código por correo para activar su cuenta.')).toBeVisible()
   await expect(page.getByLabel(/^Correo electrónico de la persona/)).toHaveCount(0)
@@ -114,9 +138,9 @@ test('invitar en una Familia ofrece solo los roles de Familia', async ({ page })
   yo.usuario.id = YO
   await simular(page, { cuentas: [familia()], miembros: { 'fam-b': [yo] } })
   await abrirMiembros(page)
+  await expect(page.getByLabel('Filtrar por rol').locator('option')).toHaveText(['Rol: Todos', 'Coordinador', 'Cuidador', 'Familiar responsable'])
   await abrirInvitacion(page)
-  await expect(page.getByLabel(/^Rol en la cuenta/).locator('option')).toHaveText(['Elige un rol', 'Coordinador', 'Cuidador', 'Familiar responsable'])
-  await expect(page.getByLabel('Filtrar por rol').locator('option')).toHaveText(['Todos los roles', 'Coordinador', 'Cuidador', 'Familiar responsable'])
+  await expect(page.getByLabel(/^Rol en la cuenta/).locator('option')).toHaveText(['Selecciona un rol', 'Coordinador', 'Cuidador', 'Familiar responsable'])
 })
 
 test('invitar con el plan lleno muestra PLAN_LIMIT_REACHED y conserva lo escrito', async ({ page }) => {
@@ -124,7 +148,7 @@ test('invitar con el plan lleno muestra PLAN_LIMIT_REACHED y conserva lo escrito
   await abrirMiembros(page)
   await abrirInvitacion(page)
   await llenarInvitacion(page, 'Voluntario')
-  await page.getByRole('button', { name: 'Enviar invitación' }).click()
+  await page.getByRole('button', { name: 'Guardar y enviar invitación' }).click()
 
   await expect(page.getByRole('alert')).toContainText('Se alcanzó el límite de personas del plan de la cuenta.')
   await expect(page.locator('body')).not.toContainText('mensaje_privado')
@@ -132,12 +156,13 @@ test('invitar con el plan lleno muestra PLAN_LIMIT_REACHED y conserva lo escrito
   await expect(page.getByLabel(/^Cédula de la persona/)).toHaveValue('00298765432')
   await expect(page.getByLabel(/^Nombres de la persona/)).toHaveValue('Nuria')
   await expect(page.getByLabel(/^Rol en la cuenta/)).toHaveValue('voluntario')
-  await expect(page.getByText('12 personas · Página 1 de 2')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Agregar miembro', exact: true })).toBeVisible()
+  await expect(page.getByTestId('lista-miembros')).toHaveCount(0)
   expect(sim.llamadas('POST', '/cuentas/org-a/miembros')).toHaveLength(1)
 
   // Al liberar un cupo basta con volver a enviar, sin reescribir nada.
   sim.opciones.limiteDePlan = false
-  await page.getByRole('button', { name: 'Enviar invitación' }).click()
+  await page.getByRole('button', { name: 'Guardar y enviar invitación' }).click()
   await expect(page.getByText(/^Invitación enviada a/)).toBeVisible()
 })
 
@@ -146,8 +171,8 @@ test('INVITATIONS_UNAVAILABLE (503) explica que todavía no se pueden invitar pe
   await abrirMiembros(page)
   await abrirInvitacion(page)
   await llenarInvitacion(page)
-  await page.getByRole('button', { name: 'Enviar invitación' }).click()
-  await expect(page.getByRole('alert')).toContainText('Todavía no se pueden invitar personas nuevas.')
+  await page.getByRole('button', { name: 'Guardar y enviar invitación' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Todavía no se pueden invitar personas nuevas. Puedes invitar a alguien que ya tenga un perfil en CuidaRed.')
   await expect(page.getByLabel(/^Apellidos de la persona/)).toHaveValue('Santos')
 })
 
@@ -156,7 +181,7 @@ test('valida la invitación junto a cada campo antes de enviarla', async ({ page
   await abrirMiembros(page)
   await abrirInvitacion(page)
   expect(await page.locator('form input:not([type="checkbox"])').count()).toBeLessThanOrEqual(5)
-  await page.getByRole('button', { name: 'Enviar invitación' }).click()
+  await page.getByRole('button', { name: 'Guardar y enviar invitación' }).click()
   await expect(page.getByText('Escribe un correo válido, por ejemplo nombre@correo.com.')).toBeVisible()
   await expect(page.getByText('La cédula debe tener exactamente 11 dígitos.')).toBeVisible()
   await expect(page.getByText('Escribe los nombres.')).toBeVisible()
@@ -172,7 +197,8 @@ test('cambiar el rol pide confirmación y muestra los errores de protección del
   await abrirMiembros(page)
 
   // Cambio correcto, con confirmación.
-  await page.getByRole('button', { name: 'Cambiar rol de Diego Cuidador' }).click()
+  await abrirPerfil(page, 'Diego Cuidador')
+  await page.getByRole('button', { name: 'Cambiar rol', exact: true }).click()
   const dialogo = page.getByRole('dialog', { name: 'Cambiar el rol de Diego Cuidador' })
   await expect(dialogo).toContainText('Rol actual de Diego Cuidador: Cuidador.')
   await expect(dialogo.getByLabel(/^Nuevo rol/).locator('option')).toHaveText(['Elige un rol', 'Administrador', 'Coordinador', 'Familiar responsable', 'Voluntario'])
@@ -185,17 +211,17 @@ test('cambiar el rol pide confirmación y muestra los errores de protección del
   await expect(page.getByText('Se cambió el rol de Diego Cuidador a Coordinador.')).toBeVisible()
   expect(sim.llamadas('PATCH', '/cuentas/org-a/miembros/2')[0]!.cuerpo).toEqual({ rol: 'coordinador' })
 
-  // Titular protegida: el servidor lo rechaza y el diálogo sigue abierto con el motivo.
-  await page.getByRole('button', { name: 'Cambiar rol de Elena Coordina' }).click()
-  const dialogoTitular = page.getByRole('dialog', { name: 'Cambiar el rol de Elena Coordina' })
-  await dialogoTitular.getByLabel(/^Nuevo rol/).selectOption({ label: 'Voluntario' })
-  await dialogoTitular.getByRole('button', { name: 'Cambiar rol', exact: true }).click()
-  await expect(dialogoTitular.getByRole('alert')).toContainText('La persona titular de la cuenta debe conservar un rol gestor')
-  await dialogoTitular.getByRole('button', { name: 'Volver' }).click()
-  await expect(dialogoTitular).toHaveCount(0)
+  // La titular debe transferir la cuenta antes de cambiar su acceso.
+  await abrirPerfil(page, 'Elena Coordina')
+  await expect(page.getByRole('button', { name: 'Cambiar rol', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Desactivar miembro', exact: true })).toHaveCount(0)
+  await expect(page.getByText(/primero transfiere la titularidad/)).toBeVisible()
+  expect(sim.llamadas('PATCH', '/cuentas/org-a/miembros/3')).toHaveLength(0)
+  await page.getByRole('button', { name: 'Volver', exact: true }).click()
 
   // Último gestor: tampoco se puede dejar la cuenta sin una persona gestora.
-  await page.getByRole('button', { name: 'Desactivar a Fabio Familiar' }).click()
+  await abrirPerfil(page, 'Fabio Familiar')
+  await page.getByRole('button', { name: 'Desactivar miembro', exact: true }).click()
   const dialogoGestor = page.getByRole('dialog', { name: 'Desactivar a Fabio Familiar' })
   await dialogoGestor.getByRole('button', { name: 'Desactivar', exact: true }).click()
   await expect(dialogoGestor.getByRole('alert')).toContainText('La cuenta debe conservar al menos una persona gestora activa.')
@@ -207,22 +233,23 @@ test('desactivar y reactivar piden confirmación y actualizan el estado de la pe
   await abrirMiembros(page)
 
   // Volver desde la confirmación no cambia nada.
-  await page.getByRole('button', { name: 'Desactivar a Diego Cuidador' }).click()
+  await abrirPerfil(page, 'Diego Cuidador')
+  await page.getByRole('button', { name: 'Desactivar miembro', exact: true }).click()
   const dialogo = page.getByRole('dialog', { name: 'Desactivar a Diego Cuidador' })
   await expect(dialogo).toContainText('Diego Cuidador perderá el acceso a Fundación Esperanza de inmediato.')
   await dialogo.getByRole('button', { name: 'Volver' }).click()
   await expect(dialogo).toHaveCount(0)
   expect(sim.llamadas('POST', '/cuentas/org-a/miembros/2/desactivar')).toHaveLength(0)
 
-  await page.getByRole('button', { name: 'Desactivar a Diego Cuidador' }).click()
+  await page.getByRole('button', { name: 'Desactivar miembro', exact: true }).click()
   await dialogo.getByRole('button', { name: 'Desactivar', exact: true }).click()
   await expect(page.getByText('Diego Cuidador ya no tiene acceso a la cuenta.')).toBeVisible()
   expect(sim.llamadas('POST', '/cuentas/org-a/miembros/2/desactivar')[0]!.cuerpo).toEqual({})
   const fila = filas(page).filter({ hasText: 'Diego Cuidador' })
   await expect(fila).toContainText('Inactiva')
-  await expect(fila.getByRole('button', { name: 'Cambiar rol de Diego Cuidador' })).toHaveCount(0)
-
-  await fila.getByRole('button', { name: 'Reactivar a Diego Cuidador' }).click()
+  await abrirPerfil(page, 'Diego Cuidador')
+  await expect(page.getByRole('button', { name: 'Cambiar rol', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Reactivar miembro', exact: true }).click()
   const dialogoReactivar = page.getByRole('dialog', { name: 'Reactivar a Diego Cuidador' })
   await expect(dialogoReactivar).toContainText('volverá a tener acceso a Fundación Esperanza como Cuidador')
   await dialogoReactivar.getByRole('button', { name: 'Reactivar', exact: true }).click()
@@ -231,7 +258,8 @@ test('desactivar y reactivar piden confirmación y actualizan el estado de la pe
   await expect(filas(page).filter({ hasText: 'Diego Cuidador' })).toContainText('Activa')
 
   // Una invitación pendiente se cancela con el mismo endpoint.
-  await page.getByRole('button', { name: 'Cancelar invitación de Hugo Pendiente' }).click()
+  await abrirPerfil(page, 'Hugo Pendiente')
+  await page.getByRole('button', { name: 'Cancelar invitación', exact: true }).click()
   const dialogoInvitacion = page.getByRole('dialog', { name: 'Cancelar la invitación a Hugo Pendiente' })
   await dialogoInvitacion.getByRole('button', { name: 'Cancelar invitación', exact: true }).click()
   await expect(page.getByText('Se canceló la invitación a Hugo Pendiente.')).toBeVisible()
@@ -243,7 +271,7 @@ test('sin usuarios:gestionar no hay acceso a Miembros ni se consulta la lista', 
     cuentas: [cuentaActiva({ cuenta_id: 'org-a', nombre: 'Fundación Esperanza', rol: 'cuidador', permisos: PERMISOS_CAMPO })],
     miembros: { 'org-a': equipo() },
   })
-  await iniciarSesion(page, CORREO)
+  await iniciarSesionEnMiCuenta(page, CORREO)
   await expect(page.getByTestId('resumen-cuenta')).toBeVisible()
   await expect(page.getByRole('link', { name: /Miembros/ })).toHaveCount(0)
 
@@ -252,7 +280,7 @@ test('sin usuarios:gestionar no hay acceso a Miembros ni se consulta la lista', 
   await expect(page.getByRole('heading', { name: 'Miembros', exact: true })).toBeVisible()
   await expect(page.getByText('No tienes permiso para gestionar miembros en Fundación Esperanza.')).toBeVisible()
   await expect(page.getByTestId('lista-miembros')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Invitar', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Agregar miembros', exact: true })).toHaveCount(0)
   expect(sim.llamadas('GET', /^\/cuentas\/[^/]+\/miembros/)).toHaveLength(0)
   await page.getByRole('link', { name: 'Volver a mi cuenta' }).click()
   await expect(page).toHaveURL(/\/cuenta$/)
@@ -281,7 +309,7 @@ test('al cambiar de cuenta activa se recargan los datos y los permisos de la nue
   await expect(page.getByText('2 personas · Página 1 de 1')).toBeVisible()
   await expect(filas(page)).toHaveCount(2)
   await expect(page.getByText('Marta Méndez')).toBeVisible()
-  await expect(page.getByLabel('Filtrar por rol').locator('option')).toHaveText(['Todos los roles', 'Coordinador', 'Cuidador', 'Familiar responsable'])
+  await expect(page.getByLabel('Filtrar por rol').locator('option')).toHaveText(['Rol: Todos', 'Coordinador', 'Cuidador', 'Familiar responsable'])
   expect(sim.llamadas('GET', '/cuentas/fam-b/miembros').length).toBeGreaterThan(0)
 
   // Cuenta donde solo es voluntaria: desaparece el acceso a Miembros.

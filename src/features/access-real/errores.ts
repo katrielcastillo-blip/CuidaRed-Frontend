@@ -17,7 +17,7 @@ const POR_CODIGO: Record<string, string> = {
   PLAN_LIMIT_REACHED: 'Se alcanzó el límite de personas del plan de la cuenta. Libera un cupo (desactiva a alguien) o amplía el plan.',
   ROLE_NOT_ALLOWED: 'Ese rol no está disponible para este tipo de cuenta. Elige otro.',
   INVITATIONS_UNAVAILABLE:
-    'Todavía no se pueden invitar personas nuevas. Intenta más tarde; sí puedes invitar a quien ya tenga cuenta en CuidaRed.',
+    'Todavía no se pueden invitar personas nuevas. Puedes invitar a alguien que ya tenga un perfil en CuidaRed.',
   IDENTITY_MISMATCH: 'No se pudo invitar a esa persona con esos datos. Revisa el correo y la cédula.',
   ALREADY_MEMBER: 'Esa persona ya tiene una membresía vigente en la cuenta.',
   INVITATION_CONFLICT: 'No se pudo crear la invitación con esos datos. Revisa el correo y la cédula.',
