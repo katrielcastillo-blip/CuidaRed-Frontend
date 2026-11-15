@@ -3,11 +3,12 @@
  * Módulo: access-real (ID01), sin contraseñas locales.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { Mail } from 'lucide-react'
 import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
+import { useLogo } from '@/lib/marca'
 import { AuthScreen } from '../auth/components/AuthScreen'
 import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
 import { LogoBadge } from '../auth/components/LogoBadge'
@@ -19,6 +20,7 @@ const normalEmail = (email: string) => email.trim().toLowerCase()
 const message = (error: unknown) => (error instanceof Error ? error.message : 'No se pudo completar la operación. Intenta de nuevo.')
 
 export function AccessForm({ notice }: { notice: string }) {
+  const logo = useLogo()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -44,7 +46,7 @@ export function AccessForm({ notice }: { notice: string }) {
   return (
     <AuthScreen>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
-      <img className="mb-7 self-center w-[min(279px,100%)]" src="/brand/logo.png" alt="CuidaRed" />
+      <img className="mb-7 self-center w-[min(279px,100%)]" src={logo} alt="CuidaRed" />
       <form className="flex flex-col gap-5" onSubmit={submit}>
         <TextField
           label="Correo electrónico"
@@ -298,6 +300,13 @@ export function ResetForm() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
+  const [tokenHash] = useState(() => new URL(window.location.href).searchParams.get('token_hash'))
+  useEffect(() => {
+    if (!tokenHash) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('token_hash')
+    window.history.replaceState(window.history.state, '', url)
+  }, [tokenHash])
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -317,7 +326,9 @@ export function ResetForm() {
     setError('')
     try {
       if (!verified) {
-        const result = await client.auth.verifyOtp({ email: normalEmail(email), token: code, type: 'recovery' })
+        const result = tokenHash
+          ? await client.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+          : await client.auth.verifyOtp({ email: normalEmail(email), token: code, type: 'recovery' })
         if (result.error || !result.data.session) {
           setError('El código no es válido o ha vencido. Solicita uno nuevo.')
           return
@@ -350,7 +361,7 @@ export function ResetForm() {
   return (
     <AuthScreen title="Restablecer contraseña" back="/recuperar" gradient="auth">
       <form className="flex flex-col gap-5" onSubmit={submit}>
-        <TextField
+        {!tokenHash && <><TextField
           label="Correo electrónico"
           type="email"
           required
@@ -369,7 +380,7 @@ export function ResetForm() {
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
           help="Caduca a los 15 minutos y es de un solo uso."
-        />
+        /></>}
         <PasswordField
           label="Nueva contraseña"
           required

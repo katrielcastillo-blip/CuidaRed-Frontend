@@ -3,7 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '../client'
+import { api, ApiError } from '../client'
 
 interface Operacion {
   id_cliente: string
@@ -54,8 +54,15 @@ export function useColaVisitas(usuarioId: string | undefined, token: string | un
             if (resultado.resultado === 'conflicto' && resultado.gana === 'servidor') mensaje = 'El servidor conservó su versión de una visita.'
             return []
           })
-        } catch {
-          mensaje ||= 'Quedan visitas pendientes. Revisa el acceso a la cuenta o la conexión.'
+        } catch (error) {
+          if (error instanceof ApiError && error.code === 'ACCOUNT_DISABLED') {
+            const ids = new Set(lote.map((captura) => captura.operacion.id_cliente))
+            actual.capturas = actual.capturas.map((captura) => ids.has(captura.operacion.id_cliente)
+              ? { ...captura, rechazada: true } : captura)
+            mensaje = 'La cuenta está deshabilitada. Las visitas pendientes fueron rechazadas al sincronizar.'
+          } else {
+            mensaje ||= 'Quedan visitas pendientes. Revisa el acceso a la cuenta o la conexión.'
+          }
         }
       }
       publicar(actual, mensaje || (actual.capturas.length ? 'Quedan capturas por revisar.' : 'Visitas sincronizadas.'))

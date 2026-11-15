@@ -5,6 +5,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { collectionSearch, readPaginatedResponse, type CollectionQuery, type PaginatedResponse } from '../../lib/api-contract'
+import { reportarFallo } from './telemetria'
 
 export const STORAGE_KEY = 'cuidared.auth.real'
 let singleton: SupabaseClient | undefined
@@ -78,13 +79,21 @@ async function apiResponse(path: string, token: string, method = 'GET', data?: u
     cache: 'no-store',
     credentials: 'omit',
     signal: AbortSignal.timeout(15_000),
+  }).catch((error) => {
+    reportarFallo('api.network', null, token)
+    throw error
   })
   if (!res.ok) {
+    if (res.status >= 500) reportarFallo('api.error', res.headers.get('X-Request-Id'), token)
     const body = await res.json().catch(() => null)
     const code = typeof body?.error?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(body.error.code) ? body.error.code : undefined
     const message =
       res.status === 401
         ? 'Tu sesión venció. Inicia sesión de nuevo.'
+        : code === 'ACCOUNT_DISABLED'
+          ? 'La cuenta está deshabilitada. Contacta a soporte. Los registros pendientes no se sincronizaron.'
+          : code === 'USER_INACTIVE'
+            ? 'Tu usuario está deshabilitado. Contacta a soporte.'
         : res.status === 403
           ? 'Tu usuario no tiene acceso.'
           : res.status === 404
