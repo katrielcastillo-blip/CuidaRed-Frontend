@@ -26,7 +26,7 @@ import { Portal } from './operacion/portal'
 import { useColaVisitas } from './operacion/cola-visitas'
 
 /**
- * Solicitudes de visita: el backend real aún no las expone. Se explica sin simular datos; quien recibió una
+ * Solicitudes públicas de visita: el backend real mantiene cerrado ese flujo. Quien recibió una
  * invitación la activa en /registro y quien quiere una cuenta se registra en /crear-cuenta.
  */
 function SolicitudPendiente({ titulo }: { titulo: string }) {
@@ -70,6 +70,7 @@ function AccessRoutes() {
     error?: true
   }>()
   const [invitaciones, setInvitaciones] = useState<{ usuarioId: string; datos?: CuentaMe[]; error?: true }>()
+  const [activaRemota, setActivaRemota] = useState<{ usuarioId: string; id: string; cuenta: CuentaMe }>()
   const perfilListo = !!session && !!user && user.identity.id === session.user.id
   const cola = useColaVisitas(perfilListo ? session?.user.id : undefined, perfilListo ? session?.access_token : undefined)
 
@@ -103,6 +104,35 @@ function AccessRoutes() {
       window.removeEventListener('focus', visible)
     }
   }, [session, perfilListo, pagina, revisionCuentas])
+
+  useEffect(() => {
+    if (!session || !perfilListo || !cuentaElegida) return
+    const usuarioId = session.user.id
+    const id = cuentaElegida
+    let vigente = true
+    const consultar = () => {
+      void api<CuentaMe>(`/cuentas/${encodeURIComponent(id)}/contexto`, session.access_token).then(
+        (cuenta) => { if (vigente) setActivaRemota({ usuarioId, id, cuenta }) },
+        (error: unknown) => {
+          if (!vigente) return
+          setActivaRemota(undefined)
+          if (error instanceof ApiError && error.status === 404) {
+            guardarCuentaActiva(null)
+            setCuentaElegida(null)
+          }
+        },
+      )
+    }
+    const visible = () => { if (document.visibilityState === 'visible') consultar() }
+    consultar()
+    const timer = window.setInterval(visible, 30_000)
+    window.addEventListener('focus', visible)
+    return () => {
+      vigente = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', visible)
+    }
+  }, [session, perfilListo, cuentaElegida, revisionCuentas])
 
   useEffect(() => {
     let active = true
@@ -212,7 +242,11 @@ function AccessRoutes() {
   const datosCuentas = listado?.usuarioId === session?.user.id && listado?.pagina === pagina ? listado : undefined
   const datosInvitaciones = invitaciones?.usuarioId === session?.user.id ? invitaciones : undefined
   const cuentas = datosCuentas?.resultado?.data ?? []
-  const cuentaActiva = cuentaElegida ? cuentas.find((c) => c.cuenta_id === cuentaElegida) : cuentas[0]
+  const cuentaRecordada = activaRemota && activaRemota.usuarioId === session?.user.id && activaRemota.id === cuentaElegida
+    ? activaRemota : undefined
+  const cuentaActiva = cuentaElegida
+    ? cuentas.find((c) => c.cuenta_id === cuentaElegida) ?? cuentaRecordada?.cuenta
+    : cuentas[0]
   const listaCuentas = datosCuentas?.resultado ? (
     <PanelCuentas cuentas={cuentas} activa={cuentaActiva} onCambiar={elegirCuenta} pagina={pagina}
       totalPaginas={datosCuentas.resultado.meta.totalPages} onPagina={setPagina} />

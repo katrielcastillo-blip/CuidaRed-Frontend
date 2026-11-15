@@ -16,7 +16,12 @@ interface Operacion {
 }
 
 type Captura = { cuentaId: string; operacion: Operacion; rechazada?: true }
-type Resultado = { id_cliente: string; resultado: 'aplicada' | 'conflicto' | 'duplicada' | 'rechazada'; gana?: 'local' | 'servidor' }
+type Resultado = {
+  id_cliente: string
+  resultado: 'aplicada' | 'conflicto' | 'duplicada' | 'rechazada'
+  resultado_original?: string
+  gana?: 'local' | 'servidor'
+}
 
 export function useColaVisitas(usuarioId: string | undefined, token: string | undefined) {
   const estado = useRef<{ usuarioId?: string; capturas: Captura[]; enviando: boolean }>({ capturas: [], enviando: false })
@@ -29,15 +34,16 @@ export function useColaVisitas(usuarioId: string | undefined, token: string | un
     if (estado.current.usuarioId !== usuarioId) estado.current = { usuarioId, capturas: [], enviando: false }
   }, [usuarioId])
 
-  const enviar = useCallback(async () => {
+  const enviar = useCallback(async (soloCuenta?: string) => {
     const actual = estado.current
     if (!token || !usuarioId || actual.usuarioId !== usuarioId || actual.enviando || !navigator.onLine) return
-    const primera = actual.capturas.find((c) => !c.rechazada)
+    const disponibles = actual.capturas.filter((c) => !c.rechazada && (!soloCuenta || c.cuentaId === soloCuenta))
+    const primera = disponibles[0]
     if (!primera) return
     actual.enviando = true
-    let mensaje = ''
+    const avisos = new Set<string>()
     try {
-      for (const cuentaId of new Set(actual.capturas.filter((c) => !c.rechazada).map((c) => c.cuentaId))) {
+      for (const cuentaId of new Set(disponibles.map((c) => c.cuentaId))) {
         if (actual !== estado.current) return
         const lote = actual.capturas.filter((c) => c.cuentaId === cuentaId && !c.rechazada).slice(0, 25)
         try {
@@ -51,14 +57,17 @@ export function useColaVisitas(usuarioId: string | undefined, token: string | un
             const resultado = porId.get(c.operacion.id_cliente)
             if (!resultado) return [c]
             if (resultado.resultado === 'rechazada') return [{ ...c, rechazada: true }]
-            if (resultado.resultado === 'conflicto' && resultado.gana === 'servidor') mensaje = 'El servidor conservó su versión de una visita.'
+            if (resultado.resultado === 'conflicto' || resultado.resultado_original === 'conflicto') {
+              if (resultado.gana === 'servidor') avisos.add('El servidor conservó su versión de una visita.')
+              if (resultado.gana === 'local') avisos.add('Tu captura prevaleció en un conflicto de visita.')
+            }
             return []
           })
         } catch {
-          mensaje ||= 'Quedan visitas pendientes. Revisa el acceso a la cuenta o la conexión.'
+          avisos.add('Quedan visitas pendientes. Revisa el acceso a la cuenta o la conexión.')
         }
       }
-      publicar(actual, mensaje || (actual.capturas.length ? 'Quedan capturas por revisar.' : 'Visitas sincronizadas.'))
+      publicar(actual, [...avisos].join(' ') || (actual.capturas.length ? 'Quedan capturas por revisar.' : 'Visitas sincronizadas.'))
     } finally {
       actual.enviando = false
     }
@@ -86,10 +95,12 @@ export function useColaVisitas(usuarioId: string | undefined, token: string | un
     void enviar()
   }
 
-  const reintentar = () => {
+  const reintentar = (cuentaId: string) => {
     if (estado.current.enviando) return
-    estado.current.capturas = estado.current.capturas.map((c) => ({ cuentaId: c.cuentaId, operacion: c.operacion }))
-    void enviar()
+    estado.current.capturas = estado.current.capturas.map((c) => c.cuentaId === cuentaId
+      ? { cuentaId, operacion: c.operacion }
+      : c)
+    void enviar(cuentaId)
   }
   const quitarRechazadas = (cuentaId: string) => {
     if (estado.current.enviando) return

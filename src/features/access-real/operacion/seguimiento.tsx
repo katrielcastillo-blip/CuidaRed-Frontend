@@ -3,6 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useState } from 'react'
+import { Evidencias } from './visitas-evidencias'
 import { CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from 'lucide-react'
 import { Badge, Button, Card, Chip, EmptyState, RiesgoBadge, SelectField } from '@/components/ui'
 import { fechaCorta, fechaHora } from '@/domain/dates'
@@ -220,6 +221,7 @@ type GestionIndicacion = { tipo: 'nueva' } | { tipo: 'editar'; indicacion: Indic
 const ACCIONES_INDICACION = { activa: 'Reactivar', suspendida: 'Suspender', finalizada: 'Finalizar' }
 function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoActivo }: SeccionProps) {
   const [gestion, setGestion] = useState<GestionIndicacion>()
+  const [adjuntos, setAdjuntos] = useState<string>()
   const [filtro, setFiltro] = useState('')
   const puedeGestionar = cuenta.permisos.includes('indicaciones:gestionar')
   const indicaciones = usePagina<Indicacion>(`${ruta}/indicaciones`, token, revision, { filters: filtro ? { estado: filtro } : undefined })
@@ -241,10 +243,12 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
       <h3 className="font-semibold">Indicaciones médicas</h3>
       {puedeGestionar && adultoActivo && !gestion && <Button size="sm" variant="light" icon={<Plus size={18} aria-hidden />} onClick={() => setGestion({ tipo: 'nueva' })}>Registrar indicación</Button>}
     </div>
+    <p className="text-sm text-ink-2">Las indicaciones registradas son informativas y no constituyen un diagnóstico ni una prescripción médica.</p>
     {(gestion?.tipo === 'nueva' || gestion?.tipo === 'editar') && <div className="grid gap-3">
       <Estado consulta={tipos} vacio={tipos.datos?.length === 0 ? 'El catálogo de indicaciones aún no está disponible.' : undefined} />
-      <Formulario key={editada?.indicacion_medica_id ?? 'nueva'} titulo={editada ? 'Editar indicación' : 'Registrar indicación'}
-        submitDisabled={!tipos.datos?.length} campos={camposIndicacion} cancelar={cerrar} enviar={async (datos) => {
+      {!tipos.datos?.length && <Button variant="outline" onClick={cerrar}>Cancelar</Button>}
+      {!!tipos.datos?.length && <Formulario key={editada?.indicacion_medica_id ?? 'nueva'} titulo={editada ? 'Editar indicación' : 'Registrar indicación'}
+        campos={camposIndicacion} cancelar={cerrar} enviar={async (datos) => {
           const inicio = campo(datos, 'fecha_inicio')
           const fin = campo(datos, 'fecha_fin')
           if (fin && fin < inicio) throw new Error('La fecha final debe ser igual o posterior a la fecha de inicio.')
@@ -256,7 +260,7 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
           })
           actualizar()
           cerrar()
-        }} />
+        }} />}
     </div>}
     {gestion?.tipo === 'estado' && <Formulario titulo={`${ACCIONES_INDICACION[gestion.estado]} indicación`} accion="Confirmar cambio" cancelar={cerrar} campos={[]}
       enviar={async () => {
@@ -282,7 +286,16 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
       {indicacion.descripcion && <p className="text-sm text-ink-2">{indicacion.descripcion}</p>}
       {indicacion.frecuencia_horario && <p className="text-sm text-muted">{indicacion.frecuencia_horario}</p>}
       <p className="text-sm text-muted">Desde {fechaCorta(indicacion.fecha_inicio)}{indicacion.fecha_fin && ` · Hasta ${fechaCorta(indicacion.fecha_fin)}`}</p>
-      {puedeGestionar && indicacion.estado !== 'finalizada' && !gestion && <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" aria-expanded={adjuntos === indicacion.indicacion_medica_id}
+          onClick={() => setAdjuntos(adjuntos === indicacion.indicacion_medica_id ? undefined : indicacion.indicacion_medica_id)}>
+          {adjuntos === indicacion.indicacion_medica_id ? 'Ocultar adjuntos' : 'Ver adjuntos'}
+        </Button>
+      </div>
+      {adjuntos === indicacion.indicacion_medica_id && <Evidencias key={adjuntos}
+        ruta={`${base}/indicaciones/${idRuta(adjuntos)}`} token={token} revision={revision} refrescar={actualizar}
+        puedeAdjuntar={puedeGestionar && adultoActivo && indicacion.estado !== 'finalizada'} />}
+      {puedeGestionar && adultoActivo && indicacion.estado !== 'finalizada' && !gestion && <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" onClick={() => setGestion({ tipo: 'editar', indicacion })}>Editar indicación</Button>
         <Button variant="light" size="sm" onClick={() => setGestion({
           tipo: 'estado', indicacion, estado: indicacion.estado === 'activa' ? 'suspendida' : 'activa',

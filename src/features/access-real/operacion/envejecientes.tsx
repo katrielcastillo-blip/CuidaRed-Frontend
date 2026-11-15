@@ -9,10 +9,10 @@ import {
   SearchInput, SelectField, StepBar, TextField, TextareaField,
 } from '@/components/ui'
 import { AUTONOMIAS, CONDICIONES, PARENTESCOS } from '@/domain/catalogos'
-import { fechaCorta } from '@/domain/dates'
+import { fechaCorta, fechaHora } from '@/domain/dates'
 import { api } from '../client'
 import type { Municipio, Provincia } from '../api/catalogos'
-import { campo, Estado, Formulario, idRuta, Paginador, useDatos, usePagina, type Campo } from './controles'
+import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina, type Campo } from './controles'
 import { Seguimiento, type ResumenRiesgo } from './seguimiento'
 import type { AdultoNombre, OperacionProps } from './visitas'
 
@@ -223,7 +223,7 @@ function Contactos({ base, ruta, token, perfil, refrescar }: Pick<OperacionProps
   </section>
 }
 
-type Edicion = 'identificacion' | 'ubicacion' | 'contactos' | 'estado'
+type Edicion = 'identificacion' | 'ubicacion' | 'contactos' | 'estado' | 'retirar'
 function EstadoPerfil({ perfil, ruta, token, refrescar, cancelar }: {
   perfil: Perfil; ruta: string; token: string; refrescar: () => void; cancelar: () => void
 }) {
@@ -253,6 +253,7 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
   const { base, token, cuenta } = props
   const [edicion, setEdicion] = useState<Edicion>()
   const [evaluacionesSolicitadas, solicitarEvaluacion] = useState(0)
+  const enLinea = useConexionReal()
   const seguimientoRef = useRef<HTMLDivElement>(null)
   const ruta = `${base}/envejecientes/${idRuta(id)}`
   const consulta = useDatos<Perfil>(ruta, token, revision)
@@ -321,6 +322,8 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
             {perfil.estado === 'activo' && cuenta.permisos.includes('adultos:evaluar') && <Button variant="light" size="sm" icon={<ShieldCheck size={18} aria-hidden />}
               onClick={() => { solicitarEvaluacion((n) => n + 1); seguimientoRef.current?.scrollIntoView({ block: 'start' }) }}>Realizar evaluación de riesgo</Button>}
             {gestionarEstado && perfil.estado !== 'fallecido' && <Button variant="outline" size="sm" aria-pressed={edicion === 'estado'} onClick={() => setEdicion('estado')}>Cambiar estado</Button>}
+            {gestionarEstado && <Button variant="danger-soft" size="sm" disabled={!enLinea}
+              aria-pressed={edicion === 'retirar'} onClick={() => setEdicion('retirar')}>Registrar retiro del consentimiento</Button>}
           </section>}
         </div>
       </div>
@@ -335,6 +338,16 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
       }} />}
       {edicion === 'contactos' && <Contactos {...props} ruta={ruta} perfil={perfil} refrescar={refrescar} />}
       {edicion === 'estado' && <EstadoPerfil perfil={perfil} ruta={ruta} token={token} refrescar={refrescar} cancelar={cerrar} />}
+      {edicion === 'retirar' && <Formulario titulo="Retirar consentimiento" accion="Confirmar retiro" cancelar={cerrar} disabled={!enLinea}
+        campos={[{ name: 'motivo', label: 'Motivo del retiro (opcional)', type: 'textarea', min: 3, max: 200, optional: true }]}
+        enviar={async (datos) => {
+          const motivo = campo(datos, 'motivo')
+          await api(`${ruta}/consentimiento/retirar`, token, 'POST', motivo ? { motivo } : {})
+          refrescar()
+          volver()
+        }}>
+        <p className="text-sm text-ink-2 sm:col-span-2">El expediente de {nombre(perfil)} quedará bloqueado. Sus visitas y tareas abiertas se cancelarán y se conservará una constancia del retiro.</p>
+      </Formulario>}
 
       <div ref={seguimientoRef} className="scroll-mt-6">
         <Seguimiento key={evaluacionesSolicitadas} {...props} ruta={ruta} adultoActivo={perfil.estado === 'activo'}
@@ -350,6 +363,7 @@ export function Envejecientes(props: OperacionProps) {
   const [revision, setRevision] = useState(0)
   const [estado, setEstado] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const [archivo, setArchivo] = useState(false)
   const region = useRef<HTMLDivElement>(null)
   const listado = usePagina<Perfil>(`${base}/envejecientes`, token, revision, { filters: estado ? { estado } : undefined })
   const criterio = normaliza(busqueda.trim())
@@ -357,6 +371,9 @@ export function Envejecientes(props: OperacionProps) {
   const refrescar = () => setRevision((n) => n + 1)
   const volver = () => setVista({ tipo: 'lista' })
   const puedeCrear = cuenta.permisos.includes('adultos:crear')
+  const puedeArchivar = cuenta.permisos.includes('adultos:desactivar')
+  const retiros = usePagina<{ envejeciente_id: string; nombre: string; fecha: string; motivo: string | null; actor: string | null }>(
+    archivo && puedeArchivar ? `${base}/consentimientos-retirados` : null, token, revision)
 
   useEffect(() => {
     region.current?.focus({ preventScroll: true })
@@ -368,8 +385,22 @@ export function Envejecientes(props: OperacionProps) {
     {vista.tipo === 'lista' && <section className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold text-ink">Envejecientes</h2>
-        {puedeCrear && <Button size="sm" icon={<Plus size={18} aria-hidden />} onClick={() => setVista({ tipo: 'alta' })}>Registrar adulto mayor</Button>}
+        <div className="flex flex-wrap gap-2">
+          {puedeArchivar && <Button variant="outline" size="sm" aria-expanded={archivo}
+            onClick={() => setArchivo(!archivo)}>{archivo ? 'Volver a expedientes' : 'Retiros de consentimiento'}</Button>}
+          {puedeCrear && !archivo && <Button size="sm" icon={<Plus size={18} aria-hidden />} onClick={() => setVista({ tipo: 'alta' })}>Registrar adulto mayor</Button>}
+        </div>
       </div>
+      {archivo && puedeArchivar ? <section className="grid gap-3" aria-label="Retiros de consentimiento">
+        <h3 className="text-lg font-semibold">Retiros de consentimiento</h3>
+        <Estado consulta={retiros} vacio={retiros.datos?.data.length === 0 ? 'Sin retiros registrados.' : undefined} />
+        {retiros.datos?.data.map((retiro) => <Card key={retiro.envejeciente_id} className="grid gap-2">
+          <h4 className="font-semibold wrap-anywhere">{retiro.nombre}</h4>
+          <p className="text-sm text-ink-2">{fechaHora(retiro.fecha)}{retiro.actor ? ` · Registrado por ${retiro.actor}` : ''}</p>
+          {retiro.motivo && <p className="text-sm wrap-anywhere">{retiro.motivo}</p>}
+        </Card>)}
+        {retiros.datos && <Paginador pagina={retiros.pagina} total={retiros.datos.meta.totalPages} cambiar={retiros.cambiar} />}
+      </section> : <>
       <div className="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(13rem,1fr)]">
         <label className="grid gap-1.5 text-sm font-semibold text-ink">
           Buscar en esta página
@@ -402,6 +433,7 @@ export function Envejecientes(props: OperacionProps) {
         </li>)}
       </ul>}
       {listado.datos && <Paginador pagina={listado.pagina} total={listado.datos.meta.totalPages} cambiar={listado.cambiar} />}
+      </>}
     </section>}
   </div>
 }

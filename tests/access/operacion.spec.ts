@@ -168,10 +168,12 @@ test('RF-10: registra offline una visita autorizada y envía la misma captura al
   })
   await iniciarSesion(page, sim.correo)
   await page.getByRole('link', { name: 'Visitas', exact: true }).click()
-  await page.getByRole('button', { name: /Visita autorizada/ }).click()
-  await page.getByRole('button', { name: 'Registrar realización', exact: true }).click()
+  const desdeListado = page.getByRole('button', { name: /Visita autorizada/ })
+  await expect(desdeListado).toBeVisible()
   await context.setOffline(true)
   try {
+    await desdeListado.click()
+    await page.getByRole('button', { name: 'Registrar realización', exact: true }).click()
     await page.getByLabel(/Observación de Juana Prueba/).fill('Observación sintética')
     await page.getByRole('button', { name: 'Registrar visita', exact: true }).click()
     await expect(page.getByText(/1 pendiente\(s\) en esta cuenta/)).toBeVisible()
@@ -183,6 +185,59 @@ test('RF-10: registra offline una visita autorizada y envía la misma captura al
   expect(capturas[0]).toMatchObject({ registro_id: visitaId, tipo: 'registrar',
     datos: { detalles: [{ envejeciente_id: adultoId, observacion: 'Observación sintética' }] } })
   await expect(page.getByText(/0 pendiente\(s\) en esta cuenta/)).toBeVisible()
+})
+
+test('el gestor consulta auditoría y gestiona una solicitud de visita existente', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética',
+    permisos: ['auditoria:ver', 'visitas:autorizar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const id = '44444444-4444-4444-8444-444444444444'
+  const otraSolicitud = '55555555-5555-4555-8555-555555555555'
+  const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  let rechazo: unknown
+  let autorizacion: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/auditoria')) return r.fulfill({ json: pagina([{
+      auditoria_id: '11', actor: 'Persona Revisora', accion: 'alta', entidad: 'cuenta', fecha: '2026-11-09T16:00:00Z', resultado: 'confirmado',
+    }]) })
+    if (path.endsWith('/solicitudes-visita')) return r.fulfill({ json: pagina([
+      { solicitud_visita_id: id, estado: rechazo ? 'rechazada' : 'pendiente', visitante: { nombres: 'Juan', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Visita comunitaria' },
+      { solicitud_visita_id: otraSolicitud, estado: autorizacion ? 'autorizada' : 'pendiente', visitante: { nombres: 'Lina', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Acompañamiento' },
+    ]) })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/candidatos/visita')) return r.fulfill({ json: pagina([{ usuario_id: sim.usuarioId, nombre: 'Responsable de campo' }]) })
+    if (path.endsWith(`/${id}/rechazar`)) {
+      rechazo = r.request().postDataJSON()
+      return r.fulfill({ json: { data: { solicitud_visita_id: id } } })
+    }
+    if (path.endsWith(`/${otraSolicitud}/autorizar`)) {
+      autorizacion = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: { visita_id: visitaId } } })
+    }
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/auditoria`)
+  await expect(page.getByText('Alta · Cuenta')).toBeVisible()
+  await expect(page.getByText(/Persona Revisora/)).toBeVisible()
+  await page.goto(`${ruta}/solicitudes-visita`)
+  await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click()
+  await page.getByLabel(/^Motivo del rechazo/).fill('La fecha debe confirmarse con el equipo.')
+  await page.getByRole('button', { name: 'Confirmar rechazo' }).click()
+  await expect(page.getByText('Solicitud rechazada.')).toBeVisible()
+  expect(rechazo).toEqual({ motivo: 'La fecha debe confirmarse con el equipo.' })
+  const autorizar = page.getByRole('button', { name: 'Autorizar', exact: true })
+  await expect(autorizar).toHaveCount(1)
+  await autorizar.click()
+  await page.getByLabel(/Expediente del adulto/).selectOption(adultoId)
+  await page.getByLabel(/Responsable de la visita/).selectOption(sim.usuarioId)
+  await page.getByRole('button', { name: 'Autorizar y programar' }).click()
+  await expect(page.getByText('Solicitud autorizada y visita programada.')).toBeVisible()
+  expect(autorizacion).toEqual({ envejeciente_id: adultoId, participante_id: sim.usuarioId, fecha, hora: '09:00' })
 })
 
 test('ID04: programa y autoriza una visita con adultos y visitantes seleccionados', async ({ page }) => {

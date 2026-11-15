@@ -159,10 +159,17 @@ function Cuidadores({ base, token, cuenta }: OperacionProps) {
     {id && perfil.datos !== undefined && tipos.datos && tipos.datos.length > 0 && <Formulario key={id} titulo="Editar perfil global" accion="Guardar perfil" exito="Perfil del cuidador guardado." campos={[
       { name: 'tipo', label: 'Tipo de cuidado', options: tipos.datos.map((t) => ({ value: String(t.tipo_cuidado_id), label: t.nombre })),
         value: perfil.datos ? String(perfil.datos.tipo_cuidado_id) : '' },
-      { name: 'independiente', label: 'Modalidad', options: [{ value: 'true', label: 'Independiente' }, { value: 'false', label: 'Empleador: titular de esta cuenta' }],
-        value: perfil.datos ? String(perfil.datos.cuidador_independiente) : '' },
+      { name: 'independiente', label: 'Modalidad', options: [
+        ...(perfil.datos ? [{ value: 'conservar', label: 'Conservar modalidad y empleador actuales' }] : []),
+        { value: 'true', label: 'Independiente' }, { value: 'false', label: 'Asignar como empleador al titular de esta cuenta' },
+      ], value: perfil.datos ? 'conservar' : '' },
     ]} enviar={async (datos) => {
-      await guardarCuidador(token, cuenta.cuenta_id, id, { tipo_cuidado_id: Number(campo(datos, 'tipo')), cuidador_independiente: campo(datos, 'independiente') === 'true' })
+      const modalidad = campo(datos, 'independiente')
+      await guardarCuidador(token, cuenta.cuenta_id, id, {
+        tipo_cuidado_id: Number(campo(datos, 'tipo')),
+        cuidador_independiente: modalidad === 'conservar' ? perfil.datos?.cuidador_independiente === true : modalidad === 'true',
+        ...(modalidad === 'conservar' ? { conservar_empleador: true } : {}),
+      })
       setRevision((n) => n + 1)
     }} />}
   </section>

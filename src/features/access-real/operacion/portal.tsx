@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, CalendarClock, ChevronRight, Ellipsis, HeartHandshake, House, ListTodo, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Building2, CalendarClock, ChevronRight, Ellipsis, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { PantallaMiembros } from '../miembros'
@@ -12,10 +12,12 @@ import { ResumenCuenta } from '../resumen-cuenta'
 import { ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
 import type { CuentaMe } from '../client'
 import { Agenda } from './agenda'
+import { AuditoriaCuenta } from './auditoria'
 import type { ColaVisitas } from './cola-visitas'
 import { Estado, idRuta, useConexionReal, useDatos } from './controles'
 import { Envejecientes } from './envejecientes'
 import { GestionCuenta } from './gestion-cuenta'
+import { SolicitudesVisita } from './solicitudes-visita'
 import { Visitas } from './visitas'
 
 type Seccion = {
@@ -34,6 +36,8 @@ const secciones: Seccion[] = [
   { id: 'agenda', nombre: 'Agenda', titulo: 'Agenda', descripcion: 'Tareas de cuidado y evidencias', icono: ListTodo, permiso: 'agenda:ver' },
   { id: 'miembros', nombre: 'Miembros', titulo: 'Miembros de la cuenta', descripcion: 'Personas, invitaciones y roles', icono: Users, permiso: 'usuarios:gestionar' },
   { id: 'configuracion', nombre: 'Configuración', titulo: 'Configurar cuenta', descripcion: 'Datos de contacto y preferencias', icono: Settings, permiso: 'organizacion:configurar' },
+  { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar' },
+  { id: 'auditoria', nombre: 'Auditoría', titulo: 'Auditoría', descripcion: 'Actividad registrada en la cuenta', icono: ScrollText, permiso: 'auditoria:ver' },
 ]
 const mas: Seccion = { id: 'mas', nombre: 'Más', titulo: 'Más opciones', descripcion: 'Más módulos de la cuenta', icono: Ellipsis }
 
@@ -161,6 +165,8 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
           {actual?.id === 'envejecientes' && <Envejecientes {...props} />}
           {actual?.id === 'visitas' && <Visitas {...props} cola={cola} />}
           {actual?.id === 'agenda' && <Agenda {...props} />}
+          {actual?.id === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
+          {actual?.id === 'auditoria' && <AuditoriaCuenta {...props} />}
         </div>}
       </main>
     </div>
