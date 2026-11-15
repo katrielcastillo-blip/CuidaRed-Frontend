@@ -75,13 +75,22 @@ export default defineConfig({
         globIgnores: ['screenshots/**', '**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2'],
         // Todas las rutas de la SPA abren sin conexión con el shell, salvo la API.
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/admin(?:\/|$)/],
         cleanupOutdatedCaches: true,
         // Un archivo mayor que esto no se precachea y la app no abriría sin conexión: verificar-cache.mjs lo detecta.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           // RS-018: la API (cualquier origen) nunca se guarda en caché. Solo red.
           { urlPattern: ({ url }) => url.pathname.startsWith('/api/'), handler: 'NetworkOnly' },
+          {
+            urlPattern: ({ request, url }) => request.destination === 'image' && url.pathname.startsWith('/storage/v1/object/public/cuidared-marca/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cuidared-marca-versionada',
+              expiration: { maxEntries: 8, maxAgeSeconds: 30 * DIA, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           // Fuentes propias: casi inmutables → cache first, 12 archivos como máximo, 1 año.
           {
             urlPattern: ({ request, url }) => request.destination === 'font' && url.origin === self.location.origin,
