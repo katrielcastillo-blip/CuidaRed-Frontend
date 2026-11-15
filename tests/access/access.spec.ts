@@ -177,7 +177,7 @@ test('credenciales inválidas muestran un mensaje genérico', async ({ page }) =
 test('usuario desactivado no ve módulos ni perfil', async ({ page }) => {
   await mockServices(page, { inactive: true })
   await login(page)
-  await expect(page.getByRole('alert')).toContainText('Tu usuario no tiene acceso.')
+  await expect(page.getByRole('alert')).toContainText('Tu usuario está deshabilitado. Contacta a soporte.')
   await expect(page.getByLabel(/^Nombres/)).not.toBeVisible()
 })
 
