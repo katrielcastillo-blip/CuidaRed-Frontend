@@ -16,6 +16,8 @@ interface Evento {
 
 const ACCIONES = { alta: 'Alta', actualizacion: 'Actualización', baja: 'Baja' }
 const ENTIDADES: Record<string, string> = {
+  envejeciente_necesidad: 'Necesidad',
+  alerta_envejeciente: 'Alerta',
   cuenta: 'Cuenta', configuracion_cuenta: 'Configuración', membresia: 'Membresía',
   envejeciente: 'Expediente', contacto_emergencia: 'Contacto de emergencia', vinculo: 'Asignación o permiso familiar',
   indicacion_medica: 'Indicación médica', envejeciente_riesgo: 'Factor de riesgo', evaluacion_riesgo: 'Evaluación de riesgo',

@@ -134,7 +134,7 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
 
   if (isMobile) await page.setViewportSize({ width: 508, height: 618 })
   await page.getByRole('button', { name: 'Asignaciones', exact: true }).click()
-  await page.getByRole('button', { name: 'Asignar personal' }).click()
+  await page.getByRole('button', { name: 'Asignar cuidador o voluntario', exact: true }).click()
   const persona = page.getByRole('combobox', { name: /^Cuidador o voluntario/ })
   await expect(persona).toHaveValue('')
   await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
@@ -143,6 +143,64 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
     return Math.abs(campo.getBoundingClientRect().width - select.getBoundingClientRect().width) < 1
   })).toBe(true)
 })
+
+for (const { tipo, rol } of [
+  { tipo: 'familia', rol: 'coordinador' },
+  { tipo: 'organizacion', rol: 'administrador' },
+  { tipo: 'organizacion', rol: 'coordinador' },
+] as const) {
+  test(`ID03: ${rol} asigna un cuidador desde el expediente de ${tipo}`, async ({ page }) => {
+    const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', tipo, rol,
+      permisos: ['adultos:ver', 'adultos:asignar', ...(rol === 'administrador' || tipo === 'familia' ? ['usuarios:gestionar'] : [])] })
+    const sim = await simular(page, { cuentas: [cuenta] })
+    const candidata = { usuario_id: sim.usuarioId, nombre: 'Mariana Reyes', rol: 'cuidador' }
+    const voluntario = { usuario_id: '55555555-5555-4555-8555-555555555555', nombre: 'Daniel Paz', rol: 'voluntario' }
+    let disponible = false
+    let asignacion: unknown
+    await page.route(`${backend}/**`, (req) => {
+      const { pathname } = new URL(req.request().url())
+      if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: cuenta } })
+      if (pathname.endsWith('/envejecientes')) return req.fulfill({ json: pagina([adulto]) })
+      if (pathname.endsWith(adultoId)) return req.fulfill({ json: { data: adulto } })
+      if (pathname.endsWith('/historial')) return req.fulfill({ json: pagina([]) })
+      if (pathname.endsWith('/candidatos/asignacion')) {
+        return req.fulfill({ json: pagina(disponible ? [candidata, ...(tipo === 'organizacion' ? [voluntario] : [])] : []) })
+      }
+      if (pathname.endsWith(`/${adultoId}/asignaciones`)) {
+        if (req.request().method() === 'POST') {
+          asignacion = req.request().postDataJSON()
+          return req.fulfill({ status: 201, json: { data: asignacion } })
+        }
+        return req.fulfill({ json: { data: {
+          cuidadores: asignacion ? [{ usuario_id: candidata.usuario_id, nombres: 'Mariana', apellidos: 'Reyes' }] : [],
+          voluntarios: [],
+        } } })
+      }
+      return req.fallback()
+    })
+
+    await iniciarSesion(page, sim.correo)
+    await page.goto(`${ruta}/envejecientes`)
+    await page.getByRole('button', { name: /Juana Prueba/ }).click()
+    const acceso = page.getByRole('region', { name: 'Acciones rápidas' }).getByRole('button', { name: 'Asignar cuidador', exact: true })
+    await acceso.click()
+    const seguimiento = page.getByRole('region', { name: 'Seguimiento del expediente' })
+    await expect(seguimiento.getByRole('button', { name: 'Asignaciones', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(seguimiento.getByText(/tener un perfil vigente/)).toBeVisible()
+    await expect(seguimiento.getByRole('link', { name: 'Ir a Miembros' }))
+      .toHaveCount(cuenta.permisos.includes('usuarios:gestionar') ? 1 : 0)
+    await seguimiento.getByRole('button', { name: 'Cancelar' }).click()
+    disponible = true
+
+    await acceso.click()
+    const persona = seguimiento.getByRole('combobox', { name: /^Cuidador/ })
+    await expect(persona.getByRole('option', { name: /Voluntario/ })).toHaveCount(tipo === 'organizacion' ? 1 : 0)
+    await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
+    await seguimiento.getByRole('button', { name: 'Asignar persona' }).click()
+    await expect.poll(() => asignacion).toEqual({ usuario_id: candidata.usuario_id, tipo: 'cuidador_asignado' })
+    await expect(seguimiento.getByText('Mariana Reyes', { exact: true })).toBeVisible()
+  })
+}
 
 test('RF-10: registra offline una visita autorizada y envía la misma captura al volver la conexión', async ({ page, context }) => {
   const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', rol: 'voluntario', permisos: ['visitas:ver', 'visitas:registrar', 'sync:usar'] })
@@ -371,6 +429,48 @@ test('RF-19: configura la organización con catálogos dependientes e interrupto
   await guardarPreferencias.click()
   await expect.poll(() => preferenciasGuardadas).toEqual({ valores: { dias_sin_visita_alerta: '20', notificar_casos_prioritarios: 'true' } })
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+test('la transferencia de titularidad solo está en Configuración y desaparece para el gestor que deja de ser titular', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Familia sintética', tipo: 'familia', rol: 'coordinador', es_titular: true })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  let esTitular = true
+  let transferida: unknown
+  await page.route(backend, (req) => req.fulfill({ json: { data: {
+    cuenta: {
+      cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+      categoria: { categoria_cuenta_id: 1, nombre: 'Monitoreo a distancia' },
+      municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+      fecha_creacion: '2026-11-07T12:00:00Z',
+    },
+    contexto: { ...cuenta, es_titular: esTitular },
+  } } }))
+  await page.route(`${backend}/**`, (req) => {
+    const { pathname } = new URL(req.request().url())
+    if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: { ...cuenta, es_titular: esTitular } } })
+    if (pathname.endsWith('/configuracion')) return req.fulfill({ json: { data: [] } })
+    if (pathname.endsWith('/candidatos/titularidad')) return req.fulfill({ json: pagina([{ membresia_id: '24', nombre: 'Gestora sintética' }]) })
+    if (pathname.endsWith('/titularidad') && req.request().method() === 'POST') {
+      transferida = req.request().postDataJSON()
+      esTitular = false
+      return req.fulfill({ json: { data: {} } })
+    }
+    return req.fallback()
+  })
+
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/cuenta`)
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Titularidad' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Configurar cuenta', exact: true }).click()
+  const titularidad = page.getByRole('region', { name: 'Titularidad' })
+  await titularidad.getByRole('button', { name: 'Transferir titularidad' }).click()
+  await titularidad.getByRole('combobox', { name: /^Nuevo titular/ }).selectOption('24')
+  await titularidad.getByRole('checkbox', { name: /^Confirmo/ }).check()
+  await titularidad.getByRole('button', { name: 'Transferir cuenta' }).click()
+  await expect.poll(() => transferida).toEqual({ membresia_id: '24' })
+  await expect(titularidad).toHaveCount(0)
+  await expect(page).toHaveURL(`${ruta}/configuracion`)
 })
 
 test('RF-16: programa una serie semanal con un cuidador asignado y días ISO', async ({ page }) => {

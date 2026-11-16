@@ -13,7 +13,7 @@ import { DIAS_SEMANA } from '@/features/agenda/lib/fechas'
 import type { CollectionQuery } from '@/lib/api-contract'
 import { api, type CuentaMe, type RolCuenta } from '../client'
 import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina, type Campo } from './controles'
-import type { ColaVisitas } from './cola-visitas'
+import type { ColaOperaciones } from './cola-operaciones'
 import { Evidencias } from './visitas-evidencias'
 import { fechaDominicana } from './visitas-fechas'
 
@@ -250,7 +250,7 @@ function DatosVisita({ visita, enCurso }: { visita: Visita; enCurso: boolean }) 
   </Card>
 }
 
-export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps & { cola: ColaVisitas }) {
+export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps & { cola: ColaOperaciones }) {
   const [params, setParams] = useSearchParams()
   const [revision, setRevision] = useState(0)
   const [vista, setVista] = useState<Vista>('hoy')
@@ -284,7 +284,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
   const visita = detalle.datos ?? (!enLinea && permite(cuenta, 'sync:usar')
     ? listado.datos?.data.find((item) => item.visita_id === id && (item.estado === 'programada' || item.estado === 'en_curso'))
     : undefined)
-  const pendientes = cola.capturas.filter((captura) => captura.cuentaId === cuenta.cuenta_id)
+  const pendientes = cola.capturas.filter((captura) => captura.cuentaId === cuenta.cuenta_id && captura.operacion.entidad === 'visita')
   const accionesPendientes = pendientes.filter((captura) => captura.operacion.registro_id === id)
   const enCurso = visita?.estado === 'en_curso' || accionesPendientes.some((captura) => !captura.rechazada && captura.operacion.tipo === 'iniciar')
   const registroPendiente = accionesPendientes.some((captura) => captura.operacion.tipo === 'registrar')
@@ -300,7 +300,10 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
   const enviar = async (tipo: 'iniciar' | 'registrar', datos: object = {}) => {
     if (!visita || !ruta || !puedeRegistrar) return
     if (!navigator.onLine && permite(cuenta, 'sync:usar')) {
-      cola.agregar(cuenta.cuenta_id, visita.visita_id, visita.fecha_actualizacion, tipo, datos)
+      cola.agregar(cuenta.cuenta_id, {
+        entidad: 'visita', registro_id: visita.visita_id, tipo, datos,
+        base_actualizado_en: new Date(visita.fecha_actualizacion).toISOString(),
+      })
     } else {
       await api(`${ruta}/${tipo}`, token, 'POST', datos)
       actualizar()
@@ -309,11 +312,11 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
   }
 
   return <section className="grid gap-4" aria-label="Visitas y seguimiento">
-    {(pendientes.length > 0 || cola.mensaje) && <div className="grid gap-2 rounded-sm border border-blue bg-blue-100 p-3" role="status">
-      <p className="text-sm font-semibold">{pendientes.length} pendiente(s) en esta cuenta. {cola.mensaje}</p>
+    {(pendientes.length > 0 || cola.mensaje(cuenta.cuenta_id, 'visita')) && <div className="grid gap-2 rounded-sm border border-blue bg-blue-100 p-3" role="status">
+      <p className="text-sm font-semibold">{pendientes.length} pendiente(s) en esta cuenta. {cola.mensaje(cuenta.cuenta_id, 'visita')}</p>
       {pendientes.length > 0 && <p className="text-sm">Las capturas se conservan mientras esta pestaña siga abierta.</p>}
-      {pendientes.length > 0 && <Button size="sm" variant="outline" disabled={!enLinea} onClick={() => cola.reintentar(cuenta.cuenta_id)}>Reintentar sincronización</Button>}
-      {pendientes.some((captura) => captura.rechazada) && <Button size="sm" variant="outline" onClick={() => cola.quitarRechazadas(cuenta.cuenta_id)}>Descartar capturas rechazadas</Button>}
+      {pendientes.length > 0 && <Button size="sm" variant="outline" disabled={!enLinea} onClick={() => cola.reintentar(cuenta.cuenta_id, 'visita')}>Reintentar sincronización</Button>}
+      {pendientes.some((captura) => captura.rechazada) && <Button size="sm" variant="outline" onClick={() => cola.quitarRechazadas(cuenta.cuenta_id, 'visita')}>Descartar capturas rechazadas</Button>}
     </div>}
     {aviso && <p className="rounded-sm bg-teal-100 p-3 text-sm font-semibold" role="status">{aviso}</p>}
     {(id || programando) && <Button size="sm" variant="ghost" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />}

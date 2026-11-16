@@ -205,6 +205,11 @@ export function GestionCuenta(props: OperacionProps & { actualizar: () => void; 
     <Estado consulta={detalle} />
     {datos && <DatosContacto {...props} datos={datos} actualizar={refrescar} cancelar={() => navigate(`${raiz}/cuenta`)} />}
     <Configuracion {...props} actualizar={refrescar} />
+    {cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
+      <h2 id="titularidad" className="text-lg font-semibold text-ink">Titularidad</h2>
+      <p className="text-sm text-ink-2">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
+      {transferir ? <Transferir {...props} actualizar={refrescar} cerrar={() => setTransferir(false)} /> : <Button variant="outline" className="justify-self-start" onClick={() => setTransferir(true)}>Transferir titularidad</Button>}
+    </section>}
   </section>
 
   return <section className="grid gap-4" aria-label="Datos y gestión de cuenta">
@@ -230,10 +235,5 @@ export function GestionCuenta(props: OperacionProps & { actualizar: () => void; 
       </ButtonLink>}
     </section>}
     {cuenta.acceso_operativo && cuenta.permisos.includes('cuidadores:gestionar') && <Cuidadores {...props} />}
-    {cuenta.acceso_operativo && cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
-      <h3 id="titularidad" className="text-lg font-semibold text-ink">Titularidad</h3>
-      <p className="text-sm text-ink-2">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
-      {transferir ? <Transferir {...props} cerrar={() => setTransferir(false)} /> : <Button variant="outline" className="justify-self-start" onClick={() => setTransferir(true)}>Transferir titularidad</Button>}
-    </section>}
   </section>
 }

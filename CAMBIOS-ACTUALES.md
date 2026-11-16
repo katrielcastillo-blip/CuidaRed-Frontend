@@ -1,5 +1,39 @@
 # Cambios actuales
 
+## 15/11/2026 — Indicador de notificaciones
+
+- La cabecera del portal muestra una campana con la cantidad de avisos personales sin leer y abre directamente su bandeja. El contador usa los permisos y la cuenta activa, se actualiza al marcar un aviso como leído y se consulta cada 30 segundos mientras la pestaña está visible.
+
+## 15/11/2026 — Asignación de cuidadores desde Envejecientes
+
+- Los gestores con permiso pueden abrir **Asignar cuidador** desde las acciones rápidas de un expediente activo. En Familia se muestra el selector de cuidadores y en Organización sigue disponible la asignación de voluntarios.
+- Cuando no hay candidatos elegibles, el formulario explica cómo habilitar al cuidador y ofrece ir a Miembros a quienes tienen permiso.
+
+## 15/11/2026 — Titularidad en Configuración
+
+- La transferencia de titularidad se movió de Inicio a Configuración. Se mantiene el acceso del titular autorizado y la confirmación del nuevo titular.
+
+## 15/11/2026 — Corrección del formulario de Necesidades
+
+- El selector de Responsable y el de Indicación médica mantienen identidades distintas por expediente. Al registrar una necesidad solo aparece un campo de cada tipo y se conserva la selección al editar la cantidad.
+- La unidad aparece junto a la cantidad y se exige si se llena ese campo. Si se intenta enviar con una unidad pendiente, se abren los datos opcionales para que el campo sea visible.
+- El cliente muestra un mensaje en español cuando se pierde la conexión con la API. Si el registro queda sin confirmación, el formulario conserva los datos y no reenvía la solicitud automáticamente.
+
+## 15/11/2026 — Revisión de Necesidades y Alertas
+
+- `operacion/necesidades.tsx` bloquea cambios en expedientes inactivos y evita recuperar un detalle de la lista tras un rechazo del servidor. La captura sin conexión conserva la versión de origen para resolver conflictos.
+- `operacion/cola-operaciones.ts` conserva las operaciones sin confirmación válida. Informa cuando se agotó el cupo del plan y reintenta con el mismo identificador de operación, por cuenta y módulo.
+- `operacion/alertas.tsx` presenta la fuente, la fecha de lectura, quién atendió la alerta y si el cierre fue automático. Conserva el filtro y la página al regresar del detalle. Los filtros coinciden con los estados de la API.
+- Los detalles y formularios gestionan el foco al abrir y volver. Las pruebas Playwright cubren navegación móvil a 320 px, lectura de avisos, atención y resolución de alertas, y sincronización de altas y cierres.
+- Verificación local con compilación de producción y 116 recorridos Playwright del portal con Auth y API simulados. La regresión de alta offline comprueba que el reintento conserva el decimal `0.004` y una unidad de 64 caracteres.
+
+## 15/11/2026 — Necesidades y Alertas
+
+- El portal incluye **Necesidades** para consultar ocurrencias abiertas, registrar, priorizar, asignar responsables y gestionar el estado según permisos. El expediente muestra la lista e historial asociados.
+- La cola en memoria de la pestaña permite registrar necesidades y cambiar su estado con los expedientes y catálogos ya consultados. Al recuperar conexión se muestran rechazos y conflictos.
+- **Alertas** agrupa casos prioritarios por adulto, conserva los detalles y abre una bandeja de avisos con lectura individual. Los controles de atención y resolución siguen los permisos de cuenta.
+- Validación local: compilación, 113 pruebas de componentes y 112 recorridos de navegador con la API simulada. La captura de necesidades se verificó en móvil y escritorio.
+
 ## 13/11/2026 — Correcciones de las fases 2 a 4
 
 - `src/features/access-real/`: Inicio recupera la cuenta elegida aunque quede fuera de la página actual. Miembros permite reenviar una invitación y la edición del Cuidador puede conservar su empleador global.

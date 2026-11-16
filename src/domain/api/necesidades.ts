@@ -29,8 +29,7 @@ export interface DatosNecesidad {
 
 export const DATOS_NECESIDAD_VACIOS: Omit<DatosNecesidad, 'adultoId'> = { tipo: '', catalogoId: '', descripcion: '', cantidad: '', unidad: '', recurrente: false, prioridad: '', indicacionId: '' }
 
-/** Unidades de medida predefinidas (Env_Necesidad.Unidad_Medida). */
-export const UNIDADES = ['unidades', 'tabletas', 'cajas', 'frascos', 'libras', 'canastas', 'latas', 'paquetes', 'viajes', 'horas', 'visitas']
+export { UNIDADES } from '../catalogos'
 
 const TIPOS = Object.keys(TIPOS_NECESIDAD_TEXTO) as TipoNecesidad[]
 const ESTADOS = ESTADOS_NECESIDAD.map((e) => e.value)

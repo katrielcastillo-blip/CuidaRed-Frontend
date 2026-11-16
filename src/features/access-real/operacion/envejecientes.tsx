@@ -11,6 +11,7 @@ import {
 import { AUTONOMIAS, CONDICIONES, PARENTESCOS } from '@/domain/catalogos'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { api } from '../client'
+import type { ColaOperaciones } from './cola-operaciones'
 import type { Municipio, Provincia } from '../api/catalogos'
 import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina, type Campo } from './controles'
 import { Seguimiento, type ResumenRiesgo } from './seguimiento'
@@ -224,6 +225,7 @@ function Contactos({ base, ruta, token, perfil, refrescar }: Pick<OperacionProps
 }
 
 type Edicion = 'identificacion' | 'ubicacion' | 'contactos' | 'estado' | 'retirar'
+type AccionSeguimiento = 'evaluacion' | 'asignacion'
 function EstadoPerfil({ perfil, ruta, token, refrescar, cancelar }: {
   perfil: Perfil; ruta: string; token: string; refrescar: () => void; cancelar: () => void
 }) {
@@ -247,12 +249,12 @@ function EstadoPerfil({ perfil, ruta, token, refrescar, cancelar }: {
   </Formulario>
 }
 
-function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProps & {
+function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProps & { cola: ColaOperaciones;
   id: string; volver: () => void; revision: number; refrescar: () => void
 }) {
   const { base, token, cuenta } = props
   const [edicion, setEdicion] = useState<Edicion>()
-  const [evaluacionesSolicitadas, solicitarEvaluacion] = useState(0)
+  const [solicitud, setSolicitud] = useState<{ tipo: AccionSeguimiento; numero: number }>()
   const enLinea = useConexionReal()
   const seguimientoRef = useRef<HTMLDivElement>(null)
   const ruta = `${base}/envejecientes/${idRuta(id)}`
@@ -264,6 +266,12 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
   const perfil = consulta.datos
   const editar = cuenta.permisos.includes('adultos:editar')
   const gestionarEstado = cuenta.permisos.includes('adultos:desactivar')
+  const puedeAsignar = perfil?.estado === 'activo' && cuenta.permisos.includes('adultos:asignar')
+  const abrirSeguimiento = (tipo: AccionSeguimiento) => {
+    setSolicitud((anterior) => ({ tipo, numero: (anterior?.numero ?? 0) + 1 }))
+    seguimientoRef.current?.focus({ preventScroll: true })
+    seguimientoRef.current?.scrollIntoView({ block: 'start' })
+  }
   const cerrar = () => setEdicion(undefined)
   const guardado = () => { cerrar(); refrescar() }
   const ultimaFecha = ultima.datos?.data[0]?.fecha
@@ -312,15 +320,17 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
               <strong className="text-sm text-ink">{perfil.contactos.length}</strong>
             </Card>}
           </div>
-          {(editar || gestionarEstado || cuenta.permisos.includes('adultos:evaluar')) && <section className="grid gap-2" aria-label="Acciones rápidas">
+          {(editar || gestionarEstado || puedeAsignar || cuenta.permisos.includes('adultos:evaluar')) && <section className="grid gap-2" aria-label="Acciones rápidas">
             <h3 className="font-semibold">Acciones rápidas</h3>
+            {puedeAsignar && <Button variant="light" size="sm" icon={<Plus size={18} aria-hidden />}
+              onClick={() => abrirSeguimiento('asignacion')}>Asignar cuidador</Button>}
             {editar && <>
               <Button variant="light" size="sm" aria-pressed={edicion === 'identificacion'} onClick={() => setEdicion('identificacion')}>Editar información</Button>
               <Button variant="light" size="sm" aria-pressed={edicion === 'ubicacion'} onClick={() => setEdicion('ubicacion')}>Editar ubicación y cuidado</Button>
               <Button variant="light" size="sm" aria-pressed={edicion === 'contactos'} onClick={() => setEdicion('contactos')}>Gestionar contactos</Button>
             </>}
             {perfil.estado === 'activo' && cuenta.permisos.includes('adultos:evaluar') && <Button variant="light" size="sm" icon={<ShieldCheck size={18} aria-hidden />}
-              onClick={() => { solicitarEvaluacion((n) => n + 1); seguimientoRef.current?.scrollIntoView({ block: 'start' }) }}>Realizar evaluación de riesgo</Button>}
+              onClick={() => abrirSeguimiento('evaluacion')}>Realizar evaluación de riesgo</Button>}
             {gestionarEstado && perfil.estado !== 'fallecido' && <Button variant="outline" size="sm" aria-pressed={edicion === 'estado'} onClick={() => setEdicion('estado')}>Cambiar estado</Button>}
             {gestionarEstado && <Button variant="danger-soft" size="sm" disabled={!enLinea}
               aria-pressed={edicion === 'retirar'} onClick={() => setEdicion('retirar')}>Registrar retiro del consentimiento</Button>}
@@ -349,15 +359,16 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
         <p className="text-sm text-ink-2 sm:col-span-2">El expediente de {nombre(perfil)} quedará bloqueado. Sus visitas y tareas abiertas se cancelarán y se conservará una constancia del retiro.</p>
       </Formulario>}
 
-      <div ref={seguimientoRef} className="scroll-mt-6">
-        <Seguimiento key={evaluacionesSolicitadas} {...props} ruta={ruta} adultoActivo={perfil.estado === 'activo'}
-          riesgo={riesgo} revision={revision} actualizar={refrescar} abrirEvaluacion={evaluacionesSolicitadas > 0} />
+      <div ref={seguimientoRef} tabIndex={-1} className="scroll-mt-6">
+        <Seguimiento key={solicitud?.numero} {...props} ruta={ruta} adultoId={id} adultoActivo={perfil.estado === 'activo'}
+          riesgo={riesgo} revision={revision} actualizar={refrescar}
+          abrirEvaluacion={solicitud?.tipo === 'evaluacion'} abrirAsignacion={solicitud?.tipo === 'asignacion'} />
       </div>
     </>}
   </section>
 }
 
-export function Envejecientes(props: OperacionProps) {
+export function Envejecientes(props: OperacionProps & { cola: ColaOperaciones }) {
   const { base, token, cuenta } = props
   const [vista, setVista] = useState<Vista>({ tipo: 'lista' })
   const [revision, setRevision] = useState(0)

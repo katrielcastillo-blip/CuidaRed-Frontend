@@ -78,6 +78,8 @@ async function apiResponse(path: string, token: string, method = 'GET', data?: u
     cache: 'no-store',
     credentials: 'omit',
     signal: AbortSignal.timeout(15_000),
+  }).catch(() => {
+    throw new ApiError(0, 'No se pudo conectar con CuidaRed. Revisa tu conexión e intenta de nuevo.', 'CONNECTION_UNAVAILABLE')
   })
   if (!res.ok) {
     const body = await res.json().catch(() => null)

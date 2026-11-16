@@ -23,7 +23,7 @@ import { BienvenidaPresentacion } from '../auth/components/BienvenidaPresentacio
 import { SolicitarVisita } from '../auth/components/SolicitarVisita'
 import { Button, ButtonLink } from '@/components/ui'
 import { Portal } from './operacion/portal'
-import { useColaVisitas } from './operacion/cola-visitas'
+import { useColaOperaciones } from './operacion/cola-operaciones'
 
 /**
  * Solicitudes públicas de visita: el backend real mantiene cerrado ese flujo. Quien recibió una
@@ -72,7 +72,7 @@ function AccessRoutes() {
   const [invitaciones, setInvitaciones] = useState<{ usuarioId: string; datos?: CuentaMe[]; error?: true }>()
   const [activaRemota, setActivaRemota] = useState<{ usuarioId: string; id: string; cuenta: CuentaMe }>()
   const perfilListo = !!session && !!user && user.identity.id === session.user.id
-  const cola = useColaVisitas(perfilListo ? session?.user.id : undefined, perfilListo ? session?.access_token : undefined)
+  const cola = useColaOperaciones(perfilListo ? session?.user.id : undefined, perfilListo ? session?.access_token : undefined)
 
   useEffect(() => {
     if (!session || !perfilListo) return
