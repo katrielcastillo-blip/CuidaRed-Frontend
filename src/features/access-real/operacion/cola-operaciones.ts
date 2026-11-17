@@ -3,7 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '../client'
+import { api, ApiError } from '../client'
 
 type Entrada = { registro_id: string; datos: object } & (
   | { entidad: 'visita'; tipo: 'iniciar' | 'registrar'; base_actualizado_en: string }
@@ -85,9 +85,16 @@ export function useColaOperaciones(usuarioId: string | undefined, token: string 
             if (!mensajes.has(claveAviso(cuentaId, entidad))) mensajes.set(claveAviso(cuentaId, entidad), new Set())
             return []
           })
-        } catch {
+        } catch (error) {
+          const deshabilitada = error instanceof ApiError && error.code === 'ACCOUNT_DISABLED'
+          if (deshabilitada) {
+            const ids = new Set(lote.map((c) => c.operacion.id_cliente))
+            actual.capturas = actual.capturas.map((c) => ids.has(c.operacion.id_cliente) ? { ...c, rechazada: true } : c)
+          }
           for (const entidad of new Set(lote.map((c) => c.operacion.entidad))) {
-            avisar(cuentaId, entidad, 'Quedan capturas pendientes. Revisa el acceso a la cuenta o la conexión.')
+            avisar(cuentaId, entidad, deshabilitada
+              ? 'La cuenta está deshabilitada. Las capturas del lote fueron rechazadas al sincronizar.'
+              : 'Quedan capturas pendientes. Revisa el acceso a la cuenta o la conexión.')
           }
         }
       }

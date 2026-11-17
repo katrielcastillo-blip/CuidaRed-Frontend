@@ -5,6 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { fechaLarga, hora12 } from '@/domain/dates'
+import { logoParaReporte } from '@/lib/marca'
 import { graficosDelReporte, SIN_DATOS, tablaDeGrafico, type Columna } from '../../lib/reportes'
 import type { ContextoExportacion } from './tipos'
 
@@ -25,7 +26,7 @@ const alinear = (columnas: Array<Pick<Columna, 'tipo'>>) => Object.fromEntries(c
 
 /** Genera el PDF y lo descarga. Devuelve el número de páginas. */
 export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: string): Promise<number> {
-  const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
+  const [{ jsPDF }, { autoTable }, logo] = await Promise.all([import('jspdf'), import('jspdf-autotable'), logoParaReporte()])
   const { reporte: r } = ctx
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   let y = 0
@@ -61,7 +62,10 @@ export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: strin
   /* Encabezado */
   doc.setFillColor(...NAVY).rect(0, 0, ANCHO_PAGINA, 26, 'F')
   doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(17)
-  doc.text('CuidaRed', MARGEN, 12)
+  if (logo) {
+    const escala = Math.min(52 / logo.naturalWidth, 12 / logo.naturalHeight)
+    doc.addImage(logo, 'PNG', MARGEN, 3, logo.naturalWidth * escala, logo.naturalHeight * escala)
+  } else doc.text('CuidaRed', MARGEN, 12)
   doc.setFont('helvetica', 'normal').setFontSize(10)
   doc.text('Seguimiento comunitario de adultos mayores', MARGEN, 19)
   y = 38

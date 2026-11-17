@@ -1,5 +1,10 @@
 # Cambios actuales
 
+## 17/11/2026 — Integración de la PWA con Backoffice
+
+- La PWA combina la marca dinámica y la telemetría de Backoffice con Web Push y la recuperación de sesión vigente. Mantiene los avisos de cuenta o usuario deshabilitado.
+- La cola por pestaña conserva las visitas y las necesidades rechazadas si Backoffice deshabilita su cuenta. El usuario puede reintentar la misma captura o descartarla.
+
 ## 17/11/2026 — Acceso al abrir una notificación
 
 - `src/features/access-real/` recupera la sesión vigente mediante una cookie protegida y vuelve a la bandeja al abrir un aviso desde otra pestaña. El cierre manual borra la cookie y revoca los avisos del navegador.

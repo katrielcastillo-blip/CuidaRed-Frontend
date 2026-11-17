@@ -197,7 +197,7 @@ function AccessRoutes() {
         setError(issue instanceof Error ? issue.message : 'No se pudo comprobar tu sesión.')
         if (issue instanceof ApiError && (issue.status === 401 || issue.status === 403)) {
           setUser(null)
-          if (issue.status === 401 || issue.code === 'USER_INACTIVE') {
+          if (issue.status === 401 || issue.code === 'USER_INACTIVE' || issue.code === 'ACCOUNT_DISABLED') {
             setSession(null)
           }
         }

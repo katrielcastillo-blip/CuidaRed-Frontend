@@ -7,6 +7,7 @@ import { Link, NavLink, useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Building2, CalendarClock, ChevronRight, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useLogo } from '@/lib/marca'
 import { PantallaMiembros } from '../miembros'
 import { ResumenCuenta } from '../resumen-cuenta'
 import { ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
@@ -46,6 +47,8 @@ const secciones: Seccion[] = [
 const mas: Seccion = { id: 'mas', nombre: 'Más', titulo: 'Más opciones', descripcion: 'Más módulos de la cuenta', icono: Ellipsis }
 
 function MenuOperativo({ raiz, cuenta, modulos, seccion }: { raiz: string; cuenta: CuentaMe; modulos: Seccion[]; seccion: string }) {
+  const logo = useLogo()
+  const isotipo = useLogo('isotipo')
   const orden = cuenta.rol === 'administrador' ? ['cuenta', 'envejecientes', 'miembros']
     : cuenta.rol === 'coordinador' ? ['cuenta', 'envejecientes', 'visitas']
       : ['cuenta', 'envejecientes', 'visitas', 'agenda']
@@ -58,8 +61,8 @@ function MenuOperativo({ raiz, cuenta, modulos, seccion }: { raiz: string; cuent
     <nav aria-label="Módulos de la cuenta" className="sticky top-0 hidden h-dvh flex-col gap-2 overflow-y-auto bg-navy px-3 py-5 text-blue-100 md:flex lg:px-4">
       <Link to={`${raiz}/cuenta`} className="mb-4 flex min-h-12 items-center justify-center rounded-md bg-surface px-2 py-1.5 hover:bg-blue-100" aria-label="CuidaRed, ir al inicio">
         <picture className="min-w-0">
-          <source media="(min-width: 1100px)" srcSet="/brand/logo.png" width={517} height={192} />
-          <img src="/brand/logosimbolo.png" alt="" width={149} height={178} className="h-9 w-auto max-w-full object-contain lg:h-12" />
+          <source media="(min-width: 1100px)" srcSet={logo} width={517} height={192} />
+          <img src={isotipo} alt="" width={149} height={178} className="h-9 w-auto max-w-full object-contain lg:h-12" />
         </picture>
       </Link>
       {modulos.map((modulo) => <NavLink key={modulo.id} to={`${raiz}/${modulo.id}`} title={modulo.nombre}

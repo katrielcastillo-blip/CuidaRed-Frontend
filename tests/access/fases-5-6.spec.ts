@@ -184,7 +184,7 @@ test('RF-03: conserva un solo responsable, muestra la unidad y mantiene los dato
   expect(envios[1]).toEqual(envios[0])
 })
 
-test('RF-10: conserva la captura de alta rechazada por cupo y reintenta la misma operación', async ({ page, context }) => {
+for (const bloqueo of ['cupo', 'cuenta deshabilitada'] as const) test(`RF-10: conserva la captura de alta rechazada por ${bloqueo} y reintenta la misma operación`, async ({ page, context }) => {
   const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta de prueba', rol: 'coordinador',
     permisos: ['necesidades:ver', 'necesidades:registrar', 'necesidades:actualizar', 'sync:usar'] })
   const sim = await simular(page, { cuentas: [cuenta] })
@@ -203,10 +203,13 @@ test('RF-10: conserva la captura de alta rechazada por cupo y reintenta la misma
     if (path.endsWith('/sync')) {
       const lote = req.request().postDataJSON().operaciones as typeof capturas
       capturas.push(...lote)
-      const sinCupo = capturas.length === 1
+      const primerEnvio = capturas.length === 1
+      if (primerEnvio && bloqueo === 'cuenta deshabilitada') {
+        return req.fulfill({ status: 403, json: { error: { code: 'ACCOUNT_DISABLED' } } })
+      }
       return req.fulfill({ json: { data: { resultados: lote.map((i) => ({
         id_cliente: i.id_cliente, registro_id: i.registro_id,
-        ...(sinCupo ? { resultado: 'rechazada', motivo: 'PLAN_LIMIT_REACHED' } : { resultado: 'aplicada' }),
+        ...(primerEnvio ? { resultado: 'rechazada', motivo: 'PLAN_LIMIT_REACHED' } : { resultado: 'aplicada' }),
       })) } } })
     }
     return req.fallback()
@@ -236,7 +239,9 @@ test('RF-10: conserva la captura de alta rechazada por cupo y reintenta la misma
     await context.setOffline(false)
   }
   await expect.poll(() => capturas.length).toBe(1)
-  await expect(page.getByText(/Se alcanzó el límite del plan de la cuenta/)).toBeVisible()
+  await expect(page.getByText(bloqueo === 'cupo'
+    ? /Se alcanzó el límite del plan de la cuenta/
+    : /Las capturas del lote fueron rechazadas al sincronizar/)).toBeVisible()
   await expect(page.getByText(/1 necesidad\(es\) pendiente/)).toBeVisible()
   expect(capturas[0]).toMatchObject({ entidad: 'necesidad', tipo: 'registrar',
     datos: { envejeciente_id: adultoId, necesidad_id: 4, prioridad_id: 1, descripcion: 'Canasta de alimentos.',

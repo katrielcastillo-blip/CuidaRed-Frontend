@@ -11,6 +11,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, BellRing, HeartHandshake, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useLogo } from '@/lib/marca'
 import { Circulos } from './Circulos'
 
 type Volver = string | true | (() => void)
@@ -29,6 +30,7 @@ interface Props {
 
 export function AuthScreen({ title, back, gradient = 'registro', wide, children }: Props) {
   const navigate = useNavigate()
+  const logo = useLogo()
 
   const volver = () => {
     if (typeof back === 'function') return back()
@@ -55,7 +57,7 @@ export function AuthScreen({ title, back, gradient = 'registro', wide, children 
             className="hidden lg:flex lg:max-w-[480px] lg:flex-1 lg:basis-0 lg:flex-col lg:gap-6 lg:rounded-[28px] lg:bg-white/95 lg:p-10 lg:shadow-[0_12px_40px_-16px_rgba(12,59,110,0.25)]"
             aria-label="CuidaRed"
           >
-            <img src="/brand/logo.png" alt="CuidaRed · Seguimiento Comunitario" width={517} height={192} className="h-auto w-[min(100%,340px)]" />
+            <img src={logo} alt="CuidaRed · Seguimiento Comunitario" width={517} height={192} className="h-auto w-[min(100%,340px)]" />
             <p className="text-xl font-semibold leading-[1.45] text-navy">
               Una red que conecta a organizaciones, voluntarios y familias para acompañar a los adultos mayores de tu comunidad.
             </p>
