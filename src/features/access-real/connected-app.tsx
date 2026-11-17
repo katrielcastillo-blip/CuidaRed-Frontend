@@ -8,10 +8,9 @@
  * (autorregistro del titular).
  */
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import type { Session } from '@supabase/supabase-js'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Privacidad, Terminos } from '../auth/pages/Legal'
-import { ApiError, api, getClient, logout, type CuentaMe, type CurrentUser } from './client'
+import { ApiError, api, configuration as validarConfiguracion, logout, obtenerSuscripcionPush, recuperarSesionDelNavegador, type BrowserSession, type CuentaMe, type CurrentUser } from './client'
 import { AccessForm, InvitationForm, RecoveryForm, ResetForm, ProfileForm } from './forms'
 import { guardarCuentaActiva, leerCuentaActiva, PanelCuentas } from './cuentas'
 import { listarCuentas, listarInvitaciones } from './api/cuentas'
@@ -23,10 +22,10 @@ import { BienvenidaPresentacion } from '../auth/components/BienvenidaPresentacio
 import { SolicitarVisita } from '../auth/components/SolicitarVisita'
 import { Button, ButtonLink } from '@/components/ui'
 import { Portal } from './operacion/portal'
-import { useColaVisitas } from './operacion/cola-visitas'
+import { useColaOperaciones } from './operacion/cola-operaciones'
 
 /**
- * Solicitudes de visita: el backend real aún no las expone. Se explica sin simular datos; quien recibió una
+ * Solicitudes públicas de visita: el backend real mantiene cerrado ese flujo. Quien recibió una
  * invitación la activa en /registro y quien quiere una cuenta se registra en /crear-cuenta.
  */
 function SolicitudPendiente({ titulo }: { titulo: string }) {
@@ -48,15 +47,18 @@ const bienvenida = (
 )
 
 function AccessRoutes() {
+  const { pathname, search } = useLocation()
+  const enlaceAvisos = /^\/operacion\/[1-9][0-9]{0,18}\/alertas$/.test(pathname) && search === '?bandeja=avisos'
   const [configuration] = useState(() => {
     try {
-      return { client: getClient(), error: '' }
+      validarConfiguracion()
+      return { disponible: true, error: '' }
     } catch (issue) {
-      return { client: null, error: issue instanceof Error ? issue.message : 'No se pudo configurar el acceso.' }
+      return { disponible: false, error: issue instanceof Error ? issue.message : 'No se pudo configurar el acceso.' }
     }
   })
-  const [loading, setLoading] = useState(!!configuration.client)
-  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(configuration.disponible)
+  const [session, setSession] = useState<BrowserSession | null>(null)
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [error, setError] = useState(configuration.error)
   const [revision, setRevision] = useState(0)
@@ -70,8 +72,25 @@ function AccessRoutes() {
     error?: true
   }>()
   const [invitaciones, setInvitaciones] = useState<{ usuarioId: string; datos?: CuentaMe[]; error?: true }>()
+  const [activaRemota, setActivaRemota] = useState<{ usuarioId: string; id: string; cuenta: CuentaMe }>()
   const perfilListo = !!session && !!user && user.identity.id === session.user.id
-  const cola = useColaVisitas(perfilListo ? session?.user.id : undefined, perfilListo ? session?.access_token : undefined)
+  const cola = useColaOperaciones(perfilListo ? session?.user.id : undefined, perfilListo ? session?.access_token : undefined)
+  const tokenPush = perfilListo ? session?.access_token : undefined
+
+  useEffect(() => {
+    if (!tokenPush) return
+    let vigente = true
+    const verificar = async () => {
+      const suscripcion = await obtenerSuscripcionPush()
+      if (!suscripcion || !vigente) return
+      const estado = await api<{ activa: boolean }>('/notificaciones-push/suscripciones/estado', tokenPush,
+        'POST', { endpoint: suscripcion.endpoint })
+      // Un segundo usuario que inicia sesión en un navegador compartido no hereda avisos del anterior.
+      if (vigente && estado.activa === false) await suscripcion.unsubscribe()
+    }
+    void verificar().catch(() => {})
+    return () => { vigente = false }
+  }, [tokenPush])
 
   useEffect(() => {
     if (!session || !perfilListo) return
@@ -105,34 +124,44 @@ function AccessRoutes() {
   }, [session, perfilListo, pagina, revisionCuentas])
 
   useEffect(() => {
-    let active = true
-    const client = configuration.client
-    if (client) {
-      void client.auth
-        .getSession()
-        .then(({ data, error: issue }) => {
-          if (!active) return
-          if (issue) setError('No se pudo recuperar la sesión.')
-          setSession(data.session)
-          setLoading(false)
-        })
-        .catch(() => {
-          if (active) {
-            setError('No se pudo recuperar la sesión.')
-            setLoading(false)
+    if (!session || !perfilListo || !cuentaElegida) return
+    const usuarioId = session.user.id
+    const id = cuentaElegida
+    let vigente = true
+    const consultar = () => {
+      void api<CuentaMe>(`/cuentas/${encodeURIComponent(id)}/contexto`, session.access_token).then(
+        (cuenta) => { if (vigente) setActivaRemota({ usuarioId, id, cuenta }) },
+        (error: unknown) => {
+          if (!vigente) return
+          setActivaRemota(undefined)
+          if (error instanceof ApiError && error.status === 404) {
+            guardarCuentaActiva(null)
+            setCuentaElegida(null)
           }
-        })
-      const { data } = client.auth.onAuthStateChange((_event, next) => {
-        if (active) {
-          setSession(next)
-          // Una renovación de token de la misma persona no descarta lo cargado (ni lo que escribe en pantalla).
-          setUser((actual) => (next && actual && actual.identity.id === next.user.id ? actual : null))
-        }
+        },
+      )
+    }
+    const visible = () => { if (document.visibilityState === 'visible') consultar() }
+    consultar()
+    const timer = window.setInterval(visible, 30_000)
+    window.addEventListener('focus', visible)
+    return () => {
+      vigente = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', visible)
+    }
+  }, [session, perfilListo, cuentaElegida, revisionCuentas])
+
+  useEffect(() => {
+    let active = true
+    if (configuration.disponible) {
+      void recuperarSesionDelNavegador().then((next) => {
+        if (active) setSession(next)
+      }).catch((issue: unknown) => {
+        if (active) setError(issue instanceof Error ? issue.message : 'No se pudo recuperar la sesión.')
+      }).finally(() => {
+        if (active) setLoading(false)
       })
-      return () => {
-        active = false
-        data.subscription.unsubscribe()
-      }
     }
     return () => {
       active = false
@@ -143,10 +172,21 @@ function AccessRoutes() {
     if (!session) return
     let active = true
     let pending = false
-    const refresh = async () => {
+    const refresh = async (permitirRenovar = false) => {
       if (pending) return
       pending = true
       try {
+        if (permitirRenovar && session.expires_at * 1000 - Date.now() <= 60_000) {
+          const next = await recuperarSesionDelNavegador()
+          if (active) {
+            setSession(next)
+            if (!next) {
+              setUser(null)
+              setError('Tu sesión venció. Inicia sesión de nuevo.')
+            }
+          }
+          return
+        }
         const result = await api<CurrentUser>('/me', session.access_token)
         if (active) {
           setUser(result)
@@ -158,9 +198,7 @@ function AccessRoutes() {
         if (issue instanceof ApiError && (issue.status === 401 || issue.status === 403)) {
           setUser(null)
           if (issue.status === 401 || issue.code === 'USER_INACTIVE' || issue.code === 'ACCOUNT_DISABLED') {
-            void getClient()
-              .auth.signOut({ scope: 'local' })
-              .catch(() => undefined)
+            setSession(null)
           }
         }
       } finally {
@@ -169,10 +207,10 @@ function AccessRoutes() {
     }
     void refresh()
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh()
+      if (document.visibilityState === 'visible') void refresh(true)
     }, 30_000)
     const focus = () => {
-      void refresh()
+      void refresh(true)
     }
     window.addEventListener('focus', focus)
     let lastActivity = 0
@@ -180,7 +218,7 @@ function AccessRoutes() {
       if (document.visibilityState !== 'visible' || Date.now() - lastActivity < 60_000) return
       lastActivity = Date.now()
       void api('/session/activity', session.access_token, 'POST').catch(() => {
-        void refresh()
+        void refresh(true)
       })
     }
     const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'] as const
@@ -202,6 +240,10 @@ function AccessRoutes() {
     )
 
   const refrescar = () => setRevision((value) => value + 1)
+  const abrirSesion = (next: BrowserSession) => {
+    setError('')
+    setSession(next)
+  }
   const refrescarCuentas = () => setRevisionCuentas((value) => value + 1)
   const elegirCuenta = (id: string) => {
     guardarCuentaActiva(id)
@@ -212,7 +254,11 @@ function AccessRoutes() {
   const datosCuentas = listado?.usuarioId === session?.user.id && listado?.pagina === pagina ? listado : undefined
   const datosInvitaciones = invitaciones?.usuarioId === session?.user.id ? invitaciones : undefined
   const cuentas = datosCuentas?.resultado?.data ?? []
-  const cuentaActiva = cuentaElegida ? cuentas.find((c) => c.cuenta_id === cuentaElegida) : cuentas[0]
+  const cuentaRecordada = activaRemota && activaRemota.usuarioId === session?.user.id && activaRemota.id === cuentaElegida
+    ? activaRemota : undefined
+  const cuentaActiva = cuentaElegida
+    ? cuentas.find((c) => c.cuenta_id === cuentaElegida) ?? cuentaRecordada?.cuenta
+    : cuentas[0]
   const listaCuentas = datosCuentas?.resultado ? (
     <PanelCuentas cuentas={cuentas} activa={cuentaActiva} onCambiar={elegirCuenta} pagina={pagina}
       totalPaginas={datosCuentas.resultado.meta.totalPages} onPagina={setPagina} />
@@ -242,10 +288,10 @@ function AccessRoutes() {
           <ButtonLink to="/cuenta" variant="outline" className="mt-5">Mi cuenta</ButtonLink>
         </>}
         {error && <Button onClick={refrescar}>Reintentar</Button>}
-        <Button variant="ghost" className="mt-3" onClick={() => void logout()}>Cerrar sesión</Button>
+        <Button variant="ghost" className="mt-3" onClick={() => void logout(session)}>Cerrar sesión</Button>
       </AuthScreen>
     )
-  ) : <AccessForm notice={error} />
+  ) : <AccessForm notice={error} onSession={abrirSesion} />
 
   const account = session ? (
     <AuthScreen title="Mi cuenta" back="/inicio">
@@ -265,7 +311,7 @@ function AccessRoutes() {
         </>
       )}
       {error && <Button onClick={refrescar}>Reintentar</Button>}
-      <Button variant="outline" className="mt-5" onClick={() => void logout()}>
+      <Button variant="outline" className="mt-5" onClick={() => void logout(session)}>
         Cerrar sesión
       </Button>
     </AuthScreen>
@@ -288,23 +334,23 @@ function AccessRoutes() {
   return (
     <Routes>
       <Route path="/inicio" element={inicio} />
-      <Route path="/registro" element={session ? <Navigate to="/cuenta" replace /> : <InvitationForm />} />
+      <Route path="/registro" element={session ? <Navigate to="/cuenta" replace /> : <InvitationForm onSession={abrirSesion} />} />
       <Route path="/recuperar" element={<RecoveryForm />} />
       <Route path="/restablecer" element={<ResetForm />} />
       <Route path="/cuenta" element={account} />
       <Route path="/cuenta/miembros" element={miembros} />
       <Route path="/operacion/:cuentaId/:seccion" element={perfilListo && session ? (
         <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} cola={cola} />
-      ) : account} />
+      ) : enlaceAvisos && !session ? <AccessForm notice={error} onSession={abrirSesion} /> : account} />
       <Route path="/" element={session ? <Navigate to="/inicio" replace /> : bienvenida} />
-      <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onCreada={alCrearCuenta} />} />
+      <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />} />
       <Route
         path="/registro-familia"
-        element={<RegistroCuenta key="familia" titulo="Crear cuenta familiar" tipoInicial="familia" session={session} onCreada={alCrearCuenta} />}
+        element={<RegistroCuenta key="familia" titulo="Crear cuenta familiar" tipoInicial="familia" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />}
       />
       <Route
         path="/registro-organizacion"
-        element={<RegistroCuenta key="organizacion" titulo="Registrar organización" tipoInicial="organizacion" session={session} onCreada={alCrearCuenta} />}
+        element={<RegistroCuenta key="organizacion" titulo="Registrar organización" tipoInicial="organizacion" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />}
       />
       <Route path="/solicitud-visita" element={<SolicitudPendiente titulo="Consultar mi solicitud" />} />
       <Route path="/terminos" element={<Terminos />} />

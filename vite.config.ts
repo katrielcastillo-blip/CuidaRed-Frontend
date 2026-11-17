@@ -23,7 +23,7 @@ const DIA = 24 * 60 * 60
 declare const self: { location: { origin: string } }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -68,6 +68,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['cuidared-push.js'],
         // Shell de la app. Las capturas del manifest se descargan solo al instalar (no se precachean) y de las
         // fuentes solo se precachean las latinas (cubren el español): las demás subconjuntos se piden a la red
         // y, si se usan, quedan en la caché de runtime de fuentes.
@@ -114,7 +115,10 @@ export default defineConfig({
           },
         ],
       },
-      devOptions: { enabled: false },
+      devOptions: {
+        enabled: command === 'serve' && mode === 'web-push-local',
+        disableRuntimeConfig: true,
+      },
     }),
   ],
-})
+}))

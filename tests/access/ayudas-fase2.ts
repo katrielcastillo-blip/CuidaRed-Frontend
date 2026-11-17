@@ -8,7 +8,7 @@
  * miembros, errores públicos con su código) para que las pantallas se prueben contra el mismo formato que el backend.
  * Este archivo no es una prueba: Playwright solo ejecuta los `*.spec.ts`.
  */
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, type Route } from '@playwright/test'
 
 export const AUTH = 'https://auth.cuidared.test'
 export const API = 'http://localhost:3301'
@@ -161,6 +161,40 @@ export function crearSesion(id: string, correo: string) {
 
 const errorApi = (estado: number, codigo: string) => ({ status: estado, json: { error: { code: codigo, message: 'mensaje_privado' }, requestId: 'prueba' } })
 
+export async function simularSesionDelNavegador(route: Route, token: string, id: string, error?: { status: number; code: string }) {
+  const solicitud = route.request()
+  const ruta = new URL(solicitud.url()).pathname
+  const base = '/api/v1/session/browser/'
+  if (!ruta.startsWith(base)) return false
+  const accion = ruta.slice(base.length)
+  const headers: Record<string, string> = {
+    'access-control-allow-origin': 'http://localhost:5174',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-headers': 'content-type,authorization',
+    'access-control-allow-methods': 'POST,OPTIONS',
+  }
+  if (solicitud.method() === 'OPTIONS') {
+    await route.fulfill({ status: 204, headers })
+    return true
+  }
+  const nombre = '__Secure-cuidared-browser'
+  const cookie = `${nombre}=sesion-de-prueba; Path=/api/v1/session/browser; Secure; HttpOnly; SameSite=Strict`
+  const borrar = `${cookie}; Max-Age=0`
+  if (accion === 'clear') {
+    await route.fulfill({ status: 204, headers: { ...headers, 'set-cookie': borrar } })
+  } else if (accion === 'restore' && !(await solicitud.headerValue('cookie'))?.includes(`${nombre}=`)) {
+    await route.fulfill({ status: 204, headers })
+  } else if (error) {
+    await route.fulfill({ ...errorApi(error.status, error.code), headers: { ...headers, 'set-cookie': borrar } })
+  } else {
+    await route.fulfill({
+      headers: { ...headers, 'set-cookie': `${cookie}; Max-Age=43200` },
+      json: { data: { access_token: token, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id } } },
+    })
+  }
+  return true
+}
+
 export async function simular(page: Page, opciones: OpcionesSimulacion = {}) {
   const id = 'c0a80101-0000-4000-8000-0000000000aa'
   const correo = opciones.correo ?? 'laura@example.test'
@@ -177,7 +211,7 @@ export async function simular(page: Page, opciones: OpcionesSimulacion = {}) {
   const registrar = (metodo: string, url: URL, cuerpo: Json, autorizacion?: string) =>
     peticiones.push({ metodo, ruta: url.pathname, consulta: url.searchParams, cuerpo, autorizacion })
 
-  await page.route(`${AUTH}/**`, async (route) => {
+  await page.context().route(`${AUTH}/**`, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const cuerpo = (request.postDataJSON() ?? {}) as Json
@@ -203,13 +237,14 @@ export async function simular(page: Page, opciones: OpcionesSimulacion = {}) {
     await route.fulfill({ json: ruta.endsWith('/token') || ruta.endsWith('/verify') ? sesion : ruta.endsWith('/user') ? usuario : {} })
   })
 
-  await page.route(`${API}/**`, async (route) => {
+  await page.context().route(`${API}/**`, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const ruta = url.pathname.replace(/^\/api\/v1/, '')
     const metodo = request.method()
     const cuerpo = (metodo === 'GET' ? {} : (request.postDataJSON() ?? {})) as Json
     registrar(metodo, url, cuerpo, request.headers().authorization)
+    if (await simularSesionDelNavegador(route, token, id)) return
     const ok = (json: unknown, status = 200) => route.fulfill({ status, json: { data: json } })
     const fallo = (estadoHttp: number, codigo: string) => route.fulfill(errorApi(estadoHttp, codigo))
     const cuentaDe = (cuentaId: string) => estado.cuentas.find((c) => c.cuenta_id === cuentaId && c.estado_membresia === 'activa')

@@ -85,6 +85,9 @@ export const obtenerMiembro = (token: string, cuentaId: string, membresiaId: str
 export const invitarMiembro = (token: string, cuentaId: string, datos: DatosInvitacion) =>
   api<MiembroInvitado>(rutaMiembros(cuentaId), token, 'POST', datos)
 
+export const reenviarInvitacion = (token: string, cuentaId: string, membresiaId: string) =>
+  api<{ resultado: 'enviada' | 'perfil_activo' }>(`${rutaMiembro(cuentaId, membresiaId)}/reenviar-invitacion`, token, 'POST')
+
 /** Cierra la membresía actual y abre otra con el nuevo rol (queda historial); devuelve la nueva. */
 export const cambiarRolMiembro = (token: string, cuentaId: string, membresiaId: string, rol: RolCuenta) =>
   api<Miembro>(rutaMiembro(cuentaId, membresiaId), token, 'PATCH', { rol })
@@ -109,7 +112,7 @@ export const guardarCuidador = (
   token: string,
   cuentaId: string,
   membresiaId: string,
-  datos: { tipo_cuidado_id: number; cuidador_independiente: boolean },
+  datos: { tipo_cuidado_id: number; cuidador_independiente: boolean; conservar_empleador?: boolean },
 ) => api<PerfilCuidador>(`${rutaMiembro(cuentaId, membresiaId)}/cuidador`, token, 'POST', datos)
 
 /** Acepta una invitación propia pendiente (vuelve a comprobar el cupo del plan). */

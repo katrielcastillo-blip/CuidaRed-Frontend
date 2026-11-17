@@ -4,6 +4,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { expect, test, type Page } from '@playwright/test'
+import { simularSesionDelNavegador } from './ayudas-fase2'
 
 const userId = 'b3d1f9a0-1111-4c45-b5ba-dbc6a0019999'
 const authUser = {
@@ -37,6 +38,7 @@ async function mock(page: Page, conCuentas: boolean) {
   })
   await page.route('http://localhost:3301/**', async (route) => {
     const path = new URL(route.request().url()).pathname
+    if (await simularSesionDelNavegador(route, token, userId)) return
     if (path.endsWith('/me') && route.request().method() === 'GET') {
       await route.fulfill({ json: { data: { identity: { id: userId, email: authUser.email }, profile } } })
     } else if (path.endsWith('/cuentas')) {

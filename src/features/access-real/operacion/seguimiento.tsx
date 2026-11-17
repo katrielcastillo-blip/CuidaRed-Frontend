@@ -3,13 +3,16 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useState } from 'react'
+import { Evidencias } from './visitas-evidencias'
 import { CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from 'lucide-react'
-import { Badge, Button, Card, Chip, EmptyState, RiesgoBadge, SelectField } from '@/components/ui'
+import { Badge, Button, ButtonLink, Card, Chip, EmptyState, RiesgoBadge, SelectField } from '@/components/ui'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { SECCIONES } from '@/features/gestion/lib/riesgo'
 import { cn } from '@/lib/cn'
 import { api } from '../client'
+import type { ColaOperaciones } from './cola-operaciones'
 import { campo, Estado, Formulario, idRuta, Paginador, useDatos, usePagina, type Campo } from './controles'
+import { Necesidades } from './necesidades'
 import type { Candidato, OperacionProps } from './visitas'
 
 type Nivel = 'bajo' | 'medio' | 'alto'
@@ -51,12 +54,20 @@ const ROL: Record<string, string> = { cuidador: 'Cuidador', voluntario: 'Volunta
 const NIVELES = [{ value: 'bajo', label: 'Bajo' }, { value: 'medio', label: 'Medio' }, { value: 'alto', label: 'Alto' }]
 const ESTADOS_INDICACION: Record<Indicacion['estado'], string> = { activa: 'Activa', suspendida: 'Suspendida', finalizada: 'Finalizada' }
 
-function Asignar({ ruta, base, token, revision, actualizar, familiar, cerrar }: SeccionProps & { familiar: boolean; cerrar: () => void }) {
+function Asignar({ ruta, base, token, cuenta, revision, actualizar, familiar, cerrar }: SeccionProps & { familiar: boolean; cerrar: () => void }) {
   const candidatos = usePagina<Candidato>(`${base}/candidatos/${familiar ? 'familiar' : 'asignacion'}`, token, revision)
   const personas = candidatos.datos?.data ?? []
-  const titulo = familiar ? 'Autorizar familiar' : 'Asignar cuidador o voluntario'
+  const personal = cuenta.tipo === 'familia' ? 'Cuidador' : 'Cuidador o voluntario'
+  const titulo = familiar ? 'Autorizar familiar' : `Asignar ${personal.toLowerCase()}`
+  const raiz = `/operacion/${idRuta(cuenta.cuenta_id)}`
+  const sinCandidatos = candidatos.datos !== undefined && personas.length === 0
   return <div className="grid gap-3">
-    <Estado consulta={candidatos} vacio={candidatos.datos && personas.length === 0 ? 'Sin personas disponibles en esta cuenta.' : undefined} />
+    <Estado consulta={candidatos} />
+    {sinCandidatos && <EmptyState title={familiar ? 'Sin familiares elegibles' : 'Sin personal elegible'}
+      text={familiar ? 'La persona debe aceptar su invitación como Familiar en esta cuenta.'
+        : 'El cuidador debe aceptar su invitación y tener un perfil vigente en Inicio, en Perfiles globales de cuidadores.'}
+      action={cuenta.permisos.includes('usuarios:gestionar') ? <ButtonLink to={`${raiz}/miembros`} variant="outline" size="sm">Ir a Miembros</ButtonLink> : undefined} />}
+    {personas.length === 0 && <Button variant="outline" size="sm" className="justify-self-start" onClick={cerrar}>Cancelar</Button>}
     {personas.length > 0 && <Formulario key={candidatos.pagina} titulo={titulo} accion={familiar ? 'Autorizar acceso' : 'Asignar persona'} cancelar={cerrar}
       campos={[]}
       enviar={async (datos) => {
@@ -69,7 +80,7 @@ function Asignar({ ruta, base, token, revision, actualizar, familiar, cerrar }: 
         actualizar()
         cerrar()
       }}>
-      <SelectField name="persona" label={familiar ? 'Familiar' : 'Cuidador o voluntario'} placeholder="Selecciona a la persona"
+      <SelectField name="persona" label={familiar ? 'Familiar' : personal} placeholder="Selecciona a la persona"
         required defaultValue="" className="text-ellipsis"
         options={personas.map((p) => ({ value: p.usuario_id, label: familiar ? p.nombre : `${p.nombre} · ${ROL[p.rol] ?? p.rol}` }))} />
     </Formulario>}
@@ -78,10 +89,10 @@ function Asignar({ ruta, base, token, revision, actualizar, familiar, cerrar }: 
 }
 
 type GestionVinculo = { tipo: 'personal' | 'familiar' } | { tipo: 'revocar'; persona: Vinculo; familiar: boolean }
-function Vinculos(props: SeccionProps) {
+function Vinculos({ abrirAsignacion, ...props }: SeccionProps & { abrirAsignacion: boolean }) {
   const { ruta, token, cuenta, revision, actualizar, adultoActivo } = props
-  const [gestion, setGestion] = useState<GestionVinculo>()
   const puedeAsignar = cuenta.permisos.includes('adultos:asignar')
+  const [gestion, setGestion] = useState<GestionVinculo | undefined>(abrirAsignacion && adultoActivo && puedeAsignar ? { tipo: 'personal' } : undefined)
   const puedeAutorizar = cuenta.permisos.includes('familiares:autorizar')
   const vinculos = useDatos<{ cuidadores: Vinculo[]; voluntarios: Vinculo[]; familiares?: Vinculo[] }>(`${ruta}/asignaciones`, token, revision)
   const cerrar = () => setGestion(undefined)
@@ -109,7 +120,9 @@ function Vinculos(props: SeccionProps) {
       </Button>}
     </Card>))}
     {!gestion && adultoActivo && <div className="flex flex-wrap gap-2">
-      {puedeAsignar && <Button variant="light" size="sm" icon={<Plus size={18} aria-hidden />} onClick={() => setGestion({ tipo: 'personal' })}>Asignar personal</Button>}
+      {puedeAsignar && <Button variant="light" size="sm" icon={<Plus size={18} aria-hidden />} onClick={() => setGestion({ tipo: 'personal' })}>
+        {cuenta.tipo === 'familia' ? 'Asignar cuidador' : 'Asignar cuidador o voluntario'}
+      </Button>}
       {puedeAutorizar && <Button variant="outline" size="sm" onClick={() => setGestion({ tipo: 'familiar' })}>Autorizar familiar</Button>}
     </div>}
     {(gestion?.tipo === 'personal' || gestion?.tipo === 'familiar') && <Asignar {...props} familiar={gestion.tipo === 'familiar'} cerrar={cerrar} />}
@@ -220,6 +233,7 @@ type GestionIndicacion = { tipo: 'nueva' } | { tipo: 'editar'; indicacion: Indic
 const ACCIONES_INDICACION = { activa: 'Reactivar', suspendida: 'Suspender', finalizada: 'Finalizar' }
 function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoActivo }: SeccionProps) {
   const [gestion, setGestion] = useState<GestionIndicacion>()
+  const [adjuntos, setAdjuntos] = useState<string>()
   const [filtro, setFiltro] = useState('')
   const puedeGestionar = cuenta.permisos.includes('indicaciones:gestionar')
   const indicaciones = usePagina<Indicacion>(`${ruta}/indicaciones`, token, revision, { filters: filtro ? { estado: filtro } : undefined })
@@ -241,10 +255,12 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
       <h3 className="font-semibold">Indicaciones médicas</h3>
       {puedeGestionar && adultoActivo && !gestion && <Button size="sm" variant="light" icon={<Plus size={18} aria-hidden />} onClick={() => setGestion({ tipo: 'nueva' })}>Registrar indicación</Button>}
     </div>
+    <p className="text-sm text-ink-2">Las indicaciones registradas son informativas y no constituyen un diagnóstico ni una prescripción médica.</p>
     {(gestion?.tipo === 'nueva' || gestion?.tipo === 'editar') && <div className="grid gap-3">
       <Estado consulta={tipos} vacio={tipos.datos?.length === 0 ? 'El catálogo de indicaciones aún no está disponible.' : undefined} />
-      <Formulario key={editada?.indicacion_medica_id ?? 'nueva'} titulo={editada ? 'Editar indicación' : 'Registrar indicación'}
-        submitDisabled={!tipos.datos?.length} campos={camposIndicacion} cancelar={cerrar} enviar={async (datos) => {
+      {!tipos.datos?.length && <Button variant="outline" onClick={cerrar}>Cancelar</Button>}
+      {!!tipos.datos?.length && <Formulario key={editada?.indicacion_medica_id ?? 'nueva'} titulo={editada ? 'Editar indicación' : 'Registrar indicación'}
+        campos={camposIndicacion} cancelar={cerrar} enviar={async (datos) => {
           const inicio = campo(datos, 'fecha_inicio')
           const fin = campo(datos, 'fecha_fin')
           if (fin && fin < inicio) throw new Error('La fecha final debe ser igual o posterior a la fecha de inicio.')
@@ -256,7 +272,7 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
           })
           actualizar()
           cerrar()
-        }} />
+        }} />}
     </div>}
     {gestion?.tipo === 'estado' && <Formulario titulo={`${ACCIONES_INDICACION[gestion.estado]} indicación`} accion="Confirmar cambio" cancelar={cerrar} campos={[]}
       enviar={async () => {
@@ -282,7 +298,16 @@ function Indicaciones({ ruta, base, token, cuenta, revision, actualizar, adultoA
       {indicacion.descripcion && <p className="text-sm text-ink-2">{indicacion.descripcion}</p>}
       {indicacion.frecuencia_horario && <p className="text-sm text-muted">{indicacion.frecuencia_horario}</p>}
       <p className="text-sm text-muted">Desde {fechaCorta(indicacion.fecha_inicio)}{indicacion.fecha_fin && ` · Hasta ${fechaCorta(indicacion.fecha_fin)}`}</p>
-      {puedeGestionar && indicacion.estado !== 'finalizada' && !gestion && <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" aria-expanded={adjuntos === indicacion.indicacion_medica_id}
+          onClick={() => setAdjuntos(adjuntos === indicacion.indicacion_medica_id ? undefined : indicacion.indicacion_medica_id)}>
+          {adjuntos === indicacion.indicacion_medica_id ? 'Ocultar adjuntos' : 'Ver adjuntos'}
+        </Button>
+      </div>
+      {adjuntos === indicacion.indicacion_medica_id && <Evidencias key={adjuntos}
+        ruta={`${base}/indicaciones/${idRuta(adjuntos)}`} token={token} revision={revision} refrescar={actualizar}
+        puedeAdjuntar={puedeGestionar && adultoActivo && indicacion.estado !== 'finalizada'} />}
+      {puedeGestionar && adultoActivo && indicacion.estado !== 'finalizada' && !gestion && <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" onClick={() => setGestion({ tipo: 'editar', indicacion })}>Editar indicación</Button>
         <Button variant="light" size="sm" onClick={() => setGestion({
           tipo: 'estado', indicacion, estado: indicacion.estado === 'activa' ? 'suspendida' : 'activa',
@@ -336,25 +361,33 @@ function Historial({ ruta, token, cuenta, revision }: SeccionProps) {
   </section>
 }
 
-type Seccion = 'historial' | 'vinculos' | 'riesgo' | 'indicaciones'
-export function Seguimiento({ riesgo, abrirEvaluacion, ...props }: SeccionProps & { riesgo: ConsultaRiesgo; abrirEvaluacion: boolean }) {
-  const [seleccion, seleccionar] = useState<Seccion>(abrirEvaluacion ? 'riesgo' : 'historial')
+type Seccion = 'historial' | 'vinculos' | 'riesgo' | 'indicaciones' | 'necesidades'
+export function Seguimiento({ riesgo, abrirEvaluacion, abrirAsignacion, adultoId, ...props }: SeccionProps & {
+  riesgo: ConsultaRiesgo; abrirEvaluacion: boolean; abrirAsignacion: boolean; adultoId: string; cola: ColaOperaciones
+}) {
+  const [seleccion, seleccionar] = useState<Seccion>(abrirAsignacion ? 'vinculos' : abrirEvaluacion ? 'riesgo' : 'historial')
+  const [asignacionDirecta, setAsignacionDirecta] = useState(abrirAsignacion)
   const permisos = props.cuenta.permisos
   const opciones: Array<{ value: Seccion; label: string }> = [{ value: 'historial', label: 'Historial' }]
   if (permisos.includes('adultos:ver')) opciones.push({ value: 'vinculos', label: 'Asignaciones' })
   if (permisos.includes('adultos:ver-sensible')) opciones.push({ value: 'riesgo', label: 'Riesgo social' })
   if (permisos.includes('indicaciones:ver')) opciones.push({ value: 'indicaciones', label: 'Indicaciones' })
+  if (permisos.includes('necesidades:ver')) opciones.push({ value: 'necesidades', label: 'Necesidades' })
   const vigente = opciones.some((opcion) => opcion.value === seleccion) ? seleccion : 'historial'
 
   return <section className="grid gap-3" aria-label="Seguimiento del expediente">
     {opciones.length > 1 && <div className="flex flex-wrap gap-2" role="group" aria-label="Secciones de seguimiento">
-      {opciones.map((opcion) => <button key={opcion.value} type="button" aria-pressed={vigente === opcion.value} onClick={() => seleccionar(opcion.value)}
+      {opciones.map((opcion) => <button key={opcion.value} type="button" aria-pressed={vigente === opcion.value} onClick={() => {
+        seleccionar(opcion.value)
+        if (opcion.value !== 'vinculos') setAsignacionDirecta(false)
+      }}
         className={cn('min-h-12 rounded-sm border px-3 text-sm font-semibold', vigente === opcion.value
           ? 'border-navy bg-navy text-white' : 'border-line-soft bg-surface-2 text-ink-2')}>{opcion.label}</button>)}
     </div>}
     {vigente === 'historial' && <Historial {...props} />}
-    {vigente === 'vinculos' && <Vinculos {...props} />}
+    {vigente === 'vinculos' && <Vinculos {...props} abrirAsignacion={asignacionDirecta} />}
     {vigente === 'riesgo' && <Riesgo {...props} consulta={riesgo} abrirEvaluacion={abrirEvaluacion} />}
     {vigente === 'indicaciones' && <Indicaciones {...props} />}
+    {vigente === 'necesidades' && <Necesidades {...props} adultoId={adultoId} adultoActivo={props.adultoActivo} />}
   </section>
 }

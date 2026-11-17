@@ -28,7 +28,7 @@ import {
   type Municipio,
   type Provincia,
 } from './api/catalogos'
-import { ApiError, getClient, passwordError, temporaryClient, type CuentaMe, type TipoCuenta } from './client'
+import { ApiError, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CuentaMe, type TipoCuenta } from './client'
 import { TIPO_TEXTO } from './cuentas-datos'
 import { mensajeDeError } from './errores'
 
@@ -127,12 +127,13 @@ interface Props {
   /** Rutas /registro-familia y /registro-organizacion llegan con el tipo ya elegido. */
   tipoInicial?: TipoCuenta
   /** Sesión del cliente principal: si existe, la persona ya está registrada y solo crea la cuenta. */
-  session: Session | null
+  session: BrowserSession | null
+  onSession: (sesion: BrowserSession) => void
   /** Se llama con la cuenta creada, antes de ir a /cuenta, para que la pantalla de cuenta la seleccione y se actualice. */
   onCreada: (cuenta: CuentaMe) => void
 }
 
-export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props) {
+export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCreada }: Props) {
   const navigate = useNavigate()
   const [conSesionPrevia] = useState(() => !!session)
   const pasos = conSesionPrevia ? PASOS_CON_SESION : PASOS_COMPLETOS
@@ -363,8 +364,9 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onCreada }: Props
         setFallo({ tipo: 'sesion' })
         return
       }
-      const abierta = await getClient().auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token })
-      if (abierta.error) {
+      try {
+        onSession(await guardarSesionDelNavegador(data.session))
+      } catch {
         setFallo({ tipo: 'sesion' })
         return
       }

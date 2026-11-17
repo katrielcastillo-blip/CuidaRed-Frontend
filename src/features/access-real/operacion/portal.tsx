@@ -3,8 +3,8 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, CalendarClock, ChevronRight, Ellipsis, HeartHandshake, House, ListTodo, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
+import { Link, NavLink, useLocation, useParams } from 'react-router-dom'
+import { ArrowLeft, Bell, Building2, CalendarClock, ChevronRight, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useLogo } from '@/lib/marca'
@@ -13,10 +13,14 @@ import { ResumenCuenta } from '../resumen-cuenta'
 import { ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
 import type { CuentaMe } from '../client'
 import { Agenda } from './agenda'
-import type { ColaVisitas } from './cola-visitas'
-import { Estado, idRuta, useConexionReal, useDatos } from './controles'
+import { Alertas } from './alertas'
+import { AuditoriaCuenta } from './auditoria'
+import type { ColaOperaciones } from './cola-operaciones'
+import { Estado, idRuta, useConexionReal, useDatos, usePagina } from './controles'
 import { Envejecientes } from './envejecientes'
 import { GestionCuenta } from './gestion-cuenta'
+import { Necesidades } from './necesidades'
+import { SolicitudesVisita } from './solicitudes-visita'
 import { Visitas } from './visitas'
 
 type Seccion = {
@@ -33,8 +37,12 @@ const secciones: Seccion[] = [
   { id: 'envejecientes', nombre: 'Adultos', titulo: 'Envejecientes', descripcion: 'Expedientes y seguimiento', icono: HeartHandshake, permiso: 'adultos:ver' },
   { id: 'visitas', nombre: 'Visitas', titulo: 'Mis visitas', descripcion: 'Visitas programadas e historial', icono: CalendarClock, permiso: 'visitas:ver' },
   { id: 'agenda', nombre: 'Agenda', titulo: 'Agenda', descripcion: 'Tareas de cuidado y evidencias', icono: ListTodo, permiso: 'agenda:ver' },
+  { id: 'necesidades', nombre: 'Necesidades', titulo: 'Necesidades', descripcion: 'Necesidades activas y su seguimiento', icono: HandHelping, permiso: 'necesidades:ver' },
+  { id: 'alertas', nombre: 'Alertas', titulo: 'Alertas', descripcion: 'Casos prioritarios y notificaciones', icono: Bell, permiso: 'alertas:ver' },
   { id: 'miembros', nombre: 'Miembros', titulo: 'Miembros de la cuenta', descripcion: 'Personas, invitaciones y roles', icono: Users, permiso: 'usuarios:gestionar' },
   { id: 'configuracion', nombre: 'Configuración', titulo: 'Configurar cuenta', descripcion: 'Datos de contacto y preferencias', icono: Settings, permiso: 'organizacion:configurar' },
+  { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar' },
+  { id: 'auditoria', nombre: 'Auditoría', titulo: 'Auditoría', descripcion: 'Actividad registrada en la cuenta', icono: ScrollText, permiso: 'auditoria:ver' },
 ]
 const mas: Seccion = { id: 'mas', nombre: 'Más', titulo: 'Más opciones', descripcion: 'Más módulos de la cuenta', icono: Ellipsis }
 
@@ -50,7 +58,7 @@ function MenuOperativo({ raiz, cuenta, modulos, seccion }: { raiz: string; cuent
   const activoEnMas = seccion === 'mas' || adicionales.some((modulo) => modulo.id === seccion)
 
   return <>
-    <nav aria-label="Módulos de la cuenta" className="sticky top-0 hidden h-dvh flex-col gap-2 bg-navy px-3 py-5 text-blue-100 md:flex lg:px-4">
+    <nav aria-label="Módulos de la cuenta" className="sticky top-0 hidden h-dvh flex-col gap-2 overflow-y-auto bg-navy px-3 py-5 text-blue-100 md:flex lg:px-4">
       <Link to={`${raiz}/cuenta`} className="mb-4 flex min-h-12 items-center justify-center rounded-md bg-surface px-2 py-1.5 hover:bg-blue-100" aria-label="CuidaRed, ir al inicio">
         <picture className="min-w-0">
           <source media="(min-width: 1100px)" srcSet={logo} width={517} height={192} />
@@ -94,8 +102,9 @@ function Accesos({ raiz, modulos }: { raiz: string; modulos: Seccion[] }) {
   </ul>
 }
 
-export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: string; cola: ColaVisitas }) {
+export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: string; cola: ColaOperaciones }) {
   const { cuentaId, seccion = 'cuenta' } = useParams()
+  const { key: navegacion } = useLocation()
   const [revision, setRevision] = useState(0)
   const enLinea = useConexionReal()
   const contenido = useRef<HTMLElement>(null)
@@ -118,6 +127,10 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
   const cuenta = contexto.datos
   const visible = secciones.filter((modulo) => !modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso)))
   const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
+  const mostrarAvisos = visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
+  const avisos = usePagina<unknown>(base && mostrarAvisos ? `${base}/notificaciones-alerta` : null, token, revision,
+    { limit: 1, filters: { estado: 'no_leida' } })
+  const pendientes = avisos.datos?.meta.total ?? 0
   const props = cuenta && base ? { base, token, cuenta, usuarioId } : undefined
   const titulo = seccion === 'cuenta' ? cuenta?.nombre ?? 'Cuenta de CuidaRed'
     : actual?.id === 'configuracion' && cuenta?.tipo === 'organizacion' ? 'Configurar organización'
@@ -138,6 +151,14 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
           <span role="status" className={cn('inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold', enLinea ? 'bg-white/10 text-blue-100' : 'bg-warning-100 text-ink')}>
             <IconoConexion size={16} aria-hidden /><span className={enLinea ? 'sr-only sm:not-sr-only' : undefined}>{enLinea ? 'En línea' : 'Sin conexión'}</span>
           </span>
+          {mostrarAvisos && <Link to={`${raiz}/alertas?bandeja=avisos`}
+            className="relative grid size-12 flex-none place-items-center rounded-full hover:bg-white/10"
+            aria-label={pendientes > 0 ? `Notificaciones, ${pendientes} sin leer` : 'Notificaciones'} title="Notificaciones">
+            <Bell size={22} aria-hidden />
+            {pendientes > 0 && <span aria-hidden className="absolute top-0.5 right-0 min-w-5 rounded-full bg-danger px-1 text-center text-xs leading-5 font-bold text-white">
+              {pendientes > 99 ? '99+' : pendientes}
+            </span>}
+          </Link>}
           <Link to="/cuenta" className="grid size-12 flex-none place-items-center rounded-full border border-blue-100/40 hover:bg-white/10" aria-label="Mi cuenta">
             <UserRound size={22} aria-hidden />
           </Link>
@@ -161,9 +182,13 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
           </>}
           {actual?.id === 'mas' && <Accesos raiz={raiz} modulos={visible} />}
           {actual?.id === 'configuracion' && <GestionCuenta {...props} vista="configuracion" actualizar={() => setRevision((n) => n + 1)} />}
-          {actual?.id === 'envejecientes' && <Envejecientes {...props} />}
+          {actual?.id === 'envejecientes' && <Envejecientes {...props} cola={cola} />}
           {actual?.id === 'visitas' && <Visitas {...props} cola={cola} />}
           {actual?.id === 'agenda' && <Agenda {...props} />}
+          {actual?.id === 'necesidades' && <Necesidades {...props} cola={cola} />}
+          {actual?.id === 'alertas' && <Alertas key={navegacion} {...props} alLeerAviso={() => setRevision((n) => n + 1)} />}
+          {actual?.id === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
+          {actual?.id === 'auditoria' && <AuditoriaCuenta {...props} />}
         </div>}
       </main>
     </div>
