@@ -6,6 +6,7 @@ import { Badge, Button, Card, Chip, Datum, IconTile, SelectField, type Tone } fr
 import { fechaHora } from '@/domain/dates'
 import { api } from '../client'
 import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina } from './controles'
+import { NotificacionesPush } from './notificaciones-push'
 import type { OperacionProps } from './visitas'
 
 const ESTADOS = {
@@ -231,7 +232,8 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
 }
 
 export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAviso: () => void }) {
-  const { base, token } = props
+  const { base, token, cuenta } = props
+  const puedeRecibirAvisos = cuenta.rol === 'coordinador' || (cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador')
   const [parametros, fijarParametros] = useSearchParams()
   const bandeja = BANDEJAS.find((item) => item.value === parametros.get('bandeja'))?.value ?? 'casos'
   const [id, abrir] = useState<string>()
@@ -256,7 +258,10 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
       </div>
       {bandeja === 'casos' && <Casos {...listado} />}
       {bandeja === 'alertas' && <ListaAlertas {...listado} />}
-      {bandeja === 'avisos' && <Notificaciones {...listado} cambio={() => { cambio(); alLeerAviso() }} />}
+      {bandeja === 'avisos' && <>
+        {puedeRecibirAvisos && <NotificacionesPush token={token} />}
+        <Notificaciones {...listado} cambio={() => { cambio(); alLeerAviso() }} />
+      </>}
     </div>
     {id && <div ref={panel} tabIndex={-1} className="grid gap-3 outline-none">
       <div><Button variant="outline" size="sm" onClick={() => abrir(undefined)}>Volver a la bandeja</Button></div>

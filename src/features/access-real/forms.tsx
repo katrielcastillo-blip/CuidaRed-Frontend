@@ -11,14 +11,15 @@ import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextFie
 import { AuthScreen } from '../auth/components/AuthScreen'
 import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
 import { LogoBadge } from '../auth/components/LogoBadge'
-import { api, getClient, passwordError, temporaryClient, type CurrentUser, type Profile } from './client'
+import { api, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CurrentUser, type Profile } from './client'
 
 const GENERIC_RECOVERY = 'Si el correo pertenece a una cuenta, recibirás un código para restablecer tu contraseña.'
 const GENERIC_CODE = 'El código no es válido o ha vencido. Solicita uno nuevo a la persona responsable.'
 const normalEmail = (email: string) => email.trim().toLowerCase()
 const message = (error: unknown) => (error instanceof Error ? error.message : 'No se pudo completar la operación. Intenta de nuevo.')
 
-export function AccessForm({ notice }: { notice: string }) {
+export function AccessForm({ notice, onSession }: { notice: string; onSession: (session: BrowserSession) => void }) {
+  const [client] = useState(temporaryClient)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -29,12 +30,13 @@ export function AccessForm({ notice }: { notice: string }) {
     setBusy(true)
     setError('')
     try {
-      const client = getClient()
       const { data, error: issue } = await client.auth.signInWithPassword({ email: normalEmail(email), password })
       setPassword('')
       if (issue || !data.session) {
         setError('Correo o contraseña incorrectos.')
+        return
       }
+      onSession(await guardarSesionDelNavegador(data.session))
     } catch (issue) {
       setError(message(issue))
     } finally {
@@ -90,7 +92,7 @@ export function AccessForm({ notice }: { notice: string }) {
   )
 }
 
-export function InvitationForm() {
+export function InvitationForm({ onSession }: { onSession: (session: BrowserSession) => void }) {
   const navigate = useNavigate()
   const [client] = useState(temporaryClient)
   const [session, setSession] = useState<Session | null>(null)
@@ -157,11 +159,7 @@ export function InvitationForm() {
         })
         const { data: latest } = await client.auth.getSession()
         if (!latest.session) throw new Error('Activa nuevamente tu invitación para continuar.')
-        const result = await getClient().auth.setSession({
-          access_token: latest.session.access_token,
-          refresh_token: latest.session.refresh_token,
-        })
-        if (result.error) throw new Error('No se pudo abrir la sesión. Intenta iniciar sesión con tu contraseña.')
+        onSession(await guardarSesionDelNavegador(latest.session))
         setPassword('')
         setConfirm('')
         navigate('/cuenta', { replace: true })

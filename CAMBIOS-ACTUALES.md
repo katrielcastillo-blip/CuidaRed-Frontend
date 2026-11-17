@@ -1,5 +1,24 @@
 # Cambios actuales
 
+## 17/11/2026 — Acceso al abrir una notificación
+
+- `src/features/access-real/` recupera la sesión vigente mediante una cookie protegida y vuelve a la bandeja al abrir un aviso desde otra pestaña. El cierre manual borra la cookie y revoca los avisos del navegador.
+- Las pruebas de acceso verificaron en móvil y escritorio recuperar la sesión después de cerrar la pestaña, volver a iniciar sesión si vence y mantener el destino de la notificación.
+
+## 17/11/2026 — Prueba local de Web Push
+
+- `npm run dev:web-push` habilita el service worker en `localhost` para probar la entrega real con la API local. El desarrollo normal mantiene su configuración.
+
+## 16/11/2026 — Entrega Web Push y cierre de sesión
+
+- El worker agrupa repeticiones del mismo aviso mediante su UUID. La sesión vencida por inactividad conserva la suscripción. Cerrar sesión manualmente retira la suscripción de ese navegador y se comprueba la propiedad al volver a iniciar sesión.
+
+## 16/11/2026 — Inicio de Web Push
+
+- La bandeja de notificaciones integra la activación y desactivación voluntarias por dispositivo mediante el contrato de Web Push. Las suscripciones existentes se pueden desactivar mientras el envío esté pausado.
+- La PWA conserva la caché y agrega el manejo de avisos genéricos del sistema. Al tocar un aviso, la bandeja de esa cuenta se abre por una ruta protegida y conserva el destino si es necesario iniciar sesión.
+- Pasaron la compilación de producción, la validación de caché y las pruebas del worker y de suscripción simulada en móvil y escritorio.
+
 ## 15/11/2026 — Indicador de notificaciones
 
 - La cabecera del portal muestra una campana con la cantidad de avisos personales sin leer y abre directamente su bandeja. El contador usa los permisos y la cuenta activa, se actualiza al marcar un aviso como leído y se consulta cada 30 segundos mientras la pestaña está visible.

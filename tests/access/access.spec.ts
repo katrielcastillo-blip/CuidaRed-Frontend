@@ -1,5 +1,6 @@
 /* Integración UI ID01: jamás usa correo ni base reales. © 2026 Equipo CuidaRed – INTEC. */
 import { expect, test, type Page } from '@playwright/test'
+import { simularSesionDelNavegador } from './ayudas-fase2'
 
 const userId = 'a271ce25-7f40-4c45-b5ba-dbc6a0011234'
 const authUser = {
@@ -63,6 +64,13 @@ async function mockServices(
     const path = new URL(request.url()).pathname
     const body = request.postDataJSON() ?? {}
     requests.push({ path, body })
+    if (path.startsWith('/api/v1/session/browser/')) {
+      const error = options.inactive ? { status: 403, code: 'USER_INACTIVE' }
+        : options.expired ? { status: 401, code: 'INVALID_SESSION' }
+          : options.unavailable ? { status: 503, code: 'DEPENDENCY_UNAVAILABLE' } : undefined
+      await simularSesionDelNavegador(route, token, userId, error)
+      return
+    }
     if (options.inactive || options.unavailable || options.expired) {
       await route.fulfill({
         status: options.inactive ? 403 : options.expired ? 401 : 503,
