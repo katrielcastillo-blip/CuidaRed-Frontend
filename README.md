@@ -73,6 +73,9 @@ Ver [`.env.example`](.env.example). El acceso real necesita las variables siguie
 | `VITE_API_URL` | URL de la API REST (Node.js + Express). Desarrollo `http://localhost:3000`; producción solo HTTPS. |
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Proyecto de Supabase y clave `sb_publishable_...`; nunca secret/service_role. |
 | `VITE_AUTH_MODE` | `supabase` por defecto. `demo` permite revisar el prototipo solo en desarrollo; producción lo excluye. |
+| `VITE_CONTACTO_EMAIL` | Correo público de soporte para «Contáctanos». Opcional. |
+
+La portada `/` y `/solicitar-visita` muestran el formulario cuando Express habilita la ruta pública. El envío requiere al menos una organización operativa. La consulta `/solicitud-visita` usa el código entregado al enviar y habilita la observación cuando el equipo registra la visita como realizada. El formulario público conserva los campos en memoria durante la sesión de uso y adapta las columnas a su ancho disponible. Las pantallas de acceso y creación de cuenta incluyen «Volver a la portada». El manual `/guias` explica el flujo público y el operativo. Las fotografías optimizadas de `public/portada/` entran en la caché de la PWA. Para habilitar el servicio, consulta «Solicitudes públicas de visita» en el README de CuidaRed-Backend.
 
 ### Integración progresiva
 

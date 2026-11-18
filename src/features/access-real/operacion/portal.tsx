@@ -116,7 +116,9 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
     contenido.current?.focus({ preventScroll: true })
   }, [cuentaId, seccion])
   const cuenta = contexto.datos
-  const visible = secciones.filter((modulo) => !modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso)))
+  const visible = secciones.filter((modulo) =>
+    (modulo.id !== 'visitas' || cuenta?.tipo === 'organizacion') &&
+    (!modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso))))
   const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
   const props = cuenta && base ? { base, token, cuenta, usuarioId } : undefined
   const titulo = seccion === 'cuenta' ? cuenta?.nombre ?? 'Cuenta de CuidaRed'

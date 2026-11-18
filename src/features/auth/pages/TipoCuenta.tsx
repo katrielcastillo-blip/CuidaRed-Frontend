@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, Building2, Gift, House, KeyRound } from 'lucide-react'
 import { DIAS_PRUEBA_GRATUITA, ROLES_POR_TIPO_CUENTA, TIPO_CUENTA_LABEL, type TipoCuenta } from '@/domain/planes'
 import { ROL_LABEL } from '@/domain/nombres'
@@ -40,8 +40,9 @@ const OPCIONES: Opcion[] = [
 ]
 
 export default function TipoCuenta() {
+  const location = useLocation()
   return (
-    <AuthScreen title="Crear cuenta" back="/">
+    <AuthScreen title="Crear cuenta" back="/" homeLink>
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <LogoBadge />
         <h2 className="text-balance text-center text-xl font-bold text-navy">¿Qué tipo de cuenta quieres crear?</h2>
@@ -52,6 +53,7 @@ export default function TipoCuenta() {
             <li key={o.tipo}>
               <Link
                 to={o.to}
+                state={location.state}
                 className="group flex min-h-12 items-start gap-4 rounded-md border-2 border-line-soft bg-surface p-4 shadow-1 transition hover:border-navy hover:bg-blue-100/50 focus-visible:border-navy"
               >
                 <span className="grid size-14 flex-none place-items-center rounded-md bg-blue-100 text-navy" aria-hidden>

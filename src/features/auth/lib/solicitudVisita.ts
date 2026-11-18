@@ -14,6 +14,11 @@ export type ErroresSolicitud = Record<string, string | undefined>
 
 /** Campos del formulario (los mismos que DatosSolicitudVisita de domain/api/solicitudes). */
 export interface DatosSolicitud {
+  tipoVisita?: 'personal' | 'institucional'
+  entidadVisitante?: string
+  tipoEntidad?: string
+  cantidadVisitantes?: string
+  aportePrevisto?: string
   orgId: string
   nombres: string
   apellidos: string
@@ -27,6 +32,11 @@ export interface DatosSolicitud {
 }
 
 export const SOLICITUD_INICIAL: DatosSolicitud = {
+  tipoVisita: 'personal',
+  entidadVisitante: '',
+  tipoEntidad: '',
+  cantidadVisitantes: '1',
+  aportePrevisto: '',
   orgId: '',
   nombres: '',
   apellidos: '',
@@ -40,10 +50,21 @@ export const SOLICITUD_INICIAL: DatosSolicitud = {
 }
 
 /** Campos de cada paso (para volver al paso con errores si el servicio los rechaza). */
-export const CAMPOS_SOLICITUD_PASO: Record<1 | 2, Array<keyof DatosSolicitud>> = {
+export const CAMPOS_SOLICITUD_PASO: Record<1 | 2 | 3, Array<keyof DatosSolicitud>> = {
   1: ['orgId', 'nombres', 'apellidos', 'cedula', 'telefono', 'correo'],
-  2: ['personaAVisitar', 'fechaPropuesta', 'horaPropuesta', 'motivo'],
+  2: ['tipoVisita', 'entidadVisitante', 'tipoEntidad', 'cantidadVisitantes', 'aportePrevisto', 'personaAVisitar'],
+  3: ['fechaPropuesta', 'horaPropuesta', 'motivo'],
 }
+
+export const TIPOS_ENTIDAD_VISITANTE = [
+  { value: 'fundacion', label: 'Fundación' },
+  { value: 'iglesia', label: 'Iglesia o comunidad religiosa' },
+  { value: 'universidad', label: 'Universidad' },
+  { value: 'centro_educativo', label: 'Centro educativo' },
+  { value: 'empresa', label: 'Empresa' },
+  { value: 'grupo_comunitario', label: 'Grupo comunitario' },
+  { value: 'otro', label: 'Otra institución o grupo' },
+]
 
 /** Paso 1: organización y datos del visitante (5 campos de texto como máximo por pantalla). */
 export function validarPasoVisitante(d: DatosSolicitud): ErroresSolicitud {
@@ -57,13 +78,24 @@ export function validarPasoVisitante(d: DatosSolicitud): ErroresSolicitud {
   }
 }
 
-/** Paso 2: a quién quiere visitar, cuándo y por qué. */
+export function validarPasoDestino(d: DatosSolicitud): ErroresSolicitud {
+  return {
+    tipoVisita: !d.tipoVisita || ['personal', 'institucional'].includes(d.tipoVisita) ? undefined : 'Elige un tipo de visita.',
+    personaAVisitar: d.tipoVisita === 'institucional' ? undefined : errorTexto(d.personaAVisitar, 'el nombre de la persona que quieres visitar', 3, 120),
+    entidadVisitante: d.tipoVisita === 'institucional' ? errorTexto(d.entidadVisitante ?? '', 'el nombre de la institución o grupo', 2, 160) : undefined,
+    tipoEntidad: d.tipoVisita === 'institucional' && !TIPOS_ENTIDAD_VISITANTE.some(({ value }) => value === d.tipoEntidad) ? 'Elige el tipo de institución o grupo.' : undefined,
+    cantidadVisitantes: /^[1-9]\d*$/.test(d.cantidadVisitantes ?? '1') && Number(d.cantidadVisitantes ?? 1) <= 2147483647 ? undefined : 'Indica un número entero de visitantes, mayor que cero.',
+    aportePrevisto: (d.aportePrevisto?.trim().length ?? 0) > 300 ? 'Describe el aporte en un máximo de 300 caracteres.' : undefined,
+  }
+}
+
+/** Verificación del destino y de la propuesta antes del envío. */
 export function validarPasoVisita(d: DatosSolicitud, acepto: boolean): ErroresSolicitud {
   let fecha: string | undefined
   if (!fechaValida(d.fechaPropuesta)) fecha = 'Indica una fecha válida.'
   else if (d.fechaPropuesta < todayISO()) fecha = 'La fecha no puede ser anterior a hoy.'
   return {
-    personaAVisitar: errorTexto(d.personaAVisitar, 'el nombre de la persona que quieres visitar', 3, 120),
+    ...validarPasoDestino(d),
     fechaPropuesta: fecha,
     horaPropuesta: /^\d{2}:\d{2}$/.test(d.horaPropuesta) ? undefined : 'Indica la hora.',
     motivo: errorTexto(d.motivo, 'el motivo de la visita', 3, 300),

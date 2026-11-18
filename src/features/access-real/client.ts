@@ -17,11 +17,13 @@ function configuration() {
   if (!url || !key?.startsWith('sb_publishable_') || !api) {
     throw new Error('Falta configurar el acceso a CuidaRed. Consulta al equipo responsable.')
   }
+  const hostsLocales = ['localhost', '127.0.0.1', '[::1]']
+  const paginaLocal = hostsLocales.includes(window.location.hostname)
   for (const value of [url, api]) {
     const parsed = new URL(value)
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+    const local = hostsLocales.includes(parsed.hostname)
     if (
-      (parsed.protocol !== 'https:' && !(import.meta.env.DEV && local && parsed.protocol === 'http:')) ||
+      (parsed.protocol !== 'https:' && !(paginaLocal && local && parsed.protocol === 'http:')) ||
       parsed.username ||
       parsed.password ||
       parsed.search ||
@@ -70,11 +72,11 @@ export class ApiError extends Error {
   }
 }
 
-async function apiResponse(path: string, token: string, method = 'GET', data?: unknown): Promise<Response> {
+async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown): Promise<Response> {
   const { api: base } = configuration()
   const res = await fetch(`${base}/api/v1${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
     cache: 'no-store',
     credentials: 'omit',
@@ -113,6 +115,11 @@ async function apiResponse(path: string, token: string, method = 'GET', data?: u
 export async function api<T>(path: string, token: string, method = 'GET', data?: unknown): Promise<T> {
   const res = await apiResponse(path, token, method, data)
   return res.status === 204 ? (undefined as T) : ((await res.json()).data as T)
+}
+
+export async function apiPublica<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
+  const res = await apiResponse('/publico' + path, undefined, method, data)
+  return (await res.json()).data as T
 }
 
 export async function apiPage<T>(path: string, token: string, query: CollectionQuery = {}): Promise<PaginatedResponse<T>> {

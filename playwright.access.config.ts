@@ -11,6 +11,7 @@ export default defineConfig({
     url: 'http://localhost:5174',
     reuseExistingServer: false,
     env: {
+      CUIDARED_VITE_CACHE_DIR: 'node_modules/.vite-access',
       VITE_AUTH_MODE: 'supabase',
       VITE_API_URL: 'http://localhost:3301',
       VITE_SUPABASE_URL: 'https://auth.cuidared.test',

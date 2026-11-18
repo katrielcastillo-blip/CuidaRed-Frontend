@@ -29,6 +29,12 @@ const POR_CODIGO: Record<string, string> = {
   SUBSCRIPTION_INACTIVE: 'La cuenta no tiene una prueba o un plan vigente. Puedes consultar la cuenta y su suscripción.',
   EVIDENCE_REQUIRED: 'La tarea requiere una evidencia validada para completarse.',
   VISIT_CLOSED: 'La visita ya está cerrada.',
+  PARTICIPANT_BUSY: 'El responsable ya tiene una visita que coincide con ese horario. Elige otra ventana.',
+  VISIT_RECIPIENT_BUSY: 'La persona mayor ya tiene una visita en ese horario. Consulta el calendario y elige otra ventana.',
+  VISIT_EVIDENCE_PENDING: 'La coordinación debe revisar las evidencias adjuntas antes de cerrar la visita.',
+  VISIT_WINDOW_PASSED: 'El horario de esta visita ya pasó. Reprográmala antes de autorizarla.',
+  CAREGIVER_PROFILE_REQUIRED: 'La persona seleccionada necesita un perfil de cuidador vigente. Complétalo en Cuenta → Perfiles globales de cuidadores o elige a otra persona.',
+  REQUEST_ALREADY_REVIEWED: 'Esta solicitud ya fue revisada. Actualiza la bandeja para ver su estado.',
   FORBIDDEN: 'No tienes permiso para realizar esta acción en esta cuenta.',
 }
 

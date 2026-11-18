@@ -16,5 +16,5 @@ export default function Bienvenida() {
   // Solo organizaciones (las cuentas Familia no se listan por privacidad).
   const organizaciones = useMemo(() => organizacionesPublicas(orgs).map((o) => ({ id: o.id, nombre: o.nombre })), [orgs])
 
-  return <BienvenidaPresentacion solicitudVisita={<SolicitarVisita organizaciones={organizaciones} enviar={crearSolicitudVisita} />} />
+  return <BienvenidaPresentacion solicitudVisita={<SolicitarVisita organizaciones={organizaciones} enviar={crearSolicitudVisita} visitasInstitucionales={false} />} />
 }

@@ -91,7 +91,7 @@ export default function Inicio() {
   const bloqueo = errores.general?.startsWith('Demasiados intentos')
 
   return (
-    <AuthScreen>
+    <AuthScreen homeLink>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
       <img className="mb-7 block h-auto w-[min(279px,100%)] self-center" src="/brand/logo.png" width={279} height={104} alt="CuidaRed · Seguimiento Comunitario" />
 
@@ -145,7 +145,7 @@ export default function Inicio() {
 
         <div className="mt-auto flex flex-col gap-3 pt-2">
           <div className="flex flex-col gap-1.5">
-            <ButtonLink to="/crear-cuenta" variant="outline" fullWidth icon={<UserPlus size={20} aria-hidden />}>
+            <ButtonLink to="/crear-cuenta" state={location.state} variant="outline" fullWidth icon={<UserPlus size={20} aria-hidden />}>
               Crear cuenta
             </ButtonLink>
             <p className="flex items-center justify-center gap-1.5 text-center text-sm text-ink-2">

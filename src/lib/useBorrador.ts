@@ -44,6 +44,7 @@ function leer<T extends object>(clave: string, inicial: T, excluir: readonly str
 export interface OpcionesBorrador {
   /** Campos que no se guardan en el borrador (p. ej. contraseñas). */
   excluir?: readonly string[]
+  soloMemoria?: boolean
 }
 
 export interface BorradorCompleto<T> {
@@ -63,7 +64,8 @@ export function useBorradorCompleto<T extends object>(clave: string, inicial: T,
   const excluir = opciones.excluir ?? []
   const excluirClave = excluir.join('|')
   const inicialRef = useRef(inicial)
-  const [estado] = useState(() => leer(clave, inicial, excluir))
+  const soloMemoria = opciones.soloMemoria ?? false
+  const [estado] = useState(() => soloMemoria ? { valor: inicial, recuperado: false } : leer(clave, inicial, excluir))
   const [valor, setValorInterno] = useState<T>(estado.valor)
   const [recuperado, setRecuperado] = useState(estado.recuperado)
   const descartado = useRef(false)
@@ -76,21 +78,22 @@ export function useBorradorCompleto<T extends object>(clave: string, inicial: T,
   }, [])
 
   useEffect(() => {
-    if (descartado.current || !modificado.current) return
+    if (soloMemoria || descartado.current || !modificado.current) return
     try {
       sessionStorage.setItem(PREFIJO + clave, JSON.stringify(sinCampos(valor, excluirClave ? excluirClave.split('|') : [])))
     } catch {
       /* sin espacio: el formulario sigue funcionando en memoria */
     }
-  }, [clave, valor, excluirClave])
+  }, [clave, valor, excluirClave, soloMemoria])
 
   const quitar = useCallback(() => {
+    if (soloMemoria) return
     try {
       sessionStorage.removeItem(PREFIJO + clave)
     } catch {
       /* ignorar */
     }
-  }, [clave])
+  }, [clave, soloMemoria])
 
   const descartar = useCallback(() => {
     descartado.current = true
