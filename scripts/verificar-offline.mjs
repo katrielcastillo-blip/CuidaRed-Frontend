@@ -35,6 +35,11 @@ page.on('pageerror', (e) => erroresPagina.push(e.message))
 
 console.log(`Primera carga en línea: ${base}/`)
 await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+comprobar(
+  await page.getByRole('heading', { level: 1, name: 'El cuidado se organiza en comunidad.' }).isVisible(),
+  'La portada de CuidaRed se muestra antes de desconectar',
+  'La portada no se pudo abrir con la configuración compilada',
+)
 if (!(await page.evaluate(() => 'serviceWorker' in navigator))) {
   console.error('Este navegador no soporta Service Workers.')
   process.exit(1)

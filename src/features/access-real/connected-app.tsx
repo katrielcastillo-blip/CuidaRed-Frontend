@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Privacidad, Terminos } from '../auth/pages/Legal'
+import { GuiasPublicas } from '../auth/pages/GuiasPublicas'
 import { ApiError, api, configuration as validarConfiguracion, logout, obtenerSuscripcionPush, recuperarSesionDelNavegador, type BrowserSession, type CuentaMe, type CurrentUser } from './client'
 import { AccessForm, InvitationForm, RecoveryForm, ResetForm, ProfileForm } from './forms'
 import { guardarCuentaActiva, leerCuentaActiva, PanelCuentas } from './cuentas'
@@ -18,33 +19,10 @@ import { PantallaMiembros } from './miembros'
 import { RegistroCuenta } from './registro-cuenta'
 import { InvitacionesPendientes, ResumenCuenta } from './resumen-cuenta'
 import { AuthScreen } from '../auth/components/AuthScreen'
-import { BienvenidaPresentacion } from '../auth/components/BienvenidaPresentacion'
-import { SolicitarVisita } from '../auth/components/SolicitarVisita'
+import { PortadaConectada, SeguimientoVisita, SolicitudVisitaPublica } from './visitas-publicas'
 import { Button, ButtonLink } from '@/components/ui'
 import { Portal } from './operacion/portal'
 import { useColaOperaciones } from './operacion/cola-operaciones'
-
-/**
- * Solicitudes públicas de visita: el backend real mantiene cerrado ese flujo. Quien recibió una
- * invitación la activa en /registro y quien quiere una cuenta se registra en /crear-cuenta.
- */
-function SolicitudPendiente({ titulo }: { titulo: string }) {
-  return (
-    <AuthScreen title={titulo}>
-      <p>Las solicitudes de visita todavía no están disponibles en esta versión de CuidaRed.</p>
-      <ButtonLink to="/registro" className="mt-5">
-        Activar una invitación
-      </ButtonLink>
-      <ButtonLink to="/" variant="outline" className="mt-3">
-        Volver al inicio
-      </ButtonLink>
-    </AuthScreen>
-  )
-}
-
-const bienvenida = (
-  <BienvenidaPresentacion solicitudVisita={<SolicitarVisita organizaciones={[]} enviar={async () => ({ ok: false, error: 'No disponible.' })} disponible={false} />} />
-)
 
 function AccessRoutes() {
   const { pathname, search } = useLocation()
@@ -342,7 +320,7 @@ function AccessRoutes() {
       <Route path="/operacion/:cuentaId/:seccion" element={perfilListo && session ? (
         <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} cola={cola} />
       ) : enlaceAvisos && !session ? <AccessForm notice={error} onSession={abrirSesion} /> : account} />
-      <Route path="/" element={session ? <Navigate to="/inicio" replace /> : bienvenida} />
+      <Route path="/" element={session ? <Navigate to="/inicio" replace /> : <PortadaConectada />} />
       <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />} />
       <Route
         path="/registro-familia"
@@ -352,7 +330,9 @@ function AccessRoutes() {
         path="/registro-organizacion"
         element={<RegistroCuenta key="organizacion" titulo="Registrar organización" tipoInicial="organizacion" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />}
       />
-      <Route path="/solicitud-visita" element={<SolicitudPendiente titulo="Consultar mi solicitud" />} />
+      <Route path="/solicitud-visita" element={<SeguimientoVisita />} />
+      <Route path="/solicitar-visita" element={<SolicitudVisitaPublica />} />
+      <Route path="/guias" element={<GuiasPublicas conSesion={!!session} />} />
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="*" element={<Navigate to="/inicio" replace />} />

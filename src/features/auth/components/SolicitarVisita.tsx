@@ -6,26 +6,26 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
  * Componente independiente del store: recibe las organizaciones y la función que envía la solicitud, así el
- * mismo formulario sirve en el prototipo (crearSolicitudVisita) y en el modo conectado, donde la solicitud
- * todavía no tiene API (se muestra con `disponible={false}`).
- *  - Dos pantallas con ≤ 5 campos de texto libre cada una: 1) organización y datos del visitante,
- *    2) a quién visita, fecha, hora, motivo y consentimiento.
+ * mismo formulario sirve en el prototipo y en el modo conectado a la API pública.
+ *  - Tres pasos: organización y contacto, tipo de visita, horario y confirmación.
  *  - Privacidad: no lista ni muestra perfiles de adultos mayores; quien autoriza confirma a quién corresponde.
  *  - No se guarda el código: vive solo en memoria mientras está en pantalla.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CircleCheck, Copy, HandHeart, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, ScanSearch, Send, ShieldCheck } from 'lucide-react'
 import { Button, ButtonLink, Checkbox, SelectField, StepBar, TextareaField, TextField } from '@/components/ui'
 import { useEnLinea } from '@/domain/conectividad'
 import { todayISO } from '@/domain/dates'
-import { useBorrador } from '@/lib/useBorrador'
+import { useBorradorCompleto } from '@/lib/useBorrador'
 import { Aviso } from './Piezas'
 import {
   CAMPOS_SOLICITUD_PASO,
   hayErrores,
   SOLICITUD_INICIAL,
+  TIPOS_ENTIDAD_VISITANTE,
   validarPasoVisita,
+  validarPasoDestino,
   validarPasoVisitante,
   type DatosSolicitud,
   type ErroresSolicitud,
@@ -44,16 +44,18 @@ interface Props {
   /** Organizaciones que reciben solicitudes (nunca familias). */
   organizaciones: OrganizacionOpcion[]
   /** Envía la solicitud: en el prototipo, `crearSolicitudVisita` de domain/api/solicitudes. */
-  enviar: (datos: DatosSolicitud) => Promise<ResultadoEnvio>
-  /** false si el servicio todavía no existe (modo conectado): se muestra un aviso en lugar del formulario. */
+  enviar: (datos: DatosSolicitud, idempotencia?: string) => Promise<ResultadoEnvio>
+  /** Permite mostrar el estado de un servicio deshabilitado. */
   disponible?: boolean
   /** Ruta de "Consultar mi solicitud". */
   rutaConsulta?: string
+  soloMemoria?: boolean
+  visitasInstitucionales?: boolean
 }
 
 const INICIAL = { paso: 1, ...SOLICITUD_INICIAL }
-const TOTAL = 2
-const NOMBRE_PASO = ['Organización y tus datos', 'Tu visita']
+const TOTAL = 3
+const NOMBRE_PASO = ['Organización y tus datos', 'Tipo de visita', 'Horario y confirmación']
 
 /** Copia al portapapeles; si el navegador no lo permite usa un campo temporal. Devuelve si lo logró. */
 async function copiar(texto: string): Promise<boolean> {
@@ -77,20 +79,23 @@ async function copiar(texto: string): Promise<boolean> {
   }
 }
 
-export function SolicitarVisita({ organizaciones, enviar, disponible = true, rutaConsulta = '/solicitud-visita' }: Props) {
+export function SolicitarVisita({ organizaciones, enviar, disponible = true, rutaConsulta = '/solicitud-visita', soloMemoria = false, visitasInstitucionales = true }: Props) {
   const enLinea = useEnLinea()
-  const [d, setD, descartar] = useBorrador('solicitud-visita', INICIAL)
+  const { valor: borrador, setValor: setD, reiniciar } = useBorradorCompleto('solicitud-visita', INICIAL, { soloMemoria })
+  const d = visitasInstitucionales ? borrador : { ...borrador, tipoVisita: 'personal' as const }
   const [acepto, setAcepto] = useState(false)
   const [errores, setErrores] = useState<ErroresSolicitud>({})
   const [general, setGeneral] = useState<string>()
   const [cargando, setCargando] = useState(false)
   const [codigo, setCodigo] = useState<string | null>(null)
   const [copiado, setCopiado] = useState<'si' | 'no' | null>(null)
+  const intentoEnvio = useRef<{ datos: string; clave: string } | undefined>(undefined)
+  const hayOrganizaciones = organizaciones.length > 0
   const encabezadoPaso = useRef<HTMLParagraphElement>(null)
   const paso = Math.min(Math.max(d.paso, 1), TOTAL)
   const pasoAnterior = useRef(paso)
 
-  // Al cambiar de pantalla el foco pasa al encabezado del paso (se anuncia "Paso 2 de 2 · Tu visita").
+  // Al cambiar de pantalla el foco pasa al encabezado para anunciar el paso actual.
   // Se compara con el paso anterior (no con "primera vez") para no robar el foco al montar, ni en StrictMode.
   useEffect(() => {
     if (pasoAnterior.current === paso) return
@@ -111,11 +116,17 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (cargando) return
+    if (cargando || !hayOrganizaciones) return
     if (paso === 1) {
       const v = validarPasoVisitante(d)
       setErrores(v)
       if (!hayErrores(v)) irA(2)
+      return
+    }
+    if (paso === 2) {
+      const v = validarPasoDestino(d)
+      setErrores(v)
+      if (!hayErrores(v)) irA(3)
       return
     }
     const v = validarPasoVisita(d, acepto)
@@ -123,15 +134,20 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
     if (hayErrores(v)) return
     setCargando(true)
     try {
-      const res = await enviar(d)
+      const datosDelIntento = JSON.stringify(d)
+      if (!intentoEnvio.current || intentoEnvio.current.datos !== datosDelIntento) {
+        intentoEnvio.current = { datos: datosDelIntento, clave: crypto.randomUUID() }
+      }
+      const res = await enviar(d, intentoEnvio.current.clave)
       if (res.ok) {
-        descartar()
+        reiniciar()
+        intentoEnvio.current = undefined
         setCodigo(res.valor.codigo)
         setCopiado(null)
         return
       }
       const errs = res.errores ?? {}
-      const pasoConError = ([1, 2] as const).find((p) => CAMPOS_SOLICITUD_PASO[p].some((c) => errs[c]))
+      const pasoConError = ([1, 2, 3] as const).find((p) => CAMPOS_SOLICITUD_PASO[p].some((c) => errs[c]))
       if (pasoConError && pasoConError !== paso) setD((x) => ({ ...x, paso: pasoConError }))
       setErrores(errs)
       setGeneral(hayErrores(errs) ? undefined : res.error)
@@ -151,26 +167,18 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
     setCodigo(null)
     setCopiado(null)
     setAcepto(false)
-    setD(INICIAL)
+    reiniciar()
   }
 
   const cabecera = (
-    <div className="flex items-start gap-4">
-      <span className="grid size-14 flex-none place-items-center rounded-md bg-teal-100 text-success-700" aria-hidden>
-        <HandHeart size={28} />
-      </span>
-      <div className="flex min-w-0 flex-col gap-1">
-        <h2 className="text-balance text-2xl font-bold leading-tight text-navy">Solicitar una visita</h2>
-        <p className="text-pretty text-ink-2">
-          ¿Quieres visitar a un adulto mayor? No necesitas una cuenta. Pide la visita a su organización y una persona responsable la revisará.
-        </p>
-      </div>
+    <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-balance text-xl font-bold leading-snug text-navy">Solicitar una visita</h2>
     </div>
   )
 
   if (!disponible) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5 font-sans text-sm leading-relaxed">
         {cabecera}
         <Aviso tono="info">
           La solicitud de visitas en línea todavía no está disponible en esta versión. Mientras tanto, comunícate directamente con la organización que quieres visitar.
@@ -181,18 +189,18 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
 
   if (codigo) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5 font-sans text-sm leading-relaxed">
         <div className="flex flex-col items-center gap-2 text-center" role="status">
-          <CircleCheck size={48} strokeWidth={1.8} className="text-success-700" aria-hidden />
-          <h2 className="text-balance text-2xl font-bold leading-tight text-navy">Solicitud enviada</h2>
+          <CircleCheck size={36} strokeWidth={1.8} className="text-success-700" aria-hidden />
+          <h2 className="text-balance text-xl font-bold leading-tight text-navy">Solicitud enviada</h2>
           <p className="text-pretty text-ink-2">Este es tu código de seguimiento. Con él consultas cómo va tu solicitud.</p>
         </div>
 
         <div className="flex flex-col items-center gap-3 rounded-md border-2 border-navy bg-blue-100 px-4 py-5">
-          <p className="select-all wrap-anywhere text-center font-mono text-3xl font-bold tracking-[0.12em] text-navy">
+          <p className="select-all wrap-anywhere text-center font-mono text-2xl font-bold tracking-[0.08em] text-navy">
             {codigo}
           </p>
-          <Button variant="outline" onClick={copiarCodigo} icon={copiado === 'si' ? <Check size={20} aria-hidden /> : <Copy size={20} aria-hidden />}>
+          <Button size="sm" variant="outline" onClick={copiarCodigo} icon={copiado === 'si' ? <Check size={18} aria-hidden /> : <Copy size={18} aria-hidden />}>
             {copiado === 'si' ? 'Código copiado' : 'Copiar código'}
           </Button>
           <p className="min-h-5 text-sm text-ink-2" role="status">
@@ -209,15 +217,15 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
           <ShieldCheck size={20} aria-hidden className="mt-0.5 flex-none text-blue" />
           <p>
             <strong className="text-ink">Una persona responsable de la organización debe autorizar tu solicitud.</strong> Hasta que lo haga, la visita no está
-            confirmada. Cuando consultes con tu código verás si fue autorizada o no y, el día de la visita, podrás dejar tu observación.
+            confirmada. {soloMemoria ? 'Podrás dejar una observación cuando el equipo registre la visita como realizada.' : 'Cuando consultes con tu código verás si fue autorizada o no y, el día de la visita, podrás dejar tu observación.'}
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <ButtonLink to={rutaConsulta} state={{ codigo }} fullWidth>
+          <ButtonLink size="sm" to={rutaConsulta} state={soloMemoria ? undefined : { codigo }} fullWidth icon={<ScanSearch size={18} aria-hidden />}>
             Consultar mi solicitud
           </ButtonLink>
-          <Button variant="ghost" fullWidth onClick={nueva}>
+          <Button size="sm" variant="ghost" fullWidth onClick={nueva}>
             Ya guardé mi código
           </Button>
         </div>
@@ -228,28 +236,28 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
   const hoy = todayISO()
 
   return (
-    <form className="flex flex-col gap-5" onSubmit={submit} noValidate aria-busy={cargando || undefined}>
+    <form className="visita-formulario flex min-w-0 flex-col gap-4 font-sans text-sm leading-relaxed" onSubmit={submit} noValidate aria-busy={cargando || undefined}>
       {cabecera}
       <div className="flex flex-col gap-2">
         <StepBar step={paso} total={TOTAL} />
-        <p ref={encabezadoPaso} tabIndex={-1} className="text-sm font-semibold text-muted outline-none">
+        <p ref={encabezadoPaso} tabIndex={-1} className="text-sm font-semibold text-ink-2 outline-none">
           Paso {paso} de {TOTAL} · {NOMBRE_PASO[paso - 1]}
         </p>
       </div>
 
       {!enLinea && <Aviso tono="offline">Sin conexión: necesitas internet para enviar la solicitud. Lo que escribiste se conserva.</Aviso>}
+      {!hayOrganizaciones && <Aviso tono="info">Por el momento no hay organizaciones disponibles para recibir solicitudes.</Aviso>}
 
       {paso === 1 && (
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="md:col-span-2">
+        <fieldset disabled={!hayOrganizaciones || cargando} className="visita-campos grid min-w-0 gap-4">
+          <legend className="sr-only">Organización y tus datos</legend>
+          <div className="visita-campo-ancho">
             <SelectField
               label="Organización que quieres visitar"
-              placeholder={organizaciones.length ? 'Seleccionar' : 'No hay organizaciones disponibles'}
+              placeholder={hayOrganizaciones ? 'Seleccionar' : 'No hay organizaciones disponibles'}
               options={organizaciones.map((o) => ({ value: o.id, label: o.nombre }))}
               value={d.orgId}
-              disabled={organizaciones.length === 0}
               error={errores.orgId}
-              help="Solo aparecen organizaciones (iglesias, fundaciones, asilos, universidades…). Por privacidad no mostramos a las personas mayores ni a las familias."
               onChange={(e) => set('orgId', e.target.value)}
             />
           </div>
@@ -263,7 +271,6 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
             maxLength={13}
             value={d.cedula}
             error={errores.cedula}
-            help="La organización la usa para saber quién visitará. No se muestra a nadie más."
             onChange={(e) => set('cedula', formatCedula(e.target.value))}
           />
           <TextField
@@ -277,7 +284,7 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
             error={errores.telefono}
             onChange={(e) => set('telefono', formatTelefono(e.target.value))}
           />
-          <div className="md:col-span-2">
+          <div className="visita-campo-ancho">
             <TextField
               label="Correo electrónico (opcional)"
               type="email"
@@ -289,22 +296,53 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
               onChange={(e) => set('correo', e.target.value)}
             />
           </div>
-        </div>
+        </fieldset>
       )}
 
       {paso === 2 && (
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="md:col-span-2">
+        <fieldset disabled={cargando} className="visita-campos grid min-w-0 gap-4">
+          <legend className="sr-only">Tu visita</legend>
+          {visitasInstitucionales && <fieldset className="visita-tipo visita-campo-ancho grid gap-2">
+            <legend className="mb-2 text-sm font-semibold text-ink">¿Qué tipo de visita quieres realizar?</legend>
+            {[
+              { value: 'personal' as const, titulo: 'Visita personal', detalle: 'Para visitar a una persona mayor.' },
+              { value: 'institucional' as const, titulo: 'Visita de una institución o grupo', detalle: 'Para una actividad o aporte a la organización.' },
+            ].map(({ value, titulo, detalle }) => <label key={value} className={'flex min-h-12 cursor-pointer items-start gap-3 rounded-sm border p-3 ' + ((d.tipoVisita ?? 'personal') === value ? 'border-navy bg-blue-100/50' : 'border-line-soft bg-white')}>
+              <input type="radio" name="tipoVisita" value={value} checked={(d.tipoVisita ?? 'personal') === value}
+                className="mt-0.5 size-5 shrink-0 accent-navy" onChange={() => { set('tipoVisita', value); setErrores({}) }} />
+              <span><strong className="block font-semibold text-navy">{titulo}</strong><span className="mt-0.5 block text-sm text-ink-2">{detalle}</span></span>
+            </label>)}
+          </fieldset>}
+          {d.tipoVisita === 'institucional' ? <>
+            <div className="visita-campo-ancho"><TextField label="Nombre de la institución o del grupo" maxLength={160}
+              value={d.entidadVisitante ?? ''} error={errores.entidadVisitante} onChange={(e) => set('entidadVisitante', e.target.value)}
+              hint="La persona del primer paso será el contacto responsable de esta visita." /></div>
+            <div><SelectField label="Tipo de institución o grupo" placeholder="Selecciona el tipo"
+              options={TIPOS_ENTIDAD_VISITANTE} value={d.tipoEntidad ?? ''} error={errores.tipoEntidad} onChange={(e) => set('tipoEntidad', e.target.value)} /></div>
+          </> : <div className="visita-campo-ancho">
             <TextField
               label="¿A quién quieres visitar?"
               placeholder="Nombre de la persona"
               maxLength={120}
               value={d.personaAVisitar}
               error={errores.personaAVisitar}
-              help="Escribe el nombre como lo conoces. Quien autorice la visita confirmará a qué persona corresponde; no verás su perfil."
+              hint="La organización confirmará a qué persona corresponde."
               onChange={(e) => set('personaAVisitar', e.target.value)}
             />
-          </div>
+          </div>}
+          <div className={d.tipoVisita === 'institucional' ? undefined : 'visita-campo-ancho'}><TextField label="Cantidad de visitantes" type="number" inputMode="numeric" min={1} step={1}
+            value={d.cantidadVisitantes ?? '1'} error={errores.cantidadVisitantes} onChange={(e) => set('cantidadVisitantes', e.target.value)}
+            hint="Incluye al contacto responsable." /></div>
+          {d.tipoVisita === 'institucional' && <div className="visita-campo-ancho"><TextareaField
+            label="Actividad o aporte previsto (opcional)" rows={2} maxLength={300} value={d.aportePrevisto ?? ''}
+            placeholder="Actividad, acompañamiento o entrega prevista."
+            error={errores.aportePrevisto} onChange={(e) => set('aportePrevisto', e.target.value)} /></div>}
+        </fieldset>
+      )}
+
+      {paso === 3 && (
+        <fieldset disabled={cargando} className="visita-campos grid min-w-0 gap-4">
+          <legend className="sr-only">Horario y confirmación</legend>
           <TextField
             label="Fecha propuesta"
             type="date"
@@ -314,11 +352,11 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
             onChange={(e) => set('fechaPropuesta', e.target.value)}
           />
           <TextField label="Hora propuesta" type="time" value={d.horaPropuesta} error={errores.horaPropuesta} onChange={(e) => set('horaPropuesta', e.target.value)} />
-          <div className="md:col-span-2">
+          <div className="visita-campo-ancho">
             <TextareaField
               label="Motivo de la visita"
               maxLength={300}
-              rows={3}
+              rows={2}
               placeholder="Por ejemplo: acompañar un rato y conversar."
               value={d.motivo}
               error={errores.motivo}
@@ -326,36 +364,37 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
               onChange={(e) => set('motivo', e.target.value)}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="visita-campo-ancho">
             <Checkbox
               checked={acepto}
               error={errores.acepto}
-              className="leading-snug"
+              className="items-start py-1 leading-relaxed [&_input]:mt-0.5"
               onChange={(e) => {
                 setAcepto(e.target.checked)
                 setErrores((x) => ({ ...x, acepto: undefined }))
               }}
               label={
                 <>
-                  He leído la <Link to="/privacidad">Política de Privacidad</Link> y acepto que CuidaRed use mis datos para gestionar esta solicitud.
+                  He leído la <Link to="/privacidad" target="_blank" rel="noreferrer">Política de Privacidad</Link> y acepto que CuidaRed use mis datos para gestionar esta solicitud.
                 </>
               }
             />
           </div>
-        </div>
+        </fieldset>
       )}
 
       {general && <Aviso tono="error">{general}</Aviso>}
 
-      <div className="flex flex-col gap-2">
-        <Button type="submit" fullWidth loading={cargando} disabled={!enLinea}>
-          {paso === TOTAL ? (cargando ? 'Enviando…' : 'Enviar solicitud') : 'Siguiente'}
-        </Button>
+      <div className="visita-acciones flex flex-col-reverse gap-2 border-t border-line-soft pt-4">
         {paso > 1 && (
-          <Button variant="outline" fullWidth onClick={() => irA(paso - 1)}>
+          <Button size="sm" variant="outline" disabled={cargando} onClick={() => irA(paso - 1)} icon={<ArrowLeft size={18} aria-hidden />}>
             Anterior
           </Button>
         )}
+        <Button size="sm" type="submit" loading={cargando} disabled={!enLinea || !hayOrganizaciones}
+          icon={paso === TOTAL ? <Send size={18} aria-hidden /> : <ArrowRight size={18} aria-hidden />}>
+          {paso === TOTAL ? (cargando ? 'Enviando…' : 'Enviar solicitud') : 'Siguiente'}
+        </Button>
       </div>
     </form>
   )

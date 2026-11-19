@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { ArrowLeft, CalendarDays, CalendarPlus, ClipboardCheck, Repeat, UserRound, WifiOff } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Badge, Button, Card, Checkbox, CheckboxGroup, ChoicePills, IconTile, SelectField, TextField, type Tone } from '@/components/ui'
 import { MAX_OCURRENCIAS, fechasDeSerie, type Repeticion } from '@/domain/recurrencia'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
@@ -18,6 +18,7 @@ import { fechaDominicana } from './visitas-fechas'
 
 interface Tarea {
   tarea_id: string
+  visita_id?: string | null
   envejeciente_id: string
   envejeciente_nombre: string
   cuidador_id: string
@@ -116,6 +117,11 @@ function FormularioTarea({ base, token, cuenta, tarea, listo, volver }: Pick<Ope
   const adultos = usePagina<AdultoNombre>(tarea ? null : `${base}/envejecientes`, token, 0, { filters: { estado: 'activo' } })
   const prioridades = useDatos<{ prioridad_id: number; nombre: string }[]>('/catalogos/prioridades', token)
   const [adulto, setAdulto] = useState<Opcion | undefined>(tarea ? { value: tarea.envejeciente_id, label: tarea.envejeciente_nombre } : undefined)
+  const [visita, setVisita] = useState<Opcion>()
+  const visitas = usePagina<{ visita_id: string; fecha: string; razon: string; estado: string }>(
+    !tarea && adulto && cuenta.tipo === 'organizacion' && cuenta.permisos.includes('visitas:programar') ? `${base}/visitas` : null,
+    token, 0, { filters: adulto ? { envejeciente_id: adulto.value } : {} },
+  )
   const [cuidador, setCuidador] = useState<Opcion | undefined>(tarea ? { value: tarea.cuidador_id, label: tarea.cuidador_nombre } : undefined)
   const [indicacion, setIndicacion] = useState<Opcion | undefined>(tarea?.indicacion_medica_id ? { value: tarea.indicacion_medica_id, label: tarea.indicacion_titulo ?? 'Indicación actual' } : undefined)
   const [prioridadId, setPrioridadId] = useState(tarea?.prioridad_id ? String(tarea.prioridad_id) : '')
@@ -166,6 +172,7 @@ function FormularioTarea({ base, token, cuenta, tarea, listo, volver }: Pick<Ope
       } else {
         const resultado = await api<{ tareas: Tarea[] }>(`${base}/tareas`, token, 'POST', {
           ...datosComunes, envejeciente_id: adulto.value, fecha_programada: fecha,
+          ...(visita ? { visita_id: visita.value } : {}),
           ...(repeticion === 'ninguna' ? {} : { repeticion: { frecuencia: repeticion, hasta, ...(repeticion === 'semanal' ? { dias_semana: dias.map(Number) } : {}) } }),
         })
         listo(resultado.tareas)
@@ -179,7 +186,11 @@ function FormularioTarea({ base, token, cuenta, tarea, listo, volver }: Pick<Ope
     </div>
     {tarea ? <p className="rounded-sm bg-blue-100 p-3 text-sm md:col-span-2"><strong>Adulto mayor:</strong> {tarea.envejeciente_nombre}</p>
       : <SelectorPaginado label="Adulto mayor" required opciones={adultos.datos?.data.map(opcionAdulto) ?? []} seleccion={adulto}
-          consulta={adultos} vacio="No hay adultos activos en esta página." elegir={(opcion) => { setAdulto(opcion); setCuidador(undefined); setIndicacion(undefined) }} />}
+          consulta={adultos} vacio="No hay adultos activos en esta página." elegir={(opcion) => { setAdulto(opcion); setCuidador(undefined); setIndicacion(undefined); setVisita(undefined) }} />}
+    {!tarea && adulto && cuenta.tipo === 'organizacion' && cuenta.permisos.includes('visitas:programar') &&
+      <SelectorPaginado label="Visita asociada (opcional)" opcionVacia="Sin visita asociada" consulta={visitas}
+        opciones={visitas.datos?.data.filter(({ estado }) => estado !== 'cancelada').map((item) => ({ value: item.visita_id, label: `${fechaCorta(item.fecha)} · ${item.razon}` })) ?? []}
+        seleccion={visita} elegir={setVisita} />}
     <ResponsableTarea base={base} token={token} adulto={adulto} cuidador={cuidador} indicacion={indicacion} cambiarCuidador={setCuidador}
       cambiarIndicacion={setIndicacion} puedeVerIndicaciones={puedeVerIndicaciones} />
     {tarea?.es_repetitiva && <div className="md:col-span-2">
@@ -321,6 +332,8 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
         <dl className="grid gap-2 text-sm">
           {tarea.envejeciente_nombre && <div className="flex items-center gap-2"><UserRound size={18} aria-hidden /><dt className="font-semibold">Adulto mayor:</dt><dd>{tarea.envejeciente_nombre}</dd></div>}
           {tarea.cuidador_nombre && <div className="flex items-center gap-2"><ClipboardCheck size={18} aria-hidden /><dt className="font-semibold">Cuidador:</dt><dd>{tarea.cuidador_nombre}</dd></div>}
+          {tarea.visita_id && cuenta.permisos.includes('visitas:ver') && <div><dt className="sr-only">Visita asociada</dt><dd><Link
+            to={`/operacion/${idRuta(cuenta.cuenta_id)}/visitas?visita=${idRuta(tarea.visita_id)}`} className="inline-flex min-h-12 items-center font-semibold text-navy underline">Abrir visita asociada</Link></dd></div>}
           {tarea.indicacion_titulo && <div><dt className="inline font-semibold">Indicación médica:</dt> <dd className="inline">{tarea.indicacion_titulo}</dd></div>}
         </dl>
         {tarea.es_historica && <p className="text-sm text-muted">Esta tarea histórica está disponible para consulta.</p>}

@@ -139,7 +139,7 @@ export default function RegistroOrganizacion() {
   const nombreOrg = d.nombreOrg.trim() || 'la organización'
 
   return (
-    <AuthScreen title="Registrar organización" back={volver}>
+    <AuthScreen title="Registrar organización" back={volver} homeLink>
       <form className="flex min-w-0 flex-1 flex-col gap-5" onSubmit={enviar} noValidate aria-busy={cargando || undefined}>
         <LogoBadge />
         <StepBar step={paso} total={TOTAL} />

@@ -64,7 +64,7 @@ function MensajeCampo({ id, error, hint }: { id: string; error?: string; hint?: 
 
 function FieldShell({ label, required, error, hint, help, id, footer, children }: FieldShellProps) {
   return (
-    <div className="flex flex-col gap-2 min-w-0">
+    <div className="flex flex-col gap-[var(--field-gap,8px)] min-w-0">
       {label && (
         <div className="flex items-center gap-1">
           <label htmlFor={id} className={LABEL}>

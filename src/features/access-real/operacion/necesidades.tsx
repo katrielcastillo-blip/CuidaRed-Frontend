@@ -164,7 +164,7 @@ function DetalleNecesidad({ base, token, cuenta, id, reciente, cola, revision, c
         if (cierre && motivo.length < 3) throw new Error('Escribe el motivo del cierre.')
         const cuerpo = { estado, ...(cierre && { motivo }) }
         if (!navigator.onLine) {
-          cola.agregar(cuenta.cuenta_id, {
+          await cola.agregar(cuenta.cuenta_id, {
             entidad: 'necesidad', tipo: 'cambiar_estado', registro_id: id, datos: cuerpo,
             base_actualizado_en: new Date(necesidad.fecha_actualizacion).toISOString(),
           })
@@ -308,7 +308,7 @@ function RegistrarNecesidad({ base, token, cuenta, cola, adultoId, cancelar, reg
       if (cantidad && !(numero > 0 && numero <= 10000)) throw new Error('Indica una cantidad mayor que 0 y de hasta 10 000.')
       if (cantidad && !unidad) throw new Error('Indica la unidad de medida.')
       if (!navigator.onLine) {
-        cola.agregar(cuenta.cuenta_id, {
+        await cola.agregar(cuenta.cuenta_id, {
           entidad: 'necesidad', tipo: 'registrar', registro_id: crypto.randomUUID(),
           datos: { ...cuerpo, envejeciente_id: id },
         })

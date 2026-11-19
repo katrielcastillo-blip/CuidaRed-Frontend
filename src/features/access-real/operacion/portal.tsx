@@ -30,18 +30,19 @@ type Seccion = {
   descripcion: string
   icono: LucideIcon
   permiso?: string
+  soloOrganizacion?: boolean
 }
 
 const secciones: Seccion[] = [
   { id: 'cuenta', nombre: 'Inicio', titulo: 'Datos de cuenta', descripcion: 'Datos y suscripción de la cuenta activa', icono: House },
   { id: 'envejecientes', nombre: 'Adultos', titulo: 'Envejecientes', descripcion: 'Expedientes y seguimiento', icono: HeartHandshake, permiso: 'adultos:ver' },
-  { id: 'visitas', nombre: 'Visitas', titulo: 'Mis visitas', descripcion: 'Visitas programadas e historial', icono: CalendarClock, permiso: 'visitas:ver' },
+  { id: 'visitas', nombre: 'Visitas', titulo: 'Mis visitas', descripcion: 'Visitas programadas e historial', icono: CalendarClock, permiso: 'visitas:ver', soloOrganizacion: true },
   { id: 'agenda', nombre: 'Agenda', titulo: 'Agenda', descripcion: 'Tareas de cuidado y evidencias', icono: ListTodo, permiso: 'agenda:ver' },
   { id: 'necesidades', nombre: 'Necesidades', titulo: 'Necesidades', descripcion: 'Necesidades activas y su seguimiento', icono: HandHelping, permiso: 'necesidades:ver' },
   { id: 'alertas', nombre: 'Alertas', titulo: 'Alertas', descripcion: 'Casos prioritarios y notificaciones', icono: Bell, permiso: 'alertas:ver' },
   { id: 'miembros', nombre: 'Miembros', titulo: 'Miembros de la cuenta', descripcion: 'Personas, invitaciones y roles', icono: Users, permiso: 'usuarios:gestionar' },
   { id: 'configuracion', nombre: 'Configuración', titulo: 'Configurar cuenta', descripcion: 'Datos de contacto y preferencias', icono: Settings, permiso: 'organizacion:configurar' },
-  { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar' },
+  { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar', soloOrganizacion: true },
   { id: 'auditoria', nombre: 'Auditoría', titulo: 'Auditoría', descripcion: 'Actividad registrada en la cuenta', icono: ScrollText, permiso: 'auditoria:ver' },
 ]
 const mas: Seccion = { id: 'mas', nombre: 'Más', titulo: 'Más opciones', descripcion: 'Más módulos de la cuenta', icono: Ellipsis }
@@ -125,7 +126,9 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
     contenido.current?.focus({ preventScroll: true })
   }, [cuentaId, seccion])
   const cuenta = contexto.datos
-  const visible = secciones.filter((modulo) => !modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso)))
+  const visible = secciones.filter((modulo) =>
+    (!modulo.soloOrganizacion || cuenta?.tipo === 'organizacion') &&
+    (!modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso))))
   const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
   const mostrarAvisos = visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
   const avisos = usePagina<unknown>(base && mostrarAvisos ? `${base}/notificaciones-alerta` : null, token, revision,

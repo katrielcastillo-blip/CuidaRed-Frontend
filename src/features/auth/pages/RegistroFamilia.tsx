@@ -132,7 +132,7 @@ export default function RegistroFamilia() {
   const nombreFamilia = d.nombreFamilia.trim() || 'tu familia'
 
   return (
-    <AuthScreen title="Crear cuenta familiar" back={volver}>
+    <AuthScreen title="Crear cuenta familiar" back={volver} homeLink>
       <form className="flex min-w-0 flex-1 flex-col gap-5" onSubmit={enviar} noValidate aria-busy={cargando || undefined}>
         <LogoBadge />
         <StepBar step={paso} total={TOTAL} />

@@ -680,7 +680,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
   }
 
   return (
-    <AuthScreen title={titulo} back={atras}>
+    <AuthScreen title={titulo} back={atras} homeLink={!conSesionPrevia}>
       <LogoBadge />
       <StepBar step={pasos.indexOf(paso) + 1} total={pasos.length} />
       <form ref={formulario} className="mt-6 flex flex-col gap-5" onSubmit={(e) => void enviar(e)} noValidate>

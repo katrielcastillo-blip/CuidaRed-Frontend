@@ -261,7 +261,8 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
   const consulta = useDatos<Perfil>(ruta, token, revision)
   const sensible = cuenta.permisos.includes('adultos:ver-sensible')
   const riesgo = useDatos<ResumenRiesgo>(sensible ? `${ruta}/riesgo` : null, token, revision)
-  const ultima = usePagina<{ fecha: string }>(cuenta.permisos.includes('visitas:ver') ? `${base}/visitas` : null,
+  const visitasDisponibles = cuenta.tipo === 'organizacion' && cuenta.permisos.includes('visitas:ver')
+  const ultima = usePagina<{ fecha: string }>(visitasDisponibles ? `${base}/visitas` : null,
     token, revision, { limit: 1, filters: { envejeciente_id: id, estado: 'completada' } })
   const perfil = consulta.datos
   const editar = cuenta.permisos.includes('adultos:editar')
@@ -311,7 +312,7 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
 
         <div className="grid gap-4">
           <div className="grid grid-cols-2 gap-2">
-            {cuenta.permisos.includes('visitas:ver') && <Card tone="info" className="grid gap-1 text-center">
+            {visitasDisponibles && <Card tone="info" className="grid gap-1 text-center">
               <span className="text-xs text-ink-2">Última visita</span>
               <strong className="text-sm text-ink">{ultimaFecha ? fechaCorta(ultimaFecha) : ultima.error ? 'Sin datos' : ultima.datos ? 'Sin visitas' : 'Consultando…'}</strong>
             </Card>}

@@ -1,5 +1,11 @@
 # Cambios actuales
 
+## 19/11/2026 — Integración de visitas y acceso conectado
+
+- La portada, las solicitudes de visita y el calendario conviven con Backoffice, la recuperación de sesión al abrir avisos y Web Push. Se conservan la programación recurrente, la revisión de evidencias y la sincronización de necesidades.
+- Visitas y Solicitudes se muestran solo en Organización. Las capturas de visitas se guardan por usuario en IndexedDB y vuelven a la cola al abrir CuidaRed en el mismo navegador. Las necesidades pendientes se conservan en la pestaña.
+- Las pruebas en móvil y escritorio verifican acceso, alertas, visitas y captura sin conexión. La compilación comprueba el arranque de la PWA y la exclusión de las respuestas de la API de la caché.
+
 ## 17/11/2026 — Integración de la PWA con Backoffice
 
 - La PWA combina la marca dinámica y la telemetría de Backoffice con Web Push y la recuperación de sesión vigente. Mantiene los avisos de cuenta o usuario deshabilitado.

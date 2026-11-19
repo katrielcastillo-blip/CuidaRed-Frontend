@@ -4,7 +4,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { Mail } from 'lucide-react'
 import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
@@ -21,6 +21,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : 'N
 
 export function AccessForm({ notice, onSession }: { notice: string; onSession: (session: BrowserSession) => void }) {
   const [client] = useState(temporaryClient)
+  const location = useLocation()
   const logo = useLogo()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,7 +47,7 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
     }
   }
   return (
-    <AuthScreen>
+    <AuthScreen homeLink>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
       <img className="mb-7 self-center w-[min(279px,100%)]" src={logo} alt="CuidaRed" />
       <form className="flex flex-col gap-5" onSubmit={submit}>
@@ -78,7 +79,7 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
         <ButtonLink to="/registro" variant="outline">
           Activar mi cuenta
         </ButtonLink>
-        <ButtonLink to="/crear-cuenta" variant="ghost">
+        <ButtonLink to="/crear-cuenta" state={location.state} variant="ghost">
           Crear una cuenta
         </ButtonLink>
         <nav className="flex justify-center gap-4">

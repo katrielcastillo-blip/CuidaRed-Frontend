@@ -8,6 +8,7 @@ import { Navigate, type RouteObject } from 'react-router-dom'
 import { RedirectIfAuthed } from '@/app/guards'
 import Bienvenida from './pages/Bienvenida'
 import ConsultarSolicitud from './pages/ConsultarSolicitud'
+import { GuiasPublicas } from './pages/GuiasPublicas'
 import Inicio from './pages/Inicio'
 import { Privacidad, Terminos } from './pages/Legal'
 import Recuperar from './pages/Recuperar'
@@ -34,6 +35,7 @@ export const authRoutes: RouteObject[] = [
   { path: '/restablecer', element: <RedirectIfAuthed><Restablecer /></RedirectIfAuthed> },
   // Visitante externo: consulta su solicitud con el código de seguimiento (sin cuenta).
   { path: '/solicitud-visita', element: <RedirectIfAuthed><ConsultarSolicitud /></RedirectIfAuthed> },
+  { path: '/guias', element: <GuiasPublicas conectado={false} /> },
   { path: '/terminos', element: <Terminos /> },
   { path: '/privacidad', element: <Privacidad /> },
 ]

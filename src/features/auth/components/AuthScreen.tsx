@@ -8,7 +8,7 @@
  *  - ≥1100 px: panel de marca a la izquierda.
  */
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BellRing, HeartHandshake, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useLogo } from '@/lib/marca'
@@ -25,11 +25,16 @@ interface Props {
   gradient?: 'registro' | 'auth'
   /** Textos legales: tarjeta más ancha y sin panel de marca. */
   wide?: boolean
+  /** Acceso visible a la portada desde los recorridos de acceso y registro. */
+  homeLink?: boolean
   children: ReactNode
 }
 
-export function AuthScreen({ title, back, gradient = 'registro', wide, children }: Props) {
+export function AuthScreen({ title, back, gradient = 'registro', wide, homeLink, children }: Props) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const retorno = (location.state as { retornoPortada?: unknown } | null)?.retornoPortada
+  const portada = typeof retorno === 'string' && /^\/(?:#[a-z][a-z0-9-]*)?$/.test(retorno) ? retorno : '/'
   const logo = useLogo()
 
   const volver = () => {
@@ -45,9 +50,15 @@ export function AuthScreen({ title, back, gradient = 'registro', wide, children 
   return (
     <div className="relative isolate min-h-dvh overflow-clip bg-bg">
       <Circulos />
+      {homeLink && <nav aria-label="Navegación pública" className="relative z-[2] mx-auto flex min-h-16 w-full max-w-[1180px] items-center px-5 pt-safe md:px-6">
+        <Link to={portada} className="inline-flex min-h-12 items-center gap-2 rounded-sm px-2 text-sm font-semibold text-navy hover:bg-blue-100 focus-visible:outline-blue">
+          <ArrowLeft size={18} aria-hidden /> Volver a la portada
+        </Link>
+      </nav>}
       <div
         className={cn(
-          'relative z-[1] flex min-h-dvh flex-col',
+          'relative z-[1] flex flex-col',
+          homeLink ? 'min-h-[calc(100dvh_-_64px)]' : 'min-h-dvh',
           'md:items-center md:justify-center md:px-6 md:py-10',
           'lg:mx-auto lg:w-full lg:max-w-[1180px] lg:flex-row lg:gap-[clamp(56px,7vw,120px)]',
         )}

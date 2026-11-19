@@ -24,6 +24,7 @@ declare const self: { location: { origin: string } }
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => ({
+  cacheDir: process.env.CUIDARED_VITE_CACHE_DIR || 'node_modules/.vite',
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -72,7 +73,7 @@ export default defineConfig(({ command, mode }) => ({
         // Shell de la app. Las capturas del manifest se descargan solo al instalar (no se precachean) y de las
         // fuentes solo se precachean las latinas (cubren el español): las demás subconjuntos se piden a la red
         // y, si se usan, quedan en la caché de runtime de fuentes.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'portada/*.webp'],
         globIgnores: ['screenshots/**', '**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2'],
         // Todas las rutas de la SPA abren sin conexión con el shell, salvo la API.
         navigateFallback: '/index.html',
