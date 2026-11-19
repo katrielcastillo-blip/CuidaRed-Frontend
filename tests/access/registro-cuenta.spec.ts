@@ -122,8 +122,8 @@ test('autorregistro completo de una familia: persona, código del correo, cuenta
   })
   expect(creacion[0]!.autorizacion).toBe(`Bearer ${sim.token}`)
 
-  // La sesión queda en el cliente principal y la contraseña no se guarda en el navegador.
-  expect(await page.evaluate(() => sessionStorage.getItem('cuidared.auth.real'))).not.toBeNull()
+  expect((await page.context().cookies()).find((cookie) => cookie.name === '__Secure-cuidared-browser')?.httpOnly).toBe(true)
+  expect(await page.evaluate(() => sessionStorage.getItem('cuidared.auth.real'))).toBeNull()
   expect(await page.evaluate(() => Object.values(sessionStorage).join(' '))).not.toContain(CLAVE)
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([])
 })

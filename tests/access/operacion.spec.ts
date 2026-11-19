@@ -134,7 +134,7 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
 
   if (isMobile) await page.setViewportSize({ width: 508, height: 618 })
   await page.getByRole('button', { name: 'Asignaciones', exact: true }).click()
-  await page.getByRole('button', { name: 'Asignar personal' }).click()
+  await page.getByRole('button', { name: 'Asignar cuidador o voluntario', exact: true }).click()
   const persona = page.getByRole('combobox', { name: /^Cuidador o voluntario/ })
   await expect(persona).toHaveValue('')
   await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
@@ -144,7 +144,81 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
   })).toBe(true)
 })
 
-test('RF-10: registra offline una visita autorizada y envía la misma captura al volver la conexión', async ({ page, context }) => {
+for (const { tipo, rol } of [
+  { tipo: 'familia', rol: 'coordinador' },
+  { tipo: 'organizacion', rol: 'administrador' },
+  { tipo: 'organizacion', rol: 'coordinador' },
+] as const) {
+  test(`ID03: ${rol} asigna un cuidador desde el expediente de ${tipo}`, async ({ page }) => {
+    const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', tipo, rol,
+      permisos: ['adultos:ver', 'adultos:asignar', ...(rol === 'administrador' || tipo === 'familia' ? ['usuarios:gestionar'] : [])] })
+    const sim = await simular(page, { cuentas: [cuenta] })
+    const candidata = { usuario_id: sim.usuarioId, nombre: 'Mariana Reyes', rol: 'cuidador' }
+    const voluntario = { usuario_id: '55555555-5555-4555-8555-555555555555', nombre: 'Daniel Paz', rol: 'voluntario' }
+    let disponible = false
+    let asignacion: unknown
+    await page.route(`${backend}/**`, (req) => {
+      const { pathname } = new URL(req.request().url())
+      if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: cuenta } })
+      if (pathname.endsWith('/envejecientes')) return req.fulfill({ json: pagina([adulto]) })
+      if (pathname.endsWith(adultoId)) return req.fulfill({ json: { data: adulto } })
+      if (pathname.endsWith('/historial')) return req.fulfill({ json: pagina([]) })
+      if (pathname.endsWith('/candidatos/asignacion')) {
+        return req.fulfill({ json: pagina(disponible ? [candidata, ...(tipo === 'organizacion' ? [voluntario] : [])] : []) })
+      }
+      if (pathname.endsWith(`/${adultoId}/asignaciones`)) {
+        if (req.request().method() === 'POST') {
+          asignacion = req.request().postDataJSON()
+          return req.fulfill({ status: 201, json: { data: asignacion } })
+        }
+        return req.fulfill({ json: { data: {
+          cuidadores: asignacion ? [{ usuario_id: candidata.usuario_id, nombres: 'Mariana', apellidos: 'Reyes' }] : [],
+          voluntarios: [],
+        } } })
+      }
+      return req.fallback()
+    })
+
+    await iniciarSesion(page, sim.correo)
+    await page.goto(`${ruta}/envejecientes`)
+    await page.getByRole('button', { name: /Juana Prueba/ }).click()
+    const acceso = page.getByRole('region', { name: 'Acciones rápidas' }).getByRole('button', { name: 'Asignar cuidador', exact: true })
+    await acceso.click()
+    const seguimiento = page.getByRole('region', { name: 'Seguimiento del expediente' })
+    await expect(seguimiento.getByRole('button', { name: 'Asignaciones', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(seguimiento.getByText(/tener un perfil vigente/)).toBeVisible()
+    await expect(seguimiento.getByRole('link', { name: 'Ir a Miembros' }))
+      .toHaveCount(cuenta.permisos.includes('usuarios:gestionar') ? 1 : 0)
+    await seguimiento.getByRole('button', { name: 'Cancelar' }).click()
+    disponible = true
+
+    await acceso.click()
+    const persona = seguimiento.getByRole('combobox', { name: /^Cuidador/ })
+    await expect(persona.getByRole('option', { name: /Voluntario/ })).toHaveCount(tipo === 'organizacion' ? 1 : 0)
+    await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
+    await seguimiento.getByRole('button', { name: 'Asignar persona' }).click()
+    await expect.poll(() => asignacion).toEqual({ usuario_id: candidata.usuario_id, tipo: 'cuidador_asignado' })
+    await expect(seguimiento.getByText('Mariana Reyes', { exact: true })).toBeVisible()
+  })
+}
+
+test('Visitas y Solicitudes están reservadas a Organización, incluso con permisos antiguos de Familia', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Familia de prueba', tipo: 'familia',
+    rol: 'coordinador', permisos: ['visitas:ver', 'visitas:autorizar', 'agenda:ver'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  await page.route(`${backend}/contexto`, (r) => r.fulfill({ json: { data: cuenta } }))
+  await iniciarSesion(page, sim.correo)
+  const inicio = page.getByRole('region', { name: 'Accesos rápidos' })
+  await expect(inicio.getByRole('link', { name: /Agenda/ })).toBeVisible()
+  await expect(inicio.getByRole('link', { name: /visitas|solicitudes/i })).toHaveCount(0)
+  for (const seccion of ['visitas', 'solicitudes-visita']) {
+    await page.goto(`${ruta}/${seccion}`)
+    await expect(page.getByRole('alert').filter({ hasText: 'No tienes acceso a este módulo de la cuenta.' })).toBeVisible()
+    expect(sim.llamadas('GET', new RegExp(`/${seccion}(?:/|$)`))).toHaveLength(0)
+  }
+})
+
+test('RF-10: restaura y envía la misma captura de visita después de cerrar la pestaña', async ({ page, context }) => {
   const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', rol: 'voluntario', permisos: ['visitas:ver', 'visitas:registrar', 'sync:usar'] })
   const sim = await simular(page, { cuentas: [cuenta] })
   const visita = {
@@ -153,7 +227,7 @@ test('RF-10: registra offline una visita autorizada y envía la misma captura al
     autorizada_por: { usuario_id: adultoId }, participantes: [{ usuario_id: sim.usuarioId }], adultos: [adulto],
   }
   let capturas: { id_cliente: string; registro_id: string; tipo: string; datos: object }[] = []
-  await page.route(`${backend}/**`, async (r) => {
+  await context.route(`${backend}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname
     if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
     if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([visita]) })
@@ -168,31 +242,91 @@ test('RF-10: registra offline una visita autorizada y envía la misma captura al
   })
   await iniciarSesion(page, sim.correo)
   await page.getByRole('link', { name: 'Visitas', exact: true }).click()
-  await page.getByRole('button', { name: /Visita autorizada/ }).click()
-  await page.getByRole('button', { name: 'Registrar realización', exact: true }).click()
+  const desdeListado = page.getByRole('button', { name: /Visita autorizada/ })
+  await expect(desdeListado).toBeVisible()
+  let idCapturado: string | undefined
   await context.setOffline(true)
   try {
+    await desdeListado.click()
+    await page.getByRole('button', { name: 'Registrar realización', exact: true }).click()
     await page.getByLabel(/Observación de Juana Prueba/).fill('Observación sintética')
     await page.getByRole('button', { name: 'Registrar visita', exact: true }).click()
     await expect(page.getByText(/1 pendiente\(s\) en esta cuenta/)).toBeVisible()
-    const guardadas = await page.evaluate(() => new Promise<number>((resolve, reject) => {
+    const guardadas = await page.evaluate(() => new Promise<IDBValidKey[]>((resolve, reject) => {
       const db = indexedDB.open('cuidared-capturas-visita', 1)
       db.onerror = () => reject(db.error)
       db.onsuccess = () => {
-        const total = db.result.transaction('capturas').objectStore('capturas').count()
-        total.onerror = () => reject(total.error)
-        total.onsuccess = () => { db.result.close(); resolve(total.result) }
+        const claves = db.result.transaction('capturas').objectStore('capturas').getAllKeys()
+        claves.onerror = () => reject(claves.error)
+        claves.onsuccess = () => { db.result.close(); resolve(claves.result) }
       }
     }))
-    expect(guardadas).toBe(1)
+    expect(guardadas).toEqual([[sim.usuarioId, expect.any(String)]])
+    idCapturado = (guardadas[0] as [string, string])[1]
     expect(capturas).toHaveLength(0)
+    await page.close()
   } finally {
     await context.setOffline(false)
   }
+  const reabierta = await context.newPage()
+  await reabierta.goto(`${ruta}/visitas`)
   await expect.poll(() => capturas.length).toBe(1)
-  expect(capturas[0]).toMatchObject({ registro_id: visitaId, tipo: 'registrar',
+  expect(capturas[0]).toMatchObject({ id_cliente: idCapturado, registro_id: visitaId, tipo: 'registrar',
     datos: { detalles: [{ envejeciente_id: adultoId, observacion: 'Observación sintética' }] } })
-  await expect(page.getByText(/0 pendiente\(s\) en esta cuenta/)).toBeVisible()
+  await expect(reabierta.getByText(/0 pendiente\(s\) en esta cuenta/)).toBeVisible()
+})
+
+test('el gestor consulta auditoría y gestiona una solicitud de visita existente', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética',
+    permisos: ['auditoria:ver', 'visitas:autorizar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const id = '44444444-4444-4444-8444-444444444444'
+  const otraSolicitud = '55555555-5555-4555-8555-555555555555'
+  const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  let rechazo: unknown
+  let autorizacion: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/auditoria')) return r.fulfill({ json: pagina([{
+      auditoria_id: '11', actor: 'Persona Revisora', accion: 'alta', entidad: 'cuenta', fecha: '2026-11-09T16:00:00Z', resultado: 'confirmado',
+    }]) })
+    if (path.endsWith('/solicitudes-visita')) return r.fulfill({ json: pagina([
+      { solicitud_visita_id: id, estado: rechazo ? 'rechazada' : 'pendiente', visitante: { nombres: 'Juan', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Visita comunitaria' },
+      { solicitud_visita_id: otraSolicitud, estado: autorizacion ? 'autorizada' : 'pendiente', visitante: { nombres: 'Lina', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Acompañamiento' },
+    ]) })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/candidatos/visita')) return r.fulfill({ json: pagina([{ usuario_id: sim.usuarioId, nombre: 'Responsable de campo' }]) })
+    if (path.endsWith(`/${id}/rechazar`)) {
+      rechazo = r.request().postDataJSON()
+      return r.fulfill({ json: { data: { solicitud_visita_id: id } } })
+    }
+    if (path.endsWith(`/${otraSolicitud}/autorizar`)) {
+      autorizacion = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: { visita_id: visitaId } } })
+    }
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/auditoria`)
+  await expect(page.getByText('Alta · Cuenta')).toBeVisible()
+  await expect(page.getByText(/Persona Revisora/)).toBeVisible()
+  await page.goto(`${ruta}/solicitudes-visita`)
+  await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click()
+  await page.getByLabel(/^Motivo del rechazo/).fill('La fecha debe confirmarse con el equipo.')
+  await page.getByRole('button', { name: 'Confirmar rechazo' }).click()
+  await expect(page.getByText('Solicitud rechazada.')).toBeVisible()
+  expect(rechazo).toEqual({ motivo: 'La fecha debe confirmarse con el equipo.' })
+  const autorizar = page.getByRole('button', { name: 'Autorizar', exact: true })
+  await expect(autorizar).toHaveCount(1)
+  await autorizar.click()
+  await page.getByLabel(/Expediente del adulto/).selectOption(adultoId)
+  await page.getByLabel(/Responsable de la visita/).selectOption(sim.usuarioId)
+  await page.getByRole('button', { name: 'Autorizar y programar' }).click()
+  await expect(page.getByText('Solicitud autorizada y visita programada.')).toBeVisible()
+  expect(autorizacion).toEqual({ envejeciente_id: adultoId, participante_id: sim.usuarioId, fecha, hora: '09:00' })
 })
 
 test('ID04: programa y autoriza una visita con adultos y visitantes seleccionados', async ({ page }) => {
@@ -399,6 +533,48 @@ test('RF-19: configura la organización con catálogos dependientes e interrupto
   await guardarPreferencias.click()
   await expect.poll(() => preferenciasGuardadas).toEqual({ valores: { dias_sin_visita_alerta: '20', notificar_casos_prioritarios: 'true' } })
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+test('la transferencia de titularidad solo está en Configuración y desaparece para el gestor que deja de ser titular', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Familia sintética', tipo: 'familia', rol: 'coordinador', es_titular: true })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  let esTitular = true
+  let transferida: unknown
+  await page.route(backend, (req) => req.fulfill({ json: { data: {
+    cuenta: {
+      cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+      categoria: { categoria_cuenta_id: 1, nombre: 'Monitoreo a distancia' },
+      municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+      fecha_creacion: '2026-11-07T12:00:00Z',
+    },
+    contexto: { ...cuenta, es_titular: esTitular },
+  } } }))
+  await page.route(`${backend}/**`, (req) => {
+    const { pathname } = new URL(req.request().url())
+    if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: { ...cuenta, es_titular: esTitular } } })
+    if (pathname.endsWith('/configuracion')) return req.fulfill({ json: { data: [] } })
+    if (pathname.endsWith('/candidatos/titularidad')) return req.fulfill({ json: pagina([{ membresia_id: '24', nombre: 'Gestora sintética' }]) })
+    if (pathname.endsWith('/titularidad') && req.request().method() === 'POST') {
+      transferida = req.request().postDataJSON()
+      esTitular = false
+      return req.fulfill({ json: { data: {} } })
+    }
+    return req.fallback()
+  })
+
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/cuenta`)
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Titularidad' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Configurar cuenta', exact: true }).click()
+  const titularidad = page.getByRole('region', { name: 'Titularidad' })
+  await titularidad.getByRole('button', { name: 'Transferir titularidad' }).click()
+  await titularidad.getByRole('combobox', { name: /^Nuevo titular/ }).selectOption('24')
+  await titularidad.getByRole('checkbox', { name: /^Confirmo/ }).check()
+  await titularidad.getByRole('button', { name: 'Transferir cuenta' }).click()
+  await expect.poll(() => transferida).toEqual({ membresia_id: '24' })
+  await expect(titularidad).toHaveCount(0)
+  await expect(page).toHaveURL(`${ruta}/configuracion`)
 })
 
 test('RF-16: programa una serie semanal con un cuidador asignado y días ISO', async ({ page }) => {

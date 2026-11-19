@@ -3,14 +3,14 @@
  * Módulo: access-real (ID01 · ID02).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createClient, type Session } from '@supabase/supabase-js'
 import { collectionSearch, readPaginatedResponse, type CollectionQuery, type PaginatedResponse } from '../../lib/api-contract'
 import { reportarFallo } from './telemetria'
 
-export const STORAGE_KEY = 'cuidared.auth.real'
-let singleton: SupabaseClient | undefined
+const LEGACY_KEY = 'cuidared.auth.real'
+const CIERRE_PENDIENTE = 'cuidared.cierre-pendiente'
 
-function configuration() {
+export function configuration() {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
   const api = import.meta.env.VITE_API_URL as string | undefined
@@ -35,18 +35,9 @@ function configuration() {
   return { url, key, api: api.replace(/\/$/, '') }
 }
 
-export function getClient() {
+export function getClient(token: string) {
   const { url, key } = configuration()
-  singleton ??= createClient(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: window.sessionStorage,
-      storageKey: STORAGE_KEY,
-    },
-  })
-  return singleton
+  return createClient(url, key, { accessToken: async () => token })
 }
 
 // Invitación y recuperación usan una sesión efímera independiente de la sesión del navegador.
@@ -72,18 +63,18 @@ export class ApiError extends Error {
   }
 }
 
-async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown): Promise<Response> {
+async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown, credentials: RequestCredentials = 'omit'): Promise<Response> {
   const { api: base } = configuration()
   const res = await fetch(`${base}/api/v1${path}`, {
     method,
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { ...(token && { Authorization: `Bearer ${token}` }), ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
     cache: 'no-store',
-    credentials: 'omit',
+    credentials,
     signal: AbortSignal.timeout(15_000),
-  }).catch((error) => {
+  }).catch(() => {
     reportarFallo('api.network', null, token)
-    throw error
+    throw new ApiError(0, 'No se pudo conectar con CuidaRed. Revisa tu conexión e intenta de nuevo.', 'CONNECTION_UNAVAILABLE')
   })
   if (!res.ok) {
     if (res.status >= 500) reportarFallo('api.error', res.headers.get('X-Request-Id'), token)
@@ -126,6 +117,62 @@ export async function apiPage<T>(path: string, token: string, query: CollectionQ
   if (path.includes('?') || path.includes('#')) throw new Error('La ruta del listado no debe contener parámetros.')
   const res = await apiResponse(`${path}?${collectionSearch(query)}`, token)
   return readPaginatedResponse<T>(await res.json())
+}
+
+export type BrowserSession = { access_token: string; expires_at: number; user: { id: string } }
+type SessionTokens = Pick<Session, 'access_token' | 'refresh_token'>
+
+function conSesionDelNavegador<T>(tarea: () => Promise<T>): Promise<T> {
+  // Las pestañas del mismo origen comparten la cookie y los refresh tokens rotan en Supabase.
+  return navigator.locks ? navigator.locks.request('cuidared.browser-session', tarea) : tarea()
+}
+
+async function intercambiarSesion(sesion: SessionTokens): Promise<BrowserSession> {
+  const res = await apiResponse('/session/browser/start', sesion.access_token, 'POST',
+    { refresh_token: sesion.refresh_token }, 'include')
+  window.sessionStorage.removeItem(LEGACY_KEY)
+  window.localStorage.removeItem(CIERRE_PENDIENTE)
+  return (await res.json()).data
+}
+
+export function guardarSesionDelNavegador(sesion: SessionTokens): Promise<BrowserSession> {
+  return conSesionDelNavegador(() => intercambiarSesion(sesion))
+}
+
+function sesionAnterior(): SessionTokens | null {
+  try {
+    const datos = JSON.parse(window.sessionStorage.getItem(LEGACY_KEY) ?? 'null')
+    if (typeof datos?.access_token === 'string' && typeof datos.refresh_token === 'string') return datos
+  } catch {
+    // Una sesión de una versión anterior puede haber quedado incompleta.
+  }
+  return null
+}
+
+let recuperacion: Promise<BrowserSession | null> | undefined
+export function recuperarSesionDelNavegador(): Promise<BrowserSession | null> {
+  recuperacion ??= conSesionDelNavegador(async () => {
+    if (window.localStorage.getItem(CIERRE_PENDIENTE)) {
+      await apiResponse('/session/browser/clear', undefined, 'POST', undefined, 'include')
+      window.localStorage.removeItem(CIERRE_PENDIENTE)
+      return null
+    }
+    try {
+      const res = await apiResponse('/session/browser/restore', undefined, 'POST', undefined, 'include')
+      if (res.status !== 204) {
+        window.sessionStorage.removeItem(LEGACY_KEY)
+        return (await res.json()).data as BrowserSession
+      }
+      const anterior = sesionAnterior()
+      return anterior ? await intercambiarSesion(anterior) : null
+    } catch (error) {
+      if (error instanceof ApiError && [401, 403, 409].includes(error.status)) {
+        window.sessionStorage.removeItem(LEGACY_KEY)
+      }
+      throw error
+    }
+  }).finally(() => { recuperacion = undefined })
+  return recuperacion
 }
 
 export interface Profile {
@@ -180,21 +227,36 @@ export function passwordError(value: string) {
     : undefined
 }
 
-export async function logout() {
-  const client = getClient()
-  const { data } = await client.auth.getSession()
+export async function obtenerSuscripcionPush() {
+  if (!('serviceWorker' in navigator)) return null
+  const registro = await navigator.serviceWorker.getRegistration()
+  return registro?.pushManager ? registro.pushManager.getSubscription() : null
+}
+
+export async function logout(session: BrowserSession) {
   let revoked = true
-  if (data.session) {
-    try {
-      await api('/session/logout', data.session.access_token, 'POST')
-    } catch {
-      revoked = false
-    }
+  const suscripcion = await obtenerSuscripcionPush().catch(() => null)
+  if (suscripcion) {
+    await Promise.allSettled([
+      suscripcion.unsubscribe(),
+      api('/notificaciones-push/suscripciones/revocar', session.access_token, 'POST', { endpoint: suscripcion.endpoint }),
+    ])
   }
   try {
-    await client.auth.signOut({ scope: 'local' })
+    await conSesionDelNavegador(async () => {
+      try {
+        await api('/session/logout', session.access_token, 'POST')
+      } catch {
+        revoked = false
+      }
+      await temporaryClient().auth.admin.signOut(session.access_token, 'local').catch(() => {})
+      await apiResponse('/session/browser/clear', undefined, 'POST', undefined, 'include')
+    })
+  } catch {
+    revoked = false
+    window.localStorage.setItem(CIERRE_PENDIENTE, '1')
   } finally {
-    window.sessionStorage.removeItem(STORAGE_KEY)
+    window.sessionStorage.removeItem(LEGACY_KEY)
     window.sessionStorage.removeItem('cuidared.cuenta.activa')
     window.location.assign(revoked ? '/inicio' : '/inicio?cierre=pendiente')
   }

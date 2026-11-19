@@ -14,14 +14,20 @@ sequenceDiagram
   participant P as PostgreSQL (cuidared)
   U->>F: Correo y contraseña en /inicio
   F->>A: signInWithPassword()
-  A-->>F: JWT (access + refresh token), guardado en sessionStorage
+  A-->>F: Credenciales iniciales de sesión
+  F->>E: POST /session/browser/start (Bearer y token de renovación)
+  E-->>F: Cookie protegida y JWT de acceso
   F->>E: GET /api/v1/me (Bearer token)
   E->>A: Valida el token (getUser)
   E->>P: api_sesion('validar') + api_mi_perfil()
   P-->>E: Identidad, perfil y cuentas con rol (CR-164)
   E-->>F: { data: identity, profile, cuentas }
   F->>F: Elige la cuenta activa y redirige según el rol (/admin, /coordinador, /cuidador, /familiar, /voluntario)
-  Note over F,A: El SDK renueva el token solo (autoRefreshToken) y recargar la página conserva la sesión
+  U->>F: Vuelve a CuidaRed al tocar una notificación
+  F->>E: POST /session/browser/restore (cookie)
+  E->>A: Renueva el JWT con el token de la cookie
+  E->>P: Comprueba la vigencia de la sesión
+  E-->>F: Cookie actualizada y JWT de acceso
 ```
 
 ## 2. Perfil, actividad y cierre de sesión
@@ -49,11 +55,13 @@ sequenceDiagram
   end
   alt Sesión vencida
     E-->>F: 401 INVALID_SESSION
-    F->>A: signOut (local) y vuelve a /inicio
+    F->>F: Solicita volver a iniciar sesión
   end
   U->>F: Cerrar sesión
   F->>E: POST /session/logout
   E->>P: api_sesion('cerrar')
   F->>A: signOut()
+  F->>E: POST /session/browser/clear
+  E-->>F: Elimina la cookie
   F-->>U: Redirige a /inicio
 ```

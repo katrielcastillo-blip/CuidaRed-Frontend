@@ -10,6 +10,9 @@ export interface Opcion<T extends string = string> {
   label: string
 }
 
+/** Unidades de medida habituales para las necesidades. */
+export const UNIDADES = ['unidades', 'tabletas', 'cajas', 'frascos', 'libras', 'canastas', 'latas', 'paquetes', 'viajes', 'horas', 'visitas']
+
 export const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Hermano/a', 'Nieto/a', 'Sobrino/a', 'Otro familiar', 'Vecino/a', 'Amigo/a', 'Otro']
 
 export const ROLES: Array<Opcion<Rol>> = [

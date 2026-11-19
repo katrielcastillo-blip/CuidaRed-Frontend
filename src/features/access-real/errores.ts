@@ -21,6 +21,7 @@ const POR_CODIGO: Record<string, string> = {
   IDENTITY_MISMATCH: 'No se pudo invitar a esa persona con esos datos. Revisa el correo y la cédula.',
   ALREADY_MEMBER: 'Esa persona ya tiene una membresía vigente en la cuenta.',
   INVITATION_CONFLICT: 'No se pudo crear la invitación con esos datos. Revisa el correo y la cédula.',
+  INVITATION_CONFIRM_SIGNUP: 'La persona debe confirmar el correo de su registro. Puede solicitar otro código desde el formulario de registro.',
   OWN_MEMBERSHIP: 'No puedes cambiar ni desactivar tu propia membresía.',
   OWNER_PROTECTED: 'La persona titular de la cuenta debe conservar un rol gestor: no se puede desactivar ni pasar a un rol que no gestione la cuenta.',
   LAST_MANAGER: 'La cuenta debe conservar al menos una persona gestora activa. Nombra a otra antes de hacer este cambio.',
@@ -35,6 +36,8 @@ const POR_CODIGO: Record<string, string> = {
   VISIT_WINDOW_PASSED: 'El horario de esta visita ya pasó. Reprográmala antes de autorizarla.',
   CAREGIVER_PROFILE_REQUIRED: 'La persona seleccionada necesita un perfil de cuidador vigente. Complétalo en Cuenta → Perfiles globales de cuidadores o elige a otra persona.',
   REQUEST_ALREADY_REVIEWED: 'Esta solicitud ya fue revisada. Actualiza la bandeja para ver su estado.',
+
+  INVALID_VISIT_SERIES: 'Revisa la frecuencia, los días y la fecha de fin. El máximo es de 60 visitas.',
   FORBIDDEN: 'No tienes permiso para realizar esta acción en esta cuenta.',
 }
 

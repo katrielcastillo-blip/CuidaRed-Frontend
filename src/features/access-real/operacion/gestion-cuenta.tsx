@@ -159,10 +159,17 @@ function Cuidadores({ base, token, cuenta }: OperacionProps) {
     {id && perfil.datos !== undefined && tipos.datos && tipos.datos.length > 0 && <Formulario key={id} titulo="Editar perfil global" accion="Guardar perfil" exito="Perfil del cuidador guardado." campos={[
       { name: 'tipo', label: 'Tipo de cuidado', options: tipos.datos.map((t) => ({ value: String(t.tipo_cuidado_id), label: t.nombre })),
         value: perfil.datos ? String(perfil.datos.tipo_cuidado_id) : '' },
-      { name: 'independiente', label: 'Modalidad', options: [{ value: 'true', label: 'Independiente' }, { value: 'false', label: 'Empleador: titular de esta cuenta' }],
-        value: perfil.datos ? String(perfil.datos.cuidador_independiente) : '' },
+      { name: 'independiente', label: 'Modalidad', options: [
+        ...(perfil.datos ? [{ value: 'conservar', label: 'Conservar modalidad y empleador actuales' }] : []),
+        { value: 'true', label: 'Independiente' }, { value: 'false', label: 'Asignar como empleador al titular de esta cuenta' },
+      ], value: perfil.datos ? 'conservar' : '' },
     ]} enviar={async (datos) => {
-      await guardarCuidador(token, cuenta.cuenta_id, id, { tipo_cuidado_id: Number(campo(datos, 'tipo')), cuidador_independiente: campo(datos, 'independiente') === 'true' })
+      const modalidad = campo(datos, 'independiente')
+      await guardarCuidador(token, cuenta.cuenta_id, id, {
+        tipo_cuidado_id: Number(campo(datos, 'tipo')),
+        cuidador_independiente: modalidad === 'conservar' ? perfil.datos?.cuidador_independiente === true : modalidad === 'true',
+        ...(modalidad === 'conservar' ? { conservar_empleador: true } : {}),
+      })
       setRevision((n) => n + 1)
     }} />}
   </section>
@@ -198,6 +205,11 @@ export function GestionCuenta(props: OperacionProps & { actualizar: () => void; 
     <Estado consulta={detalle} />
     {datos && <DatosContacto {...props} datos={datos} actualizar={refrescar} cancelar={() => navigate(`${raiz}/cuenta`)} />}
     <Configuracion {...props} actualizar={refrescar} />
+    {cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
+      <h2 id="titularidad" className="text-lg font-semibold text-ink">Titularidad</h2>
+      <p className="text-sm text-ink-2">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
+      {transferir ? <Transferir {...props} actualizar={refrescar} cerrar={() => setTransferir(false)} /> : <Button variant="outline" className="justify-self-start" onClick={() => setTransferir(true)}>Transferir titularidad</Button>}
+    </section>}
   </section>
 
   return <section className="grid gap-4" aria-label="Datos y gestión de cuenta">
@@ -223,10 +235,5 @@ export function GestionCuenta(props: OperacionProps & { actualizar: () => void; 
       </ButtonLink>}
     </section>}
     {cuenta.acceso_operativo && cuenta.permisos.includes('cuidadores:gestionar') && <Cuidadores {...props} />}
-    {cuenta.acceso_operativo && cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
-      <h3 id="titularidad" className="text-lg font-semibold text-ink">Titularidad</h3>
-      <p className="text-sm text-ink-2">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
-      {transferir ? <Transferir {...props} cerrar={() => setTransferir(false)} /> : <Button variant="outline" className="justify-self-start" onClick={() => setTransferir(true)}>Transferir titularidad</Button>}
-    </section>}
   </section>
 }

@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:web-push": "vite --mode web-push-local --host localhost --strictPort",
     "build": "tsc -b && vite build",
     "verificar:cache": "node scripts/verificar-cache.mjs",
     "verificar:offline": "node scripts/verificar-offline.mjs",

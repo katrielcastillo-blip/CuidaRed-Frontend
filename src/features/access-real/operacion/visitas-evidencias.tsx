@@ -47,7 +47,7 @@ export function Evidencias({ ruta, token, puedeAdjuntar, tarea = false, validar,
     }
     const meta = { nombre_archivo: archivo.name, tipo_mime: archivo.type, tamano_bytes: archivo.size }
     const destino = await api<{ ruta: string; bucket: string; token?: string }>(`${ruta}/evidencias/subida`, token, 'POST', meta)
-    const storage = getClient().storage.from(destino.bucket)
+    const storage = getClient(token).storage.from(destino.bucket)
     const opciones = { contentType: archivo.type, upsert: false }
     const subida = tarea && destino.token
       ? await storage.uploadToSignedUrl(destino.ruta, destino.token, archivo, opciones)

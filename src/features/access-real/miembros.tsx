@@ -15,6 +15,7 @@ import {
   listarMiembros,
   obtenerMiembro,
   reactivarMiembro,
+  reenviarInvitacion,
   type EstadoMembresia,
   type FiltroMiembros,
   type Miembro,
@@ -41,7 +42,7 @@ const ORDENES = {
 }
 
 type Filtros = { rol: RolCuenta | 'todos'; estado: EstadoMembresia | 'todos'; orden: keyof typeof ORDENES }
-type Accion = 'rol' | 'desactivar' | 'reactivar'
+type Accion = 'rol' | 'desactivar' | 'reactivar' | 'reenviar'
 type VistaMiembros = 'lista' | 'invitar' | 'detalle'
 type Errores = Record<string, string | undefined>
 type Icono = 'avanzar' | 'buscar' | 'correo' | 'desplegar' | 'fecha' | 'filtros' | 'info' | 'perfil' | 'persona' | 'persona-inactiva' | 'telefono' | 'volver'
@@ -422,6 +423,11 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
       } else if (accion === 'reactivar') {
         await reactivarMiembro(token, cuenta.cuenta_id, miembro.membresia_id)
         alGuardar(nombre + ' volvió a tener acceso a la cuenta.')
+      } else if (accion === 'reenviar') {
+        const { resultado } = await reenviarInvitacion(token, cuenta.cuenta_id, miembro.membresia_id)
+        alGuardar(resultado === 'enviada'
+          ? 'Se reenvió el código de invitación a ' + nombre + '.'
+          : nombre + ' puede iniciar sesión y aceptar la invitación en Mi cuenta.')
       }
     } catch (issue) {
       setErrorAccion(mensajeDeError(issue))
@@ -431,7 +437,13 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
   }
 
   const pendiente = miembro?.estado === 'pendiente'
-  const tituloAccion = accion === 'rol' ? 'Cambiar el rol de ' + nombre : accion === 'reactivar' ? 'Reactivar a ' + nombre : (pendiente ? 'Cancelar la invitación a ' : 'Desactivar a ') + nombre
+  const titulos: Record<Accion, string> = {
+    rol: 'Cambiar el rol de ',
+    reactivar: 'Reactivar a ',
+    reenviar: 'Reenviar la invitación a ',
+    desactivar: pendiente ? 'Cancelar la invitación a ' : 'Desactivar a ',
+  }
+  const tituloAccion = accion ? titulos[accion] + nombre : ''
   const idValido = /^[1-9]\d{0,18}$/.test(membresiaId)
   const errorVisible = idValido ? error : 'Esta dirección de miembro no es válida.'
 
@@ -465,6 +477,7 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
             <section aria-labelledby="acciones-miembro" className="grid gap-3">
               <h3 id="acciones-miembro" className="text-xl font-bold">Acciones rápidas</h3>
               {miembro.estado === 'activa' && <Button variant="outline" onClick={() => abrirAccion('rol')}>Cambiar rol</Button>}
+              {pendiente && <Button variant="outline" onClick={() => abrirAccion('reenviar')}>Reenviar invitación</Button>}
               {miembro.estado !== 'inactiva' && <Button variant="danger-soft" onClick={() => abrirAccion('desactivar')}>{pendiente ? 'Cancelar invitación' : 'Desactivar miembro'}</Button>}
               {miembro.estado === 'inactiva' && <Button onClick={() => abrirAccion('reactivar')}>Reactivar miembro</Button>}
             </section>
@@ -476,7 +489,7 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
         <>
           <Button size="sm" variant="outline" disabled={trabajando} onClick={cerrarAccion}>Volver</Button>
           <Button size="sm" variant={accion === 'desactivar' ? 'danger' : 'primary'} loading={trabajando} onClick={() => void confirmar()}>
-            {accion === 'rol' ? 'Cambiar rol' : accion === 'reactivar' ? 'Reactivar' : pendiente ? 'Cancelar invitación' : 'Desactivar'}
+            {accion === 'rol' ? 'Cambiar rol' : accion === 'reactivar' ? 'Reactivar' : accion === 'reenviar' ? 'Reenviar código' : pendiente ? 'Cancelar invitación' : 'Desactivar'}
           </Button>
         </>
       }>
@@ -489,6 +502,7 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
           ? 'Se cancelará la invitación enviada a ' + miembro.usuario.correo + '.'
           : nombre + ' perderá el acceso a ' + cuenta.nombre + ' de inmediato. Podrás reactivar la membresía después.'}</p>}
         {miembro && accion === 'reactivar' && <p>{nombre} volverá a tener acceso a {cuenta.nombre} como {ROL_TEXTO[miembro.rol]}.</p>}
+        {miembro && accion === 'reenviar' && <p>Si el perfil todavía está por activar, se enviará un código nuevo a {miembro.usuario.correo}.</p>}
         {errorAccion && <Aviso tono="error">{errorAccion}</Aviso>}
       </Sheet>
     </MarcoMiembros>

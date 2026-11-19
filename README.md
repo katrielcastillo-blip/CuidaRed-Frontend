@@ -66,7 +66,7 @@ npm run preview              # sirve dist/ para probar la instalación como app 
 
 ## Variables de entorno
 
-Ver [`.env.example`](.env.example). El acceso real necesita las variables siguientes. Tokens de sesión en `sessionStorage`; los códigos y contraseñas no se guardan en almacenamiento del navegador. No hay retorno automático a datos simulados si falla una conexión.
+Ver [`.env.example`](.env.example). El acceso real necesita las variables siguientes. Express usa una cookie protegida para recuperar la sesión vigente al reabrir la aplicación. El frontend conserva el token de acceso en memoria. En desarrollo, usa `localhost` tanto para la aplicación como para la API. Si falla la conexión, se muestra el estado del servicio.
 
 | Variable | Uso |
 |---|---|
