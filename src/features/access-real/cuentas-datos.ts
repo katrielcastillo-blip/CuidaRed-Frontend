@@ -36,3 +36,11 @@ export const suscripcionTexto = (estado: CuentaMe['estado_suscripcion']) => (est
 /** La gestión de miembros exige `usuarios:gestionar` en la cuenta activa (Coordinador en Familia, Administrador en Organización). */
 export const puedeGestionarMiembros = (cuenta: CuentaMe | undefined) =>
   cuenta?.acceso_operativo === true && cuenta.permisos.includes('usuarios:gestionar')
+
+/**
+ * Quién recibe avisos internos de alertas. Espejo de `trg_alerta_avisar` (fase 6b, migración CUIDARED-009): solo las
+ * personas con membresía vigente de Coordinador (cuenta Familia u Organización) o de Administrador (solo Organización)
+ * con alcance sobre el adulto. El Cuidador consulta y resuelve alertas, pero no recibe avisos.
+ */
+export const recibeAvisosDeAlertas = (cuenta: Pick<CuentaMe, 'rol' | 'tipo'>) =>
+  cuenta.rol === 'coordinador' || (cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador')

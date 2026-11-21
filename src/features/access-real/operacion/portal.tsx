@@ -4,13 +4,13 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, Building2, CalendarClock, ChevronRight, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Bell, Building2, CalendarClock, ChartColumn, ChevronRight, ClipboardList, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useLogo } from '@/lib/marca'
 import { PantallaMiembros } from '../miembros'
 import { ResumenCuenta } from '../resumen-cuenta'
-import { ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
+import { recibeAvisosDeAlertas, ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
 import type { CuentaMe } from '../client'
 import { Agenda } from './agenda'
 import { Alertas } from './alertas'
@@ -20,6 +20,8 @@ import { Estado, idRuta, useConexionReal, useDatos, usePagina } from './controle
 import { Envejecientes } from './envejecientes'
 import { GestionCuenta } from './gestion-cuenta'
 import { Necesidades } from './necesidades'
+import { Reportes } from './reportes'
+import { ResumenCasos } from './resumen-casos'
 import { SolicitudesVisita } from './solicitudes-visita'
 import { Visitas } from './visitas'
 
@@ -40,6 +42,8 @@ const secciones: Seccion[] = [
   { id: 'agenda', nombre: 'Agenda', titulo: 'Agenda', descripcion: 'Tareas de cuidado y evidencias', icono: ListTodo, permiso: 'agenda:ver' },
   { id: 'necesidades', nombre: 'Necesidades', titulo: 'Necesidades', descripcion: 'Necesidades activas y su seguimiento', icono: HandHelping, permiso: 'necesidades:ver' },
   { id: 'alertas', nombre: 'Alertas', titulo: 'Alertas', descripcion: 'Casos prioritarios y notificaciones', icono: Bell, permiso: 'alertas:ver' },
+  { id: 'resumen', nombre: 'Resumen', titulo: 'Resumen de casos', descripcion: 'Casos activos, prioridad y estado de atención', icono: ClipboardList, permiso: 'resumen:ver' },
+  { id: 'reportes', nombre: 'Reportes', titulo: 'Reportes y estadísticas', descripcion: 'Indicadores, gráficos y exportaciones', icono: ChartColumn, permiso: 'reportes:ver' },
   { id: 'miembros', nombre: 'Miembros', titulo: 'Miembros de la cuenta', descripcion: 'Personas, invitaciones y roles', icono: Users, permiso: 'usuarios:gestionar' },
   { id: 'configuracion', nombre: 'Configuración', titulo: 'Configurar cuenta', descripcion: 'Datos de contacto y preferencias', icono: Settings, permiso: 'organizacion:configurar' },
   { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar', soloOrganizacion: true },
@@ -130,7 +134,8 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
     (!modulo.soloOrganizacion || cuenta?.tipo === 'organizacion') &&
     (!modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso))))
   const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
-  const mostrarAvisos = visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
+  // La campana solo se muestra a quien recibe avisos de alertas (ver `recibeAvisosDeAlertas`); el resto tendría un contador siempre en cero.
+  const mostrarAvisos = !!cuenta && recibeAvisosDeAlertas(cuenta) && visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
   const avisos = usePagina<unknown>(base && mostrarAvisos ? `${base}/notificaciones-alerta` : null, token, revision,
     { limit: 1, filters: { estado: 'no_leida' } })
   const pendientes = avisos.datos?.meta.total ?? 0
@@ -190,6 +195,8 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
           {actual?.id === 'agenda' && <Agenda {...props} />}
           {actual?.id === 'necesidades' && <Necesidades {...props} cola={cola} />}
           {actual?.id === 'alertas' && <Alertas key={navegacion} {...props} alLeerAviso={() => setRevision((n) => n + 1)} />}
+          {actual?.id === 'resumen' && <ResumenCasos {...props} />}
+          {actual?.id === 'reportes' && <Reportes {...props} />}
           {actual?.id === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
           {actual?.id === 'auditoria' && <AuditoriaCuenta {...props} />}
         </div>}

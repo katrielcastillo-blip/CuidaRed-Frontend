@@ -4,10 +4,11 @@ import { Bell, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Card, Chip, Datum, IconTile, SelectField, type Tone } from '@/components/ui'
 import { fechaHora } from '@/domain/dates'
-import { api } from '../client'
+import { api, ApiError, type CuentaMe } from '../client'
+import { recibeAvisosDeAlertas } from '../cuentas-datos'
 import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina } from './controles'
 import { NotificacionesPush } from './notificaciones-push'
-import type { OperacionProps } from './visitas'
+import type { AdultoNombre, OperacionProps } from './visitas'
 
 const ESTADOS = {
   pendiente: { nombre: 'Pendiente', tono: 'danger' },
@@ -68,6 +69,7 @@ interface Notificacion {
 
 interface TipoAlerta { codigo: string; nombre: string }
 type PropsBandeja = Pick<OperacionProps, 'base' | 'token'> & { abrir: (id: string) => void; revision: number }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function EstadoAlerta({ valor }: { valor: Alerta['estado'] }) {
   return <Badge tone={ESTADOS[valor].tono}>{ESTADOS[valor].nombre}</Badge>
@@ -108,7 +110,16 @@ function DetalleAlerta({ base, token, cuenta, id, revision, cambio }: OperacionP
     (cuenta.permisos.includes('alertas:gestionar') || cuenta.permisos.includes('alertas:cerrar'))
   const puedeAtender = alerta?.estado === 'pendiente' && cuenta.permisos.includes('alertas:gestionar')
   const guardar = async (accion?: string) => {
-    await api(`${ruta}/${accion ? 'resolver' : 'en-atencion'}`, token, 'POST', accion ? { accion_tomada: accion } : {})
+    try {
+      await api(`${ruta}/${accion ? 'resolver' : 'en-atencion'}`, token, 'POST', accion ? { accion_tomada: accion } : {})
+    } catch (error) {
+      // El motor puede cerrar la alerta mientras se gestiona: se vuelve a consultar en lugar de mostrar el error de un registro ajeno.
+      if (!(error instanceof ApiError) || error.code !== 'INVALID_STATE') throw error
+      setGestion(undefined)
+      setAviso('La alerta ya no admite ese cambio porque cambió de estado. Se actualizó el detalle.')
+      cambio()
+      return
+    }
     setGestion(undefined)
     setAviso(accion ? 'Alerta resuelta.' : 'Alerta en atención.')
     cambio()
@@ -172,20 +183,35 @@ function Casos({ base, token, abrir, revision }: PropsBandeja) {
   </section>
 }
 
-function ListaAlertas({ base, token, abrir, revision }: PropsBandeja) {
+function ListaAlertas({ base, token, cuenta, abrir, revision, adultoInicial }: PropsBandeja & { cuenta: CuentaMe; adultoInicial?: string }) {
+  const puedeVerAdultos = cuenta.permisos.includes('adultos:ver')
   const [estado, fijarEstado] = useState('')
   const [tipo, fijarTipo] = useState('')
+  const [adulto, fijarAdulto] = useState(puedeVerAdultos && adultoInicial && UUID.test(adultoInicial) ? adultoInicial : '')
   const tipos = useDatos<TipoAlerta[]>('/catalogos/tipos-alerta', token)
+  const adultos = usePagina<AdultoNombre>(puedeVerAdultos ? `${base}/envejecientes` : null, token, 0, { limit: 100, filters: { estado: 'activo' } })
+  const opcionesAdulto = adultos.datos?.data ?? []
+  // El adulto elegido puede quedar fuera de la página de opciones (enlace desde su expediente): se consulta su nombre aparte.
+  const fueraDeLista = adulto !== '' && !opcionesAdulto.some((item) => item.envejeciente_id === adulto)
+  const perfil = useDatos<AdultoNombre>(fueraDeLista && adultos.datos ? `${base}/envejecientes/${idRuta(adulto)}` : null, token)
   const consulta = usePagina<Alerta>(`${base}/alertas`, token, revision, {
-    filters: { ...(estado && { estado }), ...(tipo && { tipo }) },
+    filters: { ...(estado && { estado }), ...(tipo && { tipo }), ...(adulto && { envejeciente_id: adulto }) },
   })
   return <section className="grid gap-3" aria-label="Listado de alertas">
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <SelectField label="Estado de la alerta" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
         options={[{ value: '', label: 'Todos los estados' }, ...Object.entries(ESTADOS).map(([value, info]) => ({ value, label: info.nombre }))]} />
       <SelectField label="Tipo de alerta" value={tipo} onChange={(event) => fijarTipo(event.currentTarget.value)}
         options={[{ value: '', label: 'Todos los tipos' }, ...(tipos.datos ?? []).map((item) => ({ value: item.codigo, label: item.nombre }))]} />
+      {puedeVerAdultos && <SelectField label="Adulto mayor" value={adulto} onChange={(event) => fijarAdulto(event.currentTarget.value)}
+        options={[
+          { value: '', label: 'Todos los adultos' },
+          ...(fueraDeLista ? [{ value: adulto, label: perfil.datos ? `${perfil.datos.nombres} ${perfil.datos.apellidos}` : 'Adulto seleccionado' }] : []),
+          ...opcionesAdulto.map((item) => ({ value: item.envejeciente_id, label: `${item.nombres} ${item.apellidos}` })),
+        ]} />}
     </div>
+    {adultos.datos && adultos.datos.meta.totalPages > 1 &&
+      <Paginador pagina={adultos.pagina} total={adultos.datos.meta.totalPages} cambiar={adultos.cambiar} />}
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin alertas en este listado.' : undefined} />
     {!!consulta.datos?.data.length && <ul className="grid gap-3">
       {consulta.datos.data.map((alerta) => <li key={alerta.alerta_envejeciente_id}><TarjetaAlerta alerta={alerta} abrir={abrir} mostrarAdulto /></li>)}
@@ -202,7 +228,7 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
   return <section className="grid gap-3" aria-label="Notificaciones de alertas">
     <div className="max-w-sm">
       <SelectField label="Lectura de notificaciones" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
-        options={[{ value: '', label: 'Todas' }, { value: 'no_leida', label: 'Sin leer' }, { value: 'leida', label: 'Leídas' }, { value: 'archivada', label: 'Archivadas' }]} />
+        options={[{ value: '', label: 'Todas' }, { value: 'no_leida', label: 'Sin leer' }, { value: 'leida', label: 'Leídas' }]} />
     </div>
     {confirmacion && <p role="status" className="rounded-sm bg-teal-100 p-3 text-sm font-semibold">Notificación marcada como leída.</p>}
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin notificaciones de alertas.' : undefined} />
@@ -233,9 +259,11 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
 
 export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAviso: () => void }) {
   const { base, token, cuenta } = props
-  const puedeRecibirAvisos = cuenta.rol === 'coordinador' || (cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador')
+  const puedeRecibirAvisos = recibeAvisosDeAlertas(cuenta)
   const [parametros, fijarParametros] = useSearchParams()
-  const bandeja = BANDEJAS.find((item) => item.value === parametros.get('bandeja'))?.value ?? 'casos'
+  // Quien no recibe avisos no tiene bandeja de notificaciones: solo vería una lista vacía.
+  const bandejas = BANDEJAS.filter((item) => item.value !== 'avisos' || puedeRecibirAvisos)
+  const bandeja = bandejas.find((item) => item.value === parametros.get('bandeja'))?.value ?? 'casos'
   const [id, abrir] = useState<string>()
   const [revision, setRevision] = useState(0)
   const panel = useRef<HTMLDivElement>(null)
@@ -253,13 +281,13 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
   return <section className="grid gap-4">
     <div ref={bandejaRef} tabIndex={-1} hidden={!!id} className="space-y-4 outline-none">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Bandeja de alertas">
-        {BANDEJAS.map((item) => <Chip key={item.value} active={bandeja === item.value}
+        {bandejas.map((item) => <Chip key={item.value} active={bandeja === item.value}
           onClick={() => fijarParametros(item.value === 'casos' ? {} : { bandeja: item.value }, { replace: true })}>{item.label}</Chip>)}
       </div>
       {bandeja === 'casos' && <Casos {...listado} />}
-      {bandeja === 'alertas' && <ListaAlertas {...listado} />}
+      {bandeja === 'alertas' && <ListaAlertas {...listado} cuenta={cuenta} adultoInicial={parametros.get('adulto') ?? undefined} />}
       {bandeja === 'avisos' && <>
-        {puedeRecibirAvisos && <NotificacionesPush token={token} />}
+        <NotificacionesPush token={token} />
         <Notificaciones {...listado} cambio={() => { cambio(); alLeerAviso() }} />
       </>}
     </div>

@@ -8,13 +8,13 @@ import type { OperacionProps } from './visitas'
 interface Evento {
   auditoria_id: string
   actor: string | null
-  accion: 'alta' | 'actualizacion' | 'baja'
+  accion: 'alta' | 'actualizacion' | 'baja' | 'exportacion'
   entidad: string
   fecha: string
   resultado: 'confirmado'
 }
 
-const ACCIONES = { alta: 'Alta', actualizacion: 'Actualización', baja: 'Baja' }
+const ACCIONES: Record<Evento['accion'], string> = { alta: 'Alta', actualizacion: 'Actualización', baja: 'Baja', exportacion: 'Exportación' }
 const ENTIDADES: Record<string, string> = {
   envejeciente_necesidad: 'Necesidad',
   alerta_envejeciente: 'Alerta',
@@ -24,6 +24,7 @@ const ENTIDADES: Record<string, string> = {
   visita: 'Visita', detalle_visita: 'Detalle de visita', registro_visita: 'Participación en visita',
   tarea_agenda: 'Tarea', evidencia: 'Evidencia de tarea', evidencia_visita: 'Evidencia de visita',
   evidencia_indicacion: 'Adjunto de indicación', solicitud_visita: 'Solicitud de visita',
+  exportacion_reporte: 'Reporte exportado', informe_medico: 'Informe médico',
 }
 
 export function AuditoriaCuenta({ base, token }: OperacionProps) {
@@ -36,7 +37,7 @@ export function AuditoriaCuenta({ base, token }: OperacionProps) {
     </div>
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin actividad registrada.' : undefined} />
     {consulta.datos?.data.map((evento) => <Card key={evento.auditoria_id} className="grid gap-1">
-      <h2 className="font-semibold">{ACCIONES[evento.accion]} · {ENTIDADES[evento.entidad] ?? 'Registro de la cuenta'}</h2>
+      <h2 className="font-semibold">{ACCIONES[evento.accion] ?? 'Registro'} · {ENTIDADES[evento.entidad] ?? 'Registro de la cuenta'}</h2>
       <p className="text-sm text-ink-2">{evento.actor ?? 'Sin actor registrado'} · {fechaHora(evento.fecha)}</p>
       <p className="text-sm">Resultado confirmado</p>
     </Card>)}

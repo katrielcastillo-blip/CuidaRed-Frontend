@@ -108,6 +108,16 @@ export async function api<T>(path: string, token: string, method = 'GET', data?:
   return res.status === 204 ? (undefined as T) : ((await res.json()).data as T)
 }
 
+/**
+ * Descarga un archivo del servidor con la sesión de la persona (Bearer). Los errores salen como `ApiError`, igual que en
+ * el resto de la API. `Content-Disposition` solo es legible entre orígenes si el servidor lo expone por CORS; si no, el
+ * nombre llega como `null` y quien llama arma uno propio.
+ */
+export async function apiDescarga(path: string, token: string): Promise<{ blob: Blob; contentDisposition: string | null }> {
+  const res = await apiResponse(path, token)
+  return { blob: await res.blob(), contentDisposition: res.headers.get('Content-Disposition') }
+}
+
 export async function apiPublica<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
   const res = await apiResponse('/publico' + path, undefined, method, data)
   return (await res.json()).data as T

@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useEffect, useState } from 'react'
-import type { GraficoReporte } from '../../lib/reportes'
+import type { GraficoReporte } from '../../lib/reportes-comun'
 import type { ImagenGrafico } from './tipos'
 
 type Imagenes = Record<string, ImagenGrafico>

@@ -3,7 +3,7 @@
  * Módulo: gestión · reportes (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import type { AnalisisAvanzado, Reporte } from '../../lib/reportes'
+import type { AnalisisAvanzado, Reporte } from '../../lib/reportes-comun'
 
 /** Imagen PNG de un gráfico (chart.toBase64Image()) con su tamaño en píxeles. */
 export interface ImagenGrafico {
@@ -26,4 +26,8 @@ export interface ContextoExportacion {
   avisoAvanzado: string
   /** Imágenes de los gráficos por id (puede faltar alguna: se exportan las tablas). */
   imagenes: Record<string, ImagenGrafico>
+  /** Modo conectado: constancia de la exportación registrada en el servidor ("Exportación 3f9b2a40-…"). */
+  constancia?: string
+  /** Modo conectado: el archivo contiene solo el análisis avanzado (sin indicadores ni detalle del reporte). */
+  soloAvanzado?: boolean
 }

@@ -7,7 +7,7 @@
  */
 import { useMemo } from 'react'
 import { Chart } from 'react-chartjs-2'
-import { describirGrafico, type GraficoReporte } from '../../lib/reportes'
+import { describirGrafico, type GraficoReporte } from '../../lib/reportes-comun'
 import { construirConfig } from './configGrafico'
 
 const sinAnimacion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches

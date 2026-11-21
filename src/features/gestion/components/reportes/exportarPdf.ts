@@ -6,7 +6,7 @@
  */
 import { fechaLarga, hora12 } from '@/domain/dates'
 import { logoParaReporte } from '@/lib/marca'
-import { graficosDelReporte, SIN_DATOS, tablaDeGrafico, type Columna } from '../../lib/reportes'
+import { graficosDelReporte, SIN_DATOS, tablaDeGrafico, tablasAvanzadas, type Columna } from '../../lib/reportes-comun'
 import type { ContextoExportacion } from './tipos'
 
 type Color = [number, number, number]
@@ -86,6 +86,7 @@ export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: strin
       ['Generado', `${fechaLarga(ctx.generado)}, ${hora12(ctx.generado)}`],
       ['Generado por', ctx.generadoPor],
       ['Filtros aplicados', ctx.filtros.join('\n')],
+      ...(ctx.constancia ? [['Constancia', ctx.constancia]] : []),
     ],
     theme: 'plain',
     styles: { font: 'helvetica', fontSize: 9.5, cellPadding: { top: 1, bottom: 1, left: 0, right: 2 }, textColor: TEXTO },
@@ -98,11 +99,13 @@ export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: strin
     doc.text(doc.splitTextToSize(SIN_DATOS, ANCHO_UTIL) as string[], MARGEN, y)
   } else {
     /* Indicadores */
-    subtitulo('Indicadores')
-    tabla(
-      [{ etiqueta: 'Indicador' }, { etiqueta: 'Valor', tipo: 'numero' }, { etiqueta: 'Nota' }],
-      r.kpis.map((k) => [k.etiqueta, typeof k.valor === 'number' ? k.valor.toLocaleString('es-DO') : k.valor, k.nota ?? '']),
-    )
+    if (!ctx.soloAvanzado) {
+      subtitulo('Indicadores')
+      tabla(
+        [{ etiqueta: 'Indicador' }, { etiqueta: 'Valor', tipo: 'numero' }, { etiqueta: 'Nota' }],
+        r.kpis.map((k) => [k.etiqueta, typeof k.valor === 'number' ? k.valor.toLocaleString('es-DO') : k.valor, k.nota ?? '']),
+      )
+    }
 
     /* Gráficos: imagen (chart.toBase64Image()) y su tabla de datos */
     for (const g of graficosDelReporte(r, ctx.avanzado)) {
@@ -129,16 +132,25 @@ export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: strin
     }
 
     /* Detalle del reporte */
-    asegurarEspacio(30)
-    subtitulo(`${r.tabla.titulo} (${r.tabla.filas.length})`)
-    tabla(
-      r.tabla.columnas,
-      r.tabla.filas.map((f) => f.celdas),
-      r.tabla.columnas.length > 7 ? 7.5 : 8.5,
-    )
+    if (!ctx.soloAvanzado) {
+      asegurarEspacio(30)
+      subtitulo(`${r.tabla.titulo} (${r.tabla.filas.length})`)
+      tabla(
+        r.tabla.columnas,
+        r.tabla.filas.map((f) => f.celdas),
+        r.tabla.columnas.length > 7 ? 7.5 : 8.5,
+      )
+      if (r.tabla.nota) {
+        asegurarEspacio(10)
+        doc.setFont('helvetica', 'italic').setFontSize(9).setTextColor(...GRIS)
+        const nota = doc.splitTextToSize(r.tabla.nota, ANCHO_UTIL) as string[]
+        doc.text(nota, MARGEN, y - 3)
+        y += nota.length * 4.2
+      }
+    }
 
     /* Tablas del análisis avanzado (si el plan lo incluye) */
-    for (const a of ctx.avanzado ? [ctx.avanzado.zonas, ctx.avanzado.tendencias] : []) {
+    for (const a of ctx.avanzado ? tablasAvanzadas(ctx.avanzado) : []) {
       if (a.vacio) continue
       asegurarEspacio(30)
       subtitulo(a.tabla.titulo)
@@ -148,7 +160,7 @@ export async function exportarPdf(ctx: ContextoExportacion, nombreArchivo: strin
         a.tabla.columnas.length > 7 ? 7.5 : 8.5,
       )
     }
-    if (!ctx.avanzado) {
+    if (!ctx.avanzado && ctx.avisoAvanzado) {
       asegurarEspacio(12)
       doc.setFont('helvetica', 'italic').setFontSize(9).setTextColor(...GRIS)
       doc.text(doc.splitTextToSize(`Comparativos por zona y tendencias: ${ctx.avisoAvanzado}`, ANCHO_UTIL) as string[], MARGEN, y)

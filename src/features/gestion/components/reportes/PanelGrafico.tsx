@@ -8,7 +8,7 @@
 import { lazy, Suspense } from 'react'
 import { Table2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { esGraficoSeries, tablaDeGrafico, type GraficoReporte, type TablaDatos } from '../../lib/reportes'
+import { esGraficoSeries, tablaDeGrafico, type GraficoReporte, type TablaDatos } from '../../lib/reportes-comun'
 import { alturaGrafico } from './alturaGrafico'
 
 // Chart.js solo se descarga al abrir un reporte (no entra en el paquete principal).
