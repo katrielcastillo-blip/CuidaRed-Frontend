@@ -71,34 +71,56 @@ export function catalogosIniciales(): Catalogos {
   const { provincias, municipios } = geografia()
   return {
     roles: [
-      { id: 'admin', nombre: 'Administrador', descripcion: 'Gestiona usuarios, roles, configuración y suscripción de la organización.' },
-      { id: 'coordinador', nombre: 'Coordinador', descripcion: 'Supervisa el seguimiento comunitario, atiende alertas y consulta reportes.' },
-      { id: 'voluntario', nombre: 'Voluntario', descripcion: 'Registra visitas y necesidades de los adultos mayores asignados.' },
-      { id: 'familiar', nombre: 'Familiar responsable', descripcion: 'Consulta el seguimiento del adulto mayor a su cargo.' },
+      { id: 'admin', nombre: 'Administrador', descripcion: 'Solo en cuentas Organización: gestiona miembros, autoriza familiares, configura la cuenta y su suscripción.' },
+      { id: 'coordinador', nombre: 'Coordinador', descripcion: 'Supervisa el seguimiento: asigna cuidadores y tareas, autoriza visitas, gestiona alertas. En cuentas Familia también gestiona los accesos.' },
+      { id: 'cuidador', nombre: 'Cuidador', descripcion: 'Registra visitas, necesidades e indicaciones médicas, completa tareas y adjunta evidencias de los adultos que tiene asignados.' },
+      { id: 'familiar', nombre: 'Familiar responsable', descripcion: 'Consulta el seguimiento de los adultos mayores para los que recibió permiso explícito.' },
+      { id: 'voluntario', nombre: 'Voluntario', descripcion: 'Solo en cuentas Organización: registra que la visita ocurrió y deja una observación.' },
     ],
     tiposCuenta: [
-      { id: 'tc-fundacion', nombre: 'Fundación' },
-      { id: 'tc-ong', nombre: 'ONG' },
-      { id: 'tc-asociacion', nombre: 'Asociación comunitaria' },
-      { id: 'tc-iglesia', nombre: 'Iglesia u organización religiosa' },
-      { id: 'tc-junta', nombre: 'Junta de vecinos' },
-      { id: 'tc-centro', nombre: 'Centro de atención' },
-      { id: 'tc-otra', nombre: 'Otra' },
+      { id: 'tc-familia', nombre: 'Familia', descripcion: 'Una familia que organiza el cuidado de sus adultos mayores.' },
+      { id: 'tc-organizacion', nombre: 'Organización', descripcion: 'Fundación, iglesia, asilo, universidad u otra organización comunitaria.' },
     ],
+    // V2 §Cuenta: categorías por tipo de cuenta.
     categoriasCuenta: [
-      { id: 'cc-comunitaria', nombre: 'Comunitaria', descripcion: 'Organizaciones de base y juntas de vecinos.' },
-      { id: 'cc-religiosa', nombre: 'Religiosa' },
-      { id: 'cc-sin-fines', nombre: 'Sin fines de lucro' },
-      { id: 'cc-institucional', nombre: 'Institucional' },
+      { id: 'cc-monitoreo', nombre: 'Monitoreo a distancia', tipoCuentaId: 'tc-familia' },
+      { id: 'cc-domiciliario', nombre: 'Cuidado domiciliario', tipoCuentaId: 'tc-familia' },
+      { id: 'cc-temporal', nombre: 'Cuidado temporal', tipoCuentaId: 'tc-familia' },
+      { id: 'cc-asilo', nombre: 'Asilo', tipoCuentaId: 'tc-organizacion' },
+      { id: 'cc-iglesia', nombre: 'Iglesia', tipoCuentaId: 'tc-organizacion' },
+      { id: 'cc-universidad', nombre: 'Universidad', tipoCuentaId: 'tc-organizacion' },
+      { id: 'cc-fundacion', nombre: 'Fundación', tipoCuentaId: 'tc-organizacion' },
     ],
     categoriasPlan: [
-      { id: 'pc-gratuito', nombre: 'Gratuito' },
-      { id: 'pc-pago', nombre: 'De pago' },
+      { id: 'pc-basico', nombre: 'Pagado (básico)' },
+      { id: 'pc-premium', nombre: 'Pagado (premium)' },
     ],
+    // V2 §Plan. Precios referenciales en RD$ (la monetización es informativa en el MVP; sin cobros reales).
     planes: [
-      { id: 'plan-basico', nombre: 'Básico', categoriaId: 'pc-gratuito', precio: 0, periodicidad: 'mensual', duracionDias: 30, estado: 'activo', limiteEnvejecientes: 50, limiteUsuarios: 20 },
-      { id: 'plan-comunitario', nombre: 'Comunitario', categoriaId: 'pc-pago', precio: 1500, periodicidad: 'mensual', duracionDias: 30, estado: 'activo', limiteEnvejecientes: 200, limiteUsuarios: 60 },
-      { id: 'plan-institucional', nombre: 'Institucional', categoriaId: 'pc-pago', precio: 15000, periodicidad: 'anual', duracionDias: 365, estado: 'activo', limiteEnvejecientes: 1000, limiteUsuarios: 300 },
+      {
+        id: 'plan-basico-familiar', nombre: 'Básico Familiar', categoriaId: 'pc-basico', precio: 650, periodicidad: 'mensual', duracionDias: 30, estado: 'activo',
+        tipoCuentaId: 'tc-familia', limiteEnvejecientes: 2, limiteUsuarios: null, limiteFamiliares: 3,
+        funcionalidades: ['registro_visitas', 'necesidades_diarias', 'visitas_recurrentes'],
+        resumen: 'Hasta 2 adultos mayores y 3 familiares, cuidadores sin límite, alertas estándar y visitas recurrentes.',
+      },
+      {
+        id: 'plan-cuidado-integral', nombre: 'Cuidado Integral', categoriaId: 'pc-premium', precio: 1450, periodicidad: 'mensual', duracionDias: 30, estado: 'activo',
+        tipoCuentaId: 'tc-familia', limiteEnvejecientes: 6, limiteUsuarios: null, limiteFamiliares: null,
+        funcionalidades: ['registro_visitas', 'necesidades_diarias', 'visitas_recurrentes', 'alertas_tiempo_real', 'historial_inmutable', 'dashboard_metricas'],
+        resumen: 'Hasta 6 adultos mayores, familiares y cuidadores sin límite, alertas críticas en tiempo real, historial inmutable y dashboard de métricas.',
+      },
+      {
+        id: 'plan-operacion-base', nombre: 'Operación Base', categoriaId: 'pc-basico', precio: 3500, periodicidad: 'mensual', duracionDias: 30, estado: 'activo',
+        tipoCuentaId: 'tc-organizacion', limiteEnvejecientes: 15, limiteUsuarios: 20, limiteFamiliares: null,
+        funcionalidades: ['registro_visitas', 'necesidades_diarias', 'tablon_notificaciones', 'dashboard_metricas'],
+        resumen: 'Hasta 15 adultos mayores y 20 miembros del equipo, registro de visitas, necesidades diarias y tablón de notificaciones.',
+      },
+      {
+        id: 'plan-gestion-avanzada', nombre: 'Gestión Comunitaria Avanzada', categoriaId: 'pc-premium', precio: 8500, periodicidad: 'mensual', duracionDias: 30, estado: 'activo',
+        tipoCuentaId: 'tc-organizacion', limiteEnvejecientes: null, limiteUsuarios: null, limiteFamiliares: null,
+        funcionalidades: ['registro_visitas', 'necesidades_diarias', 'tablon_notificaciones', 'dashboard_metricas', 'visitas_recurrentes', 'alertas_tiempo_real', 'riesgo_completo', 'org_necesidad', 'reportes_avanzados'],
+        resumen: 'Adultos mayores y equipo sin límite, clasificación de riesgo completa, necesidades institucionales y reportes avanzados.',
+      },
     ],
     metodosPago: [
       { id: 'mp-transferencia', nombre: 'Transferencia bancaria', activo: true },
@@ -158,7 +180,8 @@ export function catalogosIniciales(): Catalogos {
     ],
     tiposVinculo: [
       { id: 'familiar_responsable', nombre: 'Familiar responsable', descripcion: 'Puede consultar el seguimiento del adulto mayor.' },
-      { id: 'voluntario_asignado', nombre: 'Voluntario asignado', descripcion: 'Realiza las visitas y registra necesidades.' },
+      { id: 'cuidador_asignado', nombre: 'Cuidador asignado', descripcion: 'Registra visitas, necesidades e indicaciones y ejecuta las tareas del adulto mayor.' },
+      { id: 'voluntario_asignado', nombre: 'Voluntario asignado', descripcion: 'Registra que la visita ocurrió y deja una observación.' },
       { id: 'referente', nombre: 'Referente comunitario', descripcion: 'Acompaña al adulto mayor; no otorga acceso a datos.' },
     ],
     tiposCuidado: [

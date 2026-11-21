@@ -1,20 +1,28 @@
-/* Formularios ID01 conectados, sin contraseñas locales · acceso. © 2026 Equipo CuidaRed – INTEC. */
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+/*
+ * forms.tsx — Formularios conectados del acceso: inicio de sesión, activación de invitación, recuperación y perfil.
+ * Módulo: access-real (ID01), sin contraseñas locales.
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { Button, ButtonLink, Checkbox, PasswordField, StepBar, TextField } from '@/components/ui'
+import { Mail } from 'lucide-react'
+import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
+import { useLogo } from '@/lib/marca'
 import { AuthScreen } from '../auth/components/AuthScreen'
 import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
 import { LogoBadge } from '../auth/components/LogoBadge'
-import { api, getClient, passwordError, temporaryClient, type CurrentUser, type Profile } from './client'
+import { api, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CurrentUser, type Profile } from './client'
 
 const GENERIC_RECOVERY = 'Si el correo pertenece a una cuenta, recibirás un código para restablecer tu contraseña.'
 const GENERIC_CODE = 'El código no es válido o ha vencido. Solicita uno nuevo a la persona responsable.'
 const normalEmail = (email: string) => email.trim().toLowerCase()
 const message = (error: unknown) => (error instanceof Error ? error.message : 'No se pudo completar la operación. Intenta de nuevo.')
 
-export function AccessForm({ notice }: { notice: string }) {
-  const navigate = useNavigate()
+export function AccessForm({ notice, onSession }: { notice: string; onSession: (session: BrowserSession) => void }) {
+  const [client] = useState(temporaryClient)
+  const location = useLocation()
+  const logo = useLogo()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,16 +33,13 @@ export function AccessForm({ notice }: { notice: string }) {
     setBusy(true)
     setError('')
     try {
-      const client = getClient()
       const { data, error: issue } = await client.auth.signInWithPassword({ email: normalEmail(email), password })
       setPassword('')
       if (issue || !data.session) {
         setError('Correo o contraseña incorrectos.')
         return
       }
-      // La API vuelve a comprobar la identidad, la sesión actual y el estado del usuario.
-      await api<CurrentUser>('/me', data.session.access_token)
-      navigate('/cuenta', { replace: true })
+      onSession(await guardarSesionDelNavegador(data.session))
     } catch (issue) {
       setError(message(issue))
     } finally {
@@ -42,9 +47,9 @@ export function AccessForm({ notice }: { notice: string }) {
     }
   }
   return (
-    <AuthScreen>
+    <AuthScreen homeLink>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
-      <img className="mb-7 self-center w-[min(279px,100%)]" src="/brand/logo.png" alt="CuidaRed" />
+      <img className="mb-7 self-center w-[min(279px,100%)]" src={logo} alt="CuidaRed" />
       <form className="flex flex-col gap-5" onSubmit={submit}>
         <TextField
           label="Correo electrónico"
@@ -74,6 +79,9 @@ export function AccessForm({ notice }: { notice: string }) {
         <ButtonLink to="/registro" variant="outline">
           Activar mi cuenta
         </ButtonLink>
+        <ButtonLink to="/crear-cuenta" state={location.state} variant="ghost">
+          Crear una cuenta
+        </ButtonLink>
         <nav className="flex justify-center gap-4">
           <Link className="inline-flex min-h-12 items-center" to="/terminos">
             Términos
@@ -87,7 +95,7 @@ export function AccessForm({ notice }: { notice: string }) {
   )
 }
 
-export function InvitationForm() {
+export function InvitationForm({ onSession }: { onSession: (session: BrowserSession) => void }) {
   const navigate = useNavigate()
   const [client] = useState(temporaryClient)
   const [session, setSession] = useState<Session | null>(null)
@@ -154,11 +162,7 @@ export function InvitationForm() {
         })
         const { data: latest } = await client.auth.getSession()
         if (!latest.session) throw new Error('Activa nuevamente tu invitación para continuar.')
-        const result = await getClient().auth.setSession({
-          access_token: latest.session.access_token,
-          refresh_token: latest.session.refresh_token,
-        })
-        if (result.error) throw new Error('No se pudo abrir la sesión. Intenta iniciar sesión con tu contraseña.')
+        onSession(await guardarSesionDelNavegador(latest.session))
         setPassword('')
         setConfirm('')
         navigate('/cuenta', { replace: true })
@@ -295,6 +299,13 @@ export function ResetForm() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
+  const [tokenHash] = useState(() => new URL(window.location.href).searchParams.get('token_hash'))
+  useEffect(() => {
+    if (!tokenHash) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('token_hash')
+    window.history.replaceState(window.history.state, '', url)
+  }, [tokenHash])
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -314,7 +325,9 @@ export function ResetForm() {
     setError('')
     try {
       if (!verified) {
-        const result = await client.auth.verifyOtp({ email: normalEmail(email), token: code, type: 'recovery' })
+        const result = tokenHash
+          ? await client.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+          : await client.auth.verifyOtp({ email: normalEmail(email), token: code, type: 'recovery' })
         if (result.error || !result.data.session) {
           setError('El código no es válido o ha vencido. Solicita uno nuevo.')
           return
@@ -347,7 +360,7 @@ export function ResetForm() {
   return (
     <AuthScreen title="Restablecer contraseña" back="/recuperar" gradient="auth">
       <form className="flex flex-col gap-5" onSubmit={submit}>
-        <TextField
+        {!tokenHash && <><TextField
           label="Correo electrónico"
           type="email"
           required
@@ -366,7 +379,7 @@ export function ResetForm() {
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
           help="Caduca a los 15 minutos y es de un solo uso."
-        />
+        /></>}
         <PasswordField
           label="Nueva contraseña"
           required
@@ -474,7 +487,13 @@ export function ProfileForm({ token, profile, onSaved }: { token: string; profil
   }
   return (
     <form className="flex flex-col gap-5" onSubmit={submit}>
-      <p className="break-all">{profile.correo}</p>
+      <div className="flex min-w-0 items-center gap-3 rounded-md border border-line-soft bg-surface p-3">
+        <IconTile size={40}><Mail size={20} aria-hidden /></IconTile>
+        <dl className="min-w-0">
+          <dt className="text-sm font-semibold text-navy">Correo electrónico</dt>
+          <dd className="wrap-anywhere font-medium text-ink">{profile.correo}</dd>
+        </dl>
+      </div>
       <PersonalFields data={data} setData={setData} showCedula />
       {error && <Aviso tono="error">{error}</Aviso>}
       {notice && <p role="status">{notice}</p>}

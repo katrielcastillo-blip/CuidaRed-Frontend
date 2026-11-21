@@ -1,16 +1,17 @@
 /*
  * resumen.ts — Cifras del panel del administrador: visión general de la organización calculada del store.
- * Incluye el uso del plan (Plan.Limite_Envejecientes / Limite_Usuarios) y las tareas de agenda pendientes (Tarea_agenda).
+ * Incluye el uso del plan (Plan.Limite_Envejecientes / Limite_Usuarios; el voluntario ocasional no cuenta), los miembros
+ * por rol (según sus membresías en la cuenta activa) y las tareas de agenda pendientes (Tarea_agenda).
  * Módulo: admin (SRS §13.1 "Panel de gestión y supervisión" · §8.2.2.1.18 Operabilidad · RF-04 · RF-05).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
-import { alertasVisibles, tareasVisibles } from '@/domain/api'
+import { alertasVisibles, estadoEnCuenta, tareasVisibles, usoDeCuenta } from '@/domain/api'
 import { useSession } from '@/domain/auth'
 import { useDB } from '@/domain/store'
 import { diasSinVisita } from '@/domain/reglas'
 import { adultosVisibles } from '@/domain/permisos'
-import { configOrg, usoDelPlan } from '@/domain/relaciones'
+import { configOrg } from '@/domain/relaciones'
 import { todayISO } from '@/domain/dates'
 import type { Adulto, Alerta, Rol, SeveridadAlerta, Tarea, TipoNecesidad } from '@/domain/types'
 import { mesCorto, pad2 } from './datos'
@@ -46,6 +47,7 @@ export interface Resumen {
   umbralDias: number
   /** Adultos activos que superan el umbral de días sin visita (RF-05), de más a menos días. */
   sinVisita: SinVisita[]
+  /** Miembros activos de la cuenta por rol (según Membresia). */
   usuariosPorRol: Record<Rol, number>
   usuariosActivos: number
   invitados: number
@@ -56,7 +58,7 @@ export interface Resumen {
   /** Alertas sin atender más urgentes y recientes. */
   alertasRecientes: AlertaReciente[]
   /** Uso de los límites del plan contratado. */
-  uso: ReturnType<typeof usoDelPlan>
+  uso: ReturnType<typeof usoDeCuenta>
   /** Tareas de agenda pendientes o en curso (las más próximas primero). */
   tareasPendientes: Array<{ tarea: Tarea; adulto?: Adulto }>
   /** Tareas pendientes con fecha anterior a hoy. */
@@ -100,6 +102,7 @@ export function useResumen(): Resumen {
   const configuracion = useDB((s) => s.configuracion)
   const tareas = useDB((s) => s.tareas)
   const cuidadores = useDB((s) => s.cuidadores)
+  const membresias = useDB((s) => s.membresias)
 
   return useMemo(() => {
     const adultosOrg = adultosVisibles(user, adultos)
@@ -125,12 +128,20 @@ export function useResumen(): Resumen {
       .filter((x) => x.dias > umbralDias)
       .sort((a, b) => b.dias - a.dias)
 
-    // Usuarios de la organización por rol
-    const usuariosOrg = usuarios.filter((u) => u.orgId === org?.id)
-    const usuariosPorRol: Record<Rol, number> = { admin: 0, coordinador: 0, voluntario: 0, familiar: 0 }
-    for (const u of usuariosOrg) if (u.estado === 'activo') usuariosPorRol[u.rol]++
-    const usuariosActivos = usuariosOrg.filter((u) => u.estado === 'activo').length
-    const invitados = usuariosOrg.filter((u) => u.estado === 'invitado').length
+    // Miembros de la cuenta por rol: salen de las membresías (un usuario puede estar en varias cuentas con roles distintos)
+    const usuariosPorRol: Record<Rol, number> = { admin: 0, coordinador: 0, cuidador: 0, voluntario: 0, familiar: 0 }
+    let usuariosActivos = 0
+    let invitados = 0
+    for (const m of membresias) {
+      if (m.orgId !== org?.id || m.estado !== 'activa') continue
+      const u = usuarios.find((x) => x.id === m.usuarioId)
+      if (!u) continue
+      const estado = estadoEnCuenta(u, m)
+      if (estado === 'activo') {
+        usuariosPorRol[m.rol]++
+        usuariosActivos++
+      } else if (estado === 'invitado') invitados++
+    }
 
     // Necesidades
     const necOrg = necesidades.filter((n) => porId.has(n.adultoId))
@@ -174,7 +185,7 @@ export function useResumen(): Resumen {
     const tareasAtrasadas = abiertasAgenda.filter((t) => t.fechaProgramada < hoyISO).length
 
     return {
-      uso: usoDelPlan({ adultos, usuarios, catalogos }, org),
+      uso: usoDeCuenta({ adultos, usuarios, membresias, catalogos }, org),
       tareasPendientes,
       tareasAtrasadas,
       adultosActivos: activos.length,
@@ -193,5 +204,5 @@ export function useResumen(): Resumen {
       tiposNecesidad,
       alertasRecientes,
     }
-  }, [user, org, adultos, usuarios, visitas, alertas, necesidades, catalogos, configuracion, tareas, cuidadores])
+  }, [user, org, adultos, usuarios, membresias, visitas, alertas, necesidades, catalogos, configuracion, tareas, cuidadores])
 }

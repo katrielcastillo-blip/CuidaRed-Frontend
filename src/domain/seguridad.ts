@@ -51,6 +51,8 @@ export const REGLAS_PASSWORD = [
   { id: 'mayus', texto: 'Una letra mayúscula', ok: (p: string) => /[A-ZÁÉÍÓÚÑ]/.test(p) },
   { id: 'minus', texto: 'Una letra minúscula', ok: (p: string) => /[a-záéíóúñ]/.test(p) },
   { id: 'numero', texto: 'Un número', ok: (p: string) => /\d/.test(p) },
+  // Feedback de PM (LOGIN SCREEN) y política del acceso conectado: también un carácter especial.
+  { id: 'simbolo', texto: 'Un carácter especial (por ejemplo ! @ # $)', ok: (p: string) => /[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9\s]/.test(p) },
 ] as const
 
 /** Devuelve el mensaje de error de la política, o undefined si la contraseña es válida. */

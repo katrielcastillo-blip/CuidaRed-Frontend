@@ -1,23 +1,24 @@
 /*
  * AdultosPage.tsx — Listado de perfiles de adultos mayores (CU-04 · RF-01): búsqueda (nombre, cédula, sector,
  * municipio), filtros de riesgo, municipio (Municipio_Cod), sector (zona) y estado (Env_Estado), e indicadores
- * de días sin visita (RF-05), alertas abiertas (RF-04), necesidades pendientes y voluntarios asignados (Vinculo).
+ * de frecuencia de visitas (días desde la última visita REALIZADA, umbral configurable y «Atención inicial
+ * pendiente», RF-05 · CU-06), alertas abiertas (RF-04), necesidades pendientes y personal asignado (Vinculo).
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, CalendarCheck, CalendarX, HandHelping, Plus, UserX } from 'lucide-react'
+import { Bell, HandHelping, Plus, UserX } from 'lucide-react'
 import { Badge, ButtonLink, Datum, EmptyState, IconTile, LinkCard, RiesgoBadge, SearchInput } from '@/components/ui'
 import { useUser } from '@/domain/auth'
 import { adultosVisibles, puede } from '@/domain/permisos'
-import { diasSinVisita } from '@/domain/reglas'
-import { configOrg, nombreMunicipio, voluntariosDe } from '@/domain/relaciones'
+import { nombreMunicipio, asignadosDe } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Riesgo } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
 import { FilaFiltros, FilterChip } from '../components/FilterChip'
+import { IndicadorFrecuencia } from '../components/IndicadorFrecuencia'
 import { necesidadAbierta, nombreAdulto, norm, plural } from '../lib/formato'
 import { enUbicacion, municipiosEnUso, sectoresEnUso } from '../lib/ubicacion'
 
@@ -29,18 +30,15 @@ export default function AdultosPage() {
   const location = useLocation()
   const resaltar = (location.state as { resaltar?: string } | null)?.resaltar
   const todos = useDB((s) => s.adultos)
-  const visitas = useDB((s) => s.visitas)
   const alertas = useDB((s) => s.alertas)
   const necesidades = useDB((s) => s.necesidades)
   const vinculos = useDB((s) => s.vinculos)
   const catalogos = useDB((s) => s.catalogos)
-  const configuracion = useDB((s) => s.configuracion)
   const [q, setQ] = useState('')
   const [riesgo, setRiesgo] = useState<'' | Riesgo>('')
   const [municipio, setMunicipio] = useState('')
   const [sector, setSector] = useState('')
   const [estado, setEstado] = useState<EstadoFiltro>('activo')
-  const umbral = configOrg({ catalogos, configuracion }, user.orgId).diasSinVisitaAlerta
   const puedeCrear = puede(user, 'adultos:crear')
 
   const visibles = useMemo(() => adultosVisibles(user, todos), [user, todos])
@@ -48,19 +46,16 @@ export default function AdultosPage() {
   const sectores = useMemo(() => sectoresEnUso(visibles, municipio || undefined), [visibles, municipio])
 
   const indicadores = useMemo(() => {
-    const m = new Map<string, { dias: number; conVisitas: boolean; alertas: number; necesidades: number; voluntarios: number }>()
+    const m = new Map<string, { alertas: number; necesidades: number; asignados: number }>()
     for (const a of visibles) {
-      const v = diasSinVisita({ visitas }, a)
       m.set(a.id, {
-        dias: v.dias,
-        conVisitas: v.conVisitas,
         alertas: alertas.filter((al) => al.adultoId === a.id && al.estado !== 'atendida').length,
         necesidades: necesidades.filter((n) => n.adultoId === a.id && necesidadAbierta(n.estado)).length,
-        voluntarios: voluntariosDe(vinculos, a.id).length,
+        asignados: asignadosDe(vinculos, a.id).length,
       })
     }
     return m
-  }, [visibles, visitas, alertas, necesidades, vinculos])
+  }, [visibles, alertas, necesidades, vinculos])
 
   const lista = useMemo(() => {
     const t = norm(q)
@@ -156,7 +151,6 @@ export default function AdultosPage() {
         <ul className="grid-auto" aria-label="Adultos mayores">
           {lista.map((a) => {
             const ind = indicadores.get(a.id)
-            const vencida = !!ind && a.estado === 'activo' && ind.dias > umbral
             return (
               <li key={a.id} id={`adulto-${a.id}`} className={cn('rounded-sm', a.id === resaltar && 'ring-4 ring-blue ring-offset-2 ring-offset-bg animate-pop')}>
                 <LinkCard to={`${base}/adultos/${a.id}`} footer="Ver perfil">
@@ -178,20 +172,17 @@ export default function AdultosPage() {
                   </div>
                   {ind && a.estado === 'activo' && (
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-line-soft text-sm">
-                      <span className={cn('inline-flex items-center gap-1.5', vencida ? 'text-danger font-semibold' : 'text-ink-2')}>
-                        {vencida ? <CalendarX size={16} aria-hidden /> : <CalendarCheck size={16} aria-hidden />}
-                        {ind.conVisitas ? (ind.dias === 0 ? 'Visitado hoy' : `${plural(ind.dias, 'día', 'días')} sin visita`) : ind.dias === 0 ? 'Sin visitas aún' : `Sin visitas · registrado hace ${plural(ind.dias, 'día', 'días')}`}
-                      </span>
+                      <IndicadorFrecuencia adulto={a} variante="compacto" />
                       {ind.alertas > 0 && (
                         <span className="inline-flex items-center gap-1.5 text-danger font-semibold">
                           <Bell size={16} aria-hidden />
                           {plural(ind.alertas, 'alerta abierta', 'alertas abiertas')}
                         </span>
                       )}
-                      {ind.voluntarios === 0 && (
+                      {ind.asignados === 0 && (
                         <span className="inline-flex items-center gap-1.5 text-warning-700 font-semibold">
                           <UserX size={16} aria-hidden />
-                          Sin voluntario asignado
+                          Sin personal asignado
                         </span>
                       )}
                       {ind.necesidades > 0 && (

@@ -10,11 +10,12 @@
  *   adultos/:adultoId            Perfil: contactos, vínculos, riesgos, indicaciones, agenda, historial CU-04   adultos:ver
  *   adultos/:adultoId/editar     Editar perfil (+ desactivar / reactivar / anonimizar)              CU-03   adultos:editar
  *   adultos/:adultoId/riesgo     Evaluación de riesgo (alerta automática si queda en "Alto")        RF-01   adultos:evaluar
- *   alertas                      Bandeja de alertas por urgencia                                     CU-09/10 alertas:ver
- *   alertas/:alertaId            Detalle y gestión de la alerta                                      CU-09/10 alertas:ver
+ *   alertas                      Bandeja de alertas por urgencia (también en /cuidador: alertasRoutes)  CU-09/10 alertas:ver
+ *   alertas/:alertaId            Detalle y gestión (cuidador: solo «Cerrar alerta» con alertas:cerrar)  CU-09/10 alertas:ver
  *   resumen                      Resumen de seguimiento de casos activos                             CU-11   resumen:ver
  *   reportes                     Reportes estadísticos (CSV / PDF)                                   CU-12   reportes:ver
  * Enlaza a `visitas/…` y `necesidades/…` (módulo visitas) para el historial del adulto.
+ * alertasRoutes() exporta solo las dos rutas de alertas para que otras áreas (p. ej. /cuidador) las monten.
  */
 import type { ReactNode } from 'react'
 import type { RouteObject } from 'react-router-dom'
@@ -35,6 +36,15 @@ const ruta = (path: string, accion: Accion, element: ReactNode): RouteObject => 
   element: <RequirePermiso accion={accion}>{element}</RequirePermiso>,
 })
 
+/**
+ * Bandeja y detalle de alertas (rutas relativas `alertas` y `alertas/:alertaId`, permiso alertas:ver). Las pantallas
+ * construyen sus enlaces con `useShell().base`, de modo que sirven en cualquier área; la capa de servicios decide qué
+ * puede hacer cada rol (Coordinador y Administrador gestionan; el Cuidador solo cierra con la acción tomada).
+ */
+export function alertasRoutes(): RouteObject[] {
+  return [ruta('alertas', 'alertas:ver', <AlertasPage />), ruta('alertas/:alertaId', 'alertas:ver', <AlertaDetallePage />)]
+}
+
 export function gestionRoutes(): RouteObject[] {
   return [
     ruta('adultos', 'adultos:ver', <AdultosPage />),
@@ -42,8 +52,7 @@ export function gestionRoutes(): RouteObject[] {
     ruta('adultos/:adultoId', 'adultos:ver', <AdultoPerfilPage />),
     ruta('adultos/:adultoId/editar', 'adultos:editar', <AdultoEditarPage />),
     ruta('adultos/:adultoId/riesgo', 'adultos:evaluar', <RiesgoPage />),
-    ruta('alertas', 'alertas:ver', <AlertasPage />),
-    ruta('alertas/:alertaId', 'alertas:ver', <AlertaDetallePage />),
+    ...alertasRoutes(),
     ruta('resumen', 'resumen:ver', <ResumenPage />),
     ruta('reportes', 'reportes:ver', <ReportesPage />),
   ]

@@ -1,8 +1,9 @@
 /*
  * Ayuda.tsx — Ayuda en línea: guía rápida en lenguaje claro, adaptada a lo que puede hacer cada rol.
- * Módulo: sistema (SRS §8.2.2.1.8 Documentación · §8.2.2.1.8.2 Ayuda en línea · RF-04 · RF-05 · RF-09 · RF-10 ·
- * §18.4 indicadores de riesgo). El umbral RF-05 y el contacto institucional se leen de los parámetros de la
- * cuenta (Parametros + Configuracion_Cuenta) con configOrg.
+ * Módulo: sistema (SRS §8.2.2.1.8 Documentación · §8.2.2.1.8.2 Ayuda en línea · RF-04 · RF-05 · RF-06 · RF-09 ·
+ * RF-10 · §18.4 indicadores de riesgo). El umbral RF-05 y el contacto institucional se leen de los parámetros de
+ * la cuenta (Parametros + Configuracion_Cuenta) con configOrg; la lista de abreviaturas, del catálogo local
+ * (IndexedDB) de `@/domain/abreviaturas`, el mismo que usan los formularios.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ReactNode } from 'react'
@@ -23,9 +24,11 @@ import {
   UserCog,
   UserPlus,
   UserRound,
+  WandSparkles,
   WifiOff,
 } from 'lucide-react'
 import { RiesgoBadge } from '@/components/ui'
+import { useEstadoAbreviaturas } from '@/domain/abreviaturas'
 import { ROL_LABEL, useSession } from '@/domain/auth'
 import { DESCRIPCION_ROL, puede, type Accion } from '@/domain/permisos'
 import { configOrg } from '@/domain/relaciones'
@@ -68,6 +71,45 @@ function Puntos({ items }: { items: ReactNode[] }) {
   )
 }
 
+/** Abreviaturas aceptadas: se leen del catálogo (IndexedDB), el mismo que usan las observaciones y descripciones. */
+function TemaAbreviaturas() {
+  const { items, version, origen, enIndexedDB } = useEstadoAbreviaturas()
+  return (
+    <>
+      <Puntos
+        items={[
+          <>
+            En <strong>Observaciones</strong> y <strong>Descripción</strong> puedes escribir siglas: al teclear un espacio o un signo después de la sigla, se completa sola (por ejemplo,
+            "pa " pasa a "presión arterial ").
+          </>,
+          'Mientras escribes aparecen sugerencias debajo del campo: tócalas (o usa las flechas y Intro) para completar la sigla.',
+          <>
+            El botón <strong>Procesar abreviaturas</strong> expande todas las siglas del texto de una vez.
+          </>,
+          'Funciona sin conexión: la lista está guardada en tu dispositivo.',
+        ]}
+      />
+      <section aria-labelledby="ayuda-lista-abreviaturas" className="flex flex-col gap-2 rounded-sm bg-surface p-3">
+        <h3 id="ayuda-lista-abreviaturas" className="text-base font-bold text-navy">
+          Lista de abreviaturas ({items.length})
+        </h3>
+        <dl className="text-sm sm:columns-2 sm:gap-x-6">
+          {items.map((a) => (
+            <div key={a.sigla} className="flex gap-2 py-0.5 break-inside-avoid">
+              <dt className="min-w-12 font-bold text-navy">{a.sigla}</dt>
+              <dd className="flex-1">{a.expansion}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <p className="text-sm text-muted">
+        Catálogo versión {version} · {origen === 'api' ? 'actualizado desde el servidor' : 'incluido en la aplicación'}
+        {enIndexedDB ? ' · guardado en este dispositivo' : ''}.
+      </p>
+    </>
+  )
+}
+
 function temas(base: string, dias: number): Tema[] {
   return [
     {
@@ -82,7 +124,7 @@ function temas(base: string, dias: number): Tema[] {
               <>Abre <strong>Visitas</strong> (o el perfil del adulto mayor) y toca la visita de hoy o <strong>Registrar visita</strong>.</>,
               'Si estás en la casa, toca "Iniciar visita": se guarda la hora de llegada.',
               'Marca en la lista lo que revisaste (alimentación, medicamentos, ánimo…) y elige cómo encontraste a la persona.',
-              'Escribe observaciones breves. Puedes usar abreviaturas; el botón "?" de cada campo te explica qué poner.',
+              'Escribe observaciones breves. Puedes usar abreviaturas (se completan solas); el botón "?" de cada campo te explica qué poner.',
               'Toca "Guardar". Verás un mensaje de confirmación y la visita aparecerá en el historial.',
             ]}
           />
@@ -108,6 +150,13 @@ function temas(base: string, dias: number): Tema[] {
           <p className="text-sm text-muted">Una necesidad de medicamentos pendiente genera una alerta prioritaria automáticamente.</p>
         </>
       ),
+    },
+    {
+      id: 'abreviaturas',
+      titulo: 'Abreviaturas en observaciones y descripciones',
+      icono: <WandSparkles size={20} />,
+      visible: (u) => puede(u, 'visitas:registrar') || puede(u, 'necesidades:registrar'),
+      contenido: <TemaAbreviaturas />,
     },
     {
       id: 'consultar',
@@ -279,7 +328,7 @@ function temas(base: string, dias: number): Tema[] {
             ]}
           />
           <ul className="flex flex-col gap-2 rounded-sm bg-surface p-3 text-sm">
-            {(['admin', 'coordinador', 'voluntario', 'familiar'] as const).map((r) => (
+            {(['admin', 'coordinador', 'cuidador', 'voluntario', 'familiar'] as const).map((r) => (
               <li key={r}>
                 <strong className="text-navy">{ROL_LABEL[r]}:</strong> {DESCRIPCION_ROL[r]}
               </li>

@@ -1,22 +1,29 @@
-/* Supabase Auth real y API de perfil · ID01. © 2026 Equipo CuidaRed – INTEC. */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+/*
+ * client.ts — Cliente de Supabase Auth, cliente HTTP de la API Express y tipos base del acceso conectado.
+ * Módulo: access-real (ID01 · ID02).
+ * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+ */
+import { createClient, type Session } from '@supabase/supabase-js'
 import { collectionSearch, readPaginatedResponse, type CollectionQuery, type PaginatedResponse } from '../../lib/api-contract'
+import { reportarFallo } from './telemetria'
 
-export const STORAGE_KEY = 'cuidared.auth.real'
-let singleton: SupabaseClient | undefined
+const LEGACY_KEY = 'cuidared.auth.real'
+const CIERRE_PENDIENTE = 'cuidared.cierre-pendiente'
 
-function configuration() {
+export function configuration() {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
   const api = import.meta.env.VITE_API_URL as string | undefined
   if (!url || !key?.startsWith('sb_publishable_') || !api) {
     throw new Error('Falta configurar el acceso a CuidaRed. Consulta al equipo responsable.')
   }
+  const hostsLocales = ['localhost', '127.0.0.1', '[::1]']
+  const paginaLocal = hostsLocales.includes(window.location.hostname)
   for (const value of [url, api]) {
     const parsed = new URL(value)
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+    const local = hostsLocales.includes(parsed.hostname)
     if (
-      (parsed.protocol !== 'https:' && !(import.meta.env.DEV && local && parsed.protocol === 'http:')) ||
+      (parsed.protocol !== 'https:' && !(paginaLocal && local && parsed.protocol === 'http:')) ||
       parsed.username ||
       parsed.password ||
       parsed.search ||
@@ -28,18 +35,9 @@ function configuration() {
   return { url, key, api: api.replace(/\/$/, '') }
 }
 
-export function getClient() {
+export function getClient(token: string) {
   const { url, key } = configuration()
-  singleton ??= createClient(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: window.sessionStorage,
-      storageKey: STORAGE_KEY,
-    },
-  })
-  return singleton
+  return createClient(url, key, { accessToken: async () => token })
 }
 
 // Invitación y recuperación usan una sesión efímera independiente de la sesión del navegador.
@@ -65,22 +63,30 @@ export class ApiError extends Error {
   }
 }
 
-async function apiResponse(path: string, token: string, method = 'GET', data?: unknown): Promise<Response> {
+async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown, credentials: RequestCredentials = 'omit'): Promise<Response> {
   const { api: base } = configuration()
   const res = await fetch(`${base}/api/v1${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { ...(token && { Authorization: `Bearer ${token}` }), ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
     cache: 'no-store',
-    credentials: 'omit',
+    credentials,
     signal: AbortSignal.timeout(15_000),
+  }).catch(() => {
+    reportarFallo('api.network', null, token)
+    throw new ApiError(0, 'No se pudo conectar con CuidaRed. Revisa tu conexión e intenta de nuevo.', 'CONNECTION_UNAVAILABLE')
   })
   if (!res.ok) {
+    if (res.status >= 500) reportarFallo('api.error', res.headers.get('X-Request-Id'), token)
     const body = await res.json().catch(() => null)
     const code = typeof body?.error?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(body.error.code) ? body.error.code : undefined
     const message =
       res.status === 401
         ? 'Tu sesión venció. Inicia sesión de nuevo.'
+        : code === 'ACCOUNT_DISABLED'
+          ? 'La cuenta está deshabilitada. Contacta a soporte. Los registros pendientes no se sincronizaron.'
+          : code === 'USER_INACTIVE'
+            ? 'Tu usuario está deshabilitado. Contacta a soporte.'
         : res.status === 403
           ? 'Tu usuario no tiene acceso.'
           : res.status === 404
@@ -102,10 +108,81 @@ export async function api<T>(path: string, token: string, method = 'GET', data?:
   return res.status === 204 ? (undefined as T) : ((await res.json()).data as T)
 }
 
+/**
+ * Descarga un archivo del servidor con la sesión de la persona (Bearer). Los errores salen como `ApiError`, igual que en
+ * el resto de la API. `Content-Disposition` solo es legible entre orígenes si el servidor lo expone por CORS; si no, el
+ * nombre llega como `null` y quien llama arma uno propio.
+ */
+export async function apiDescarga(path: string, token: string): Promise<{ blob: Blob; contentDisposition: string | null }> {
+  const res = await apiResponse(path, token)
+  return { blob: await res.blob(), contentDisposition: res.headers.get('Content-Disposition') }
+}
+
+export async function apiPublica<T>(path: string, method = 'GET', data?: unknown): Promise<T> {
+  const res = await apiResponse('/publico' + path, undefined, method, data)
+  return (await res.json()).data as T
+}
+
 export async function apiPage<T>(path: string, token: string, query: CollectionQuery = {}): Promise<PaginatedResponse<T>> {
   if (path.includes('?') || path.includes('#')) throw new Error('La ruta del listado no debe contener parámetros.')
   const res = await apiResponse(`${path}?${collectionSearch(query)}`, token)
   return readPaginatedResponse<T>(await res.json())
+}
+
+export type BrowserSession = { access_token: string; expires_at: number; user: { id: string } }
+type SessionTokens = Pick<Session, 'access_token' | 'refresh_token'>
+
+function conSesionDelNavegador<T>(tarea: () => Promise<T>): Promise<T> {
+  // Las pestañas del mismo origen comparten la cookie y los refresh tokens rotan en Supabase.
+  return navigator.locks ? navigator.locks.request('cuidared.browser-session', tarea) : tarea()
+}
+
+async function intercambiarSesion(sesion: SessionTokens): Promise<BrowserSession> {
+  const res = await apiResponse('/session/browser/start', sesion.access_token, 'POST',
+    { refresh_token: sesion.refresh_token }, 'include')
+  window.sessionStorage.removeItem(LEGACY_KEY)
+  window.localStorage.removeItem(CIERRE_PENDIENTE)
+  return (await res.json()).data
+}
+
+export function guardarSesionDelNavegador(sesion: SessionTokens): Promise<BrowserSession> {
+  return conSesionDelNavegador(() => intercambiarSesion(sesion))
+}
+
+function sesionAnterior(): SessionTokens | null {
+  try {
+    const datos = JSON.parse(window.sessionStorage.getItem(LEGACY_KEY) ?? 'null')
+    if (typeof datos?.access_token === 'string' && typeof datos.refresh_token === 'string') return datos
+  } catch {
+    // Una sesión de una versión anterior puede haber quedado incompleta.
+  }
+  return null
+}
+
+let recuperacion: Promise<BrowserSession | null> | undefined
+export function recuperarSesionDelNavegador(): Promise<BrowserSession | null> {
+  recuperacion ??= conSesionDelNavegador(async () => {
+    if (window.localStorage.getItem(CIERRE_PENDIENTE)) {
+      await apiResponse('/session/browser/clear', undefined, 'POST', undefined, 'include')
+      window.localStorage.removeItem(CIERRE_PENDIENTE)
+      return null
+    }
+    try {
+      const res = await apiResponse('/session/browser/restore', undefined, 'POST', undefined, 'include')
+      if (res.status !== 204) {
+        window.sessionStorage.removeItem(LEGACY_KEY)
+        return (await res.json()).data as BrowserSession
+      }
+      const anterior = sesionAnterior()
+      return anterior ? await intercambiarSesion(anterior) : null
+    } catch (error) {
+      if (error instanceof ApiError && [401, 403, 409].includes(error.status)) {
+        window.sessionStorage.removeItem(LEGACY_KEY)
+      }
+      throw error
+    }
+  }).finally(() => { recuperacion = undefined })
+  return recuperacion
 }
 
 export interface Profile {
@@ -116,6 +193,38 @@ export interface Profile {
   correo: string
   telefono: string | null
   estado: 'activo'
+}
+export type TipoCuenta = 'familia' | 'organizacion'
+export type RolCuenta = 'administrador' | 'coordinador' | 'cuidador' | 'familiar' | 'voluntario'
+export type EstadoSuscripcion = 'prueba' | 'activa' | 'vencida' | 'cancelada' | 'suspendida'
+/** Límites del plan de la cuenta; `null` = ilimitado. */
+export interface LimitesPlan {
+  envejecientes: number | null
+  usuarios: number | null
+  familiares: number | null
+}
+/**
+ * Membresía de la persona en una cuenta (CR-164, fase 2). Campos en snake_case según
+ * CR-162. Todo es informativo para la interfaz: el servidor valida. Las cuentas `pendiente` son invitaciones sin
+ * aceptar: no dan permisos ni acceso (permisos vacíos, sin suscripción) y traen `membresia_id` para aceptarlas.
+ */
+export interface CuentaMe {
+  cuenta_id: string
+  nombre: string
+  tipo: TipoCuenta
+  rol: RolCuenta
+  estado_membresia: 'activa' | 'inactiva' | 'pendiente'
+  /** Acciones permitidas para el rol en esa cuenta (p. ej. "visitas:registrar"). */
+  permisos: string[]
+  estado_suscripcion: EstadoSuscripcion | null
+  /** Funcionalidades del plan (feature gating, CR-157/CR-187). */
+  funcionalidades?: string[]
+  es_titular?: boolean
+  /** Con la prueba o plan vencidos solo quedan lectura de cuenta y gestión de suscripción. */
+  acceso_operativo?: boolean
+  limites?: LimitesPlan | null
+  /** Solo en invitaciones pendientes: identifica la membresía que se acepta o rechaza. */
+  membresia_id?: string
 }
 export interface CurrentUser {
   identity: { id: string; email: string }
@@ -128,21 +237,37 @@ export function passwordError(value: string) {
     : undefined
 }
 
-export async function logout() {
-  const client = getClient()
-  const { data } = await client.auth.getSession()
+export async function obtenerSuscripcionPush() {
+  if (!('serviceWorker' in navigator)) return null
+  const registro = await navigator.serviceWorker.getRegistration()
+  return registro?.pushManager ? registro.pushManager.getSubscription() : null
+}
+
+export async function logout(session: BrowserSession) {
   let revoked = true
-  if (data.session) {
-    try {
-      await api('/session/logout', data.session.access_token, 'POST')
-    } catch {
-      revoked = false
-    }
+  const suscripcion = await obtenerSuscripcionPush().catch(() => null)
+  if (suscripcion) {
+    await Promise.allSettled([
+      suscripcion.unsubscribe(),
+      api('/notificaciones-push/suscripciones/revocar', session.access_token, 'POST', { endpoint: suscripcion.endpoint }),
+    ])
   }
   try {
-    await client.auth.signOut({ scope: 'local' })
+    await conSesionDelNavegador(async () => {
+      try {
+        await api('/session/logout', session.access_token, 'POST')
+      } catch {
+        revoked = false
+      }
+      await temporaryClient().auth.admin.signOut(session.access_token, 'local').catch(() => {})
+      await apiResponse('/session/browser/clear', undefined, 'POST', undefined, 'include')
+    })
+  } catch {
+    revoked = false
+    window.localStorage.setItem(CIERRE_PENDIENTE, '1')
   } finally {
-    window.sessionStorage.removeItem(STORAGE_KEY)
+    window.sessionStorage.removeItem(LEGACY_KEY)
+    window.sessionStorage.removeItem('cuidared.cuenta.activa')
     window.location.assign(revoked ? '/inicio' : '/inicio?cierre=pendiente')
   }
 }

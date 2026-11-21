@@ -1,18 +1,30 @@
 /*
  * e2e-cu03-perfil-edit.spec.ts — Suite E2E-CU03-PERFIL-EDIT: escenarios de CU-03 Editar perfil de adulto mayor
  * (RF-01 · Anexo B: el SRS no detalla Gherkin; se derivan del criterio de aceptación de CU-02 "el perfil queda
- * consultable y editable posteriormente").
+ * consultable y editable posteriormente"). Reglas de Negocio V2: solo se editan los perfiles de la cuenta activa.
  * Módulo: pruebas.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { expect, test } from '@playwright/test'
-import { CUENTAS, leerDB, limpiarDatos, sesionDirecta } from './fixtures'
+import { expect, test, type Page } from '@playwright/test'
+import { CUENTA_FAMILIA, CUENTAS, leerDB, limpiarDatos, sesionDirecta } from './fixtures'
 
 const MOTIVO = 'Se mudó sola y sus ingresos son inestables.'
+
+
+/**
+ * Reglas de Negocio V2: la primera vez que una persona entra con un rol, la app muestra una guía de bienvenida
+ * (diálogo de un solo uso, clave `cuidared:onboarding:<userId>:<rol>`). Estas pruebas no la verifican, así que se
+ * marca como vista (para los usuarios demo) antes de entrar.
+ */
+async function omitirOnboarding(page: Page) {
+  const claves = [...Object.entries(CUENTAS).map(([rol, c]) => `${c.id}:${rol}`), `${CUENTA_FAMILIA.id}:coordinador`].map((k) => `cuidared:onboarding:${k}`)
+  await page.evaluate((ks) => ks.forEach((k) => localStorage.setItem(k, new Date().toISOString())), claves)
+}
 
 test.describe('E2E-CU03-PERFIL-EDIT · Editar perfil de adulto mayor', () => {
   test.beforeEach(async ({ page }) => {
     await limpiarDatos(page)
+    await omitirOnboarding(page)
   })
 
   test('Escenario: Editar los datos y el nivel de riesgo de un perfil existente', async ({ page }) => {
@@ -88,5 +100,26 @@ test.describe('E2E-CU03-PERFIL-EDIT · Editar perfil de adulto mayor', () => {
     await page.goto('/coordinador/resumen')
     await expect(page.getByTestId('caso-resumen').filter({ visible: true }).first()).toBeVisible()
     await expect(page.getByTestId('caso-resumen').filter({ hasText: 'Camila Torres' })).toHaveCount(0)
+  })
+
+  test('Escenario: La coordinadora de una cuenta Familia edita solo los perfiles de su cuenta', async ({ page }) => {
+    // Dado que la coordinadora de Familia Méndez edita el perfil de Rosa Méndez
+    await sesionDirecta(page, CUENTA_FAMILIA.id, '/coordinador/adultos/a-rosa/editar')
+    await expect(page.getByRole('heading', { name: 'Editar a Rosa Méndez' })).toBeVisible()
+    // Cuando cambia el teléfono y guarda (los datos de los pasos 2 y 3 se cargan del perfil)
+    await page.getByRole('textbox', { name: /^Teléfono/ }).fill('809 582 9000')
+    await page.getByRole('button', { name: 'Siguiente' }).click()
+    await expect(page.getByRole('combobox', { name: /^Sector o barrio/ })).toHaveValue('Los Jardines')
+    await page.getByRole('button', { name: 'Siguiente' }).click()
+    await expect(page.getByRole('radio', { name: 'Riesgo medio' })).toHaveAttribute('aria-checked', 'true')
+    await page.getByRole('button', { name: 'Guardar' }).click()
+    // Entonces el perfil se actualiza a nombre de la coordinadora
+    await expect(page.getByText('Cambios guardados correctamente')).toBeVisible()
+    await expect(page).toHaveURL(/\/coordinador\/adultos\/a-rosa$/)
+    expect((await leerDB(page)).adultos.find((a) => a.id === 'a-rosa')).toMatchObject({ telefono: '809 582 9000', orgId: CUENTA_FAMILIA.orgId, actualizadoPor: CUENTA_FAMILIA.id })
+    // Y no puede editar el perfil de un adulto de la Fundación Esperanza
+    await page.goto('/coordinador/adultos/a-camila/editar')
+    await expect(page.getByText('No encontramos este perfil')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Editar a Camila Torres' })).toHaveCount(0)
   })
 })

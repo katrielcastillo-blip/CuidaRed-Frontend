@@ -2,13 +2,15 @@
  * AdultoPerfilPage.tsx — Consultar perfil de adulto mayor (CU-04 · RF-01) con TODAS sus relaciones del modelo V3.0:
  *   Envejeciente          identificación, ubicación (Municipio_Cod + Env_Direccion), quién lo registró y cuándo.
  *   Contacto_emergencia   contactos con el principal destacado (agregar, editar, marcar principal, eliminar).
- *   Vinculo               voluntarios asignados y familiares responsables (tipo del catálogo Tipo_vinculo).
+ *   Vinculo               cuidadores y voluntarios asignados y familiares autorizados (catálogo Tipo_vinculo).
  *   Env_Riesgo            nivel vigente + historial de factores (registrar, marcar superado) y evaluación.
  *   Indicacion_Medica     indicaciones transcritas (permiso indicaciones:*).
  *   Tarea_agenda          próximas tareas (permiso agenda:*).
- *   Visita / DetalleVisita, Env_Necesidad, AlertaEnvejeciente   historial en pestañas.
- * Además: días sin visita (RF-05), alertas abiertas (RF-04), condición general (dato sensible, SRS §8.2.2.3.4 d)
- * y consentimiento. Las acciones se muestran según los permisos del rol (RF-09). En escritorio, dos columnas.
+ *   Visita / DetalleVisita, Env_Necesidad, AlertaEnvejeciente, Env_Riesgo   historial consolidado (CU-06).
+ * Además: indicador de frecuencia de visitas (solo visitas realizadas, umbral configurable, «Atención inicial
+ * pendiente»), alertas abiertas (RF-04), condición general (dato sensible, SRS §8.2.2.3.4 d), consentimiento e
+ * informe médico en PDF (informe:exportar). Las acciones se muestran según los permisos del rol (RF-09). En
+ * escritorio, dos columnas.
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -20,12 +22,13 @@ import { useUser } from '@/domain/auth'
 import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'
 import { edad, fechaCorta, fechaHora } from '@/domain/dates'
 import { alcanzaAdulto, puede } from '@/domain/permisos'
-import { diasSinVisita } from '@/domain/reglas'
-import { configOrg, direccionCompleta, voluntariosDe } from '@/domain/relaciones'
+import { configOrg, direccionCompleta, asignadosDe } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'
 import type { Adulto } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
+import { BotonInformeMedico } from '../components/InformeMedico'
+import { IndicadorFrecuencia } from '../components/IndicadorFrecuencia'
 import { NoEncontrado, NotaInfo, Seccion, EstadoAlertaBadge, UrgenciaBadge, URGENCIA_VISUAL } from '../components/Piezas'
 import { AgendaSeccion } from '../components/perfil/AgendaSeccion'
 import { ContactosSeccion } from '../components/perfil/ContactosSeccion'
@@ -34,6 +37,7 @@ import { IndicacionesSeccion } from '../components/perfil/IndicacionesSeccion'
 import { RiesgosSeccion } from '../components/perfil/RiesgosSeccion'
 import { VinculosSeccion } from '../components/perfil/VinculosSeccion'
 import { necesidadDeAlerta, nombreCatalogo, nombreUsuario } from '../lib/datos'
+import { calcularFrecuencia } from '../lib/frecuencia'
 import { necesidadAbierta, nombreAdulto, PESO_SEVERIDAD } from '../lib/formato'
 import { municipioYProvincia } from '../lib/ubicacion'
 import { useVolver } from '../lib/navegacion'
@@ -87,6 +91,7 @@ function Perfil({ adulto }: { adulto: Adulto }) {
   const editable = puede(user, 'adultos:editar', adulto) && !adulto.anonimizado
   const sensible = puede(user, 'adultos:ver-sensible', adulto)
   const verAlertas = puede(user, 'alertas:ver', adulto)
+  const verNecesidades = puede(user, 'necesidades:ver', adulto)
   const umbral = configOrg({ catalogos, configuracion }, adulto.orgId).diasSinVisitaAlerta
 
   const abiertas = useMemo(
@@ -94,9 +99,9 @@ function Perfil({ adulto }: { adulto: Adulto }) {
     [alertas, adulto.id],
   )
   const pendientes = useMemo(() => necesidades.filter((n) => n.adultoId === adulto.id && necesidadAbierta(n.estado)).length, [necesidades, adulto.id])
-  const sinVisita = useMemo(() => diasSinVisita({ visitas }, adulto), [visitas, adulto])
-  const voluntarios = useMemo(() => voluntariosDe(vinculos, adulto.id).length, [vinculos, adulto.id])
-  const vencida = activo && sinVisita.dias > umbral
+  const asignados = useMemo(() => asignadosDe(vinculos, adulto.id).length, [vinculos, adulto.id])
+  const frecuencia = useMemo(() => calcularFrecuencia(visitas, adulto, umbral), [visitas, adulto, umbral])
+  const vencida = activo && frecuencia.superaUmbral
 
   const autonomia = AUTONOMIAS.find((x) => x.value === adulto.condicionGeneral.autonomia)?.label ?? '—'
   const condiciones = adulto.condicionGeneral.condiciones.map((c) => CONDICIONES.find((x) => x.value === c)?.label ?? c)
@@ -127,6 +132,8 @@ function Perfil({ adulto }: { adulto: Adulto }) {
         Evaluación de riesgo
       </ButtonLink>
     ),
+    // Informe médico en PDF: solo con informe:exportar (Coordinador y Cuidador); el botón vuelve a validar el permiso.
+    puede(user, 'informe:exportar', adulto) && <BotonInformeMedico key="informe" adulto={adulto} />,
   ].filter(Boolean)
 
   return (
@@ -147,18 +154,19 @@ function Perfil({ adulto }: { adulto: Adulto }) {
             </div>
           </section>
 
-          <div className="order-2 lg:order-none grid grid-cols-2 gap-3">
-            <Tile label="Días sin visita" valor={activo ? sinVisita.dias : '—'} alerta={vencida}>
-              <span className="text-[11px]">{sinVisita.conVisitas ? `Última: ${fechaCorta(sinVisita.referencia)}` : 'Nunca visitado'}</span>
-            </Tile>
-            <Tile label="Necesidades pendientes" valor={pendientes} />
-            <Tile label="Alertas abiertas" valor={abiertas.length} alerta={abiertas.some((a) => a.severidad === 'alta')} />
-            <Tile label="Voluntarios asignados" valor={voluntarios} alerta={activo && voluntarios === 0} />
+          <div className="order-2 lg:order-none flex flex-col gap-3">
+            {/* Frecuencia de visitas: días desde la última visita REALIZADA y semáforo frente al umbral de la cuenta. */}
+            <IndicadorFrecuencia adulto={adulto} />
+            <div className={cn('grid gap-3', verNecesidades ? 'grid-cols-3' : 'grid-cols-2')}>
+              {verNecesidades && <Tile label="Necesidades pendientes" valor={pendientes} />}
+              <Tile label="Alertas abiertas" valor={abiertas.length} alerta={abiertas.some((a) => a.severidad === 'alta')} />
+              <Tile label="Personal asignado" valor={asignados} alerta={activo && asignados === 0} />
+            </div>
           </div>
           {vencida && (
             <div className="order-3 lg:order-none">
               <NotaInfo tono="aviso">
-                Superó el límite de <b>{umbral} días</b> sin visita comunitaria (RF-05). El sistema generó una alerta de seguimiento familiar: conviene contactar a la familia y programar una
+                Superó el límite de <b>{umbral} días</b> sin visita realizada (RF-05). El sistema generó una alerta de seguimiento familiar: conviene contactar a la familia y programar una
                 visita.
               </NotaInfo>
             </div>
@@ -271,19 +279,13 @@ function Perfil({ adulto }: { adulto: Adulto }) {
 
           <VinculosSeccion adulto={adulto} puedeAsignar={puede(user, 'adultos:asignar', adulto) && activo} className="order-8 lg:order-none" />
 
-          {puede(user, 'indicaciones:ver', adulto) && <IndicacionesSeccion adulto={adulto} gestiona={puede(user, 'indicaciones:gestionar', adulto) && activo} className="order-12 lg:order-none" />}
+          {/* Indicaciones: la sección resuelve sola indicaciones:ver / indicaciones:gestionar con puede() (el Administrador solo consulta). */}
+          <IndicacionesSeccion adulto={adulto} className="order-12 lg:order-none" />
 
           {puede(user, 'agenda:ver', adulto) && <AgendaSeccion adulto={adulto} base={base} gestiona={puede(user, 'agenda:gestionar', adulto)} className="order-13 lg:order-none" />}
 
-          <HistorialSeccion
-            adulto={adulto}
-            base={base}
-            verVisitas={puede(user, 'visitas:ver', adulto)}
-            verNecesidades={puede(user, 'necesidades:ver', adulto)}
-            verAlertas={verAlertas}
-            sensible={sensible}
-            className="order-14 lg:order-none"
-          />
+          {/* Historial consolidado (CU-06): solo incluye lo que el rol puede consultar. */}
+          <HistorialSeccion adulto={adulto} base={base} className="order-14 lg:order-none" />
         </div>
       </div>
     </Page>

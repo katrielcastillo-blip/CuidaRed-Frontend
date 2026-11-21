@@ -8,9 +8,10 @@
  *  - ≥1100 px: panel de marca a la izquierda.
  */
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BellRing, HeartHandshake, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useLogo } from '@/lib/marca'
 import { Circulos } from './Circulos'
 
 type Volver = string | true | (() => void)
@@ -24,11 +25,17 @@ interface Props {
   gradient?: 'registro' | 'auth'
   /** Textos legales: tarjeta más ancha y sin panel de marca. */
   wide?: boolean
+  /** Acceso visible a la portada desde los recorridos de acceso y registro. */
+  homeLink?: boolean
   children: ReactNode
 }
 
-export function AuthScreen({ title, back, gradient = 'registro', wide, children }: Props) {
+export function AuthScreen({ title, back, gradient = 'registro', wide, homeLink, children }: Props) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const retorno = (location.state as { retornoPortada?: unknown } | null)?.retornoPortada
+  const portada = typeof retorno === 'string' && /^\/(?:#[a-z][a-z0-9-]*)?$/.test(retorno) ? retorno : '/'
+  const logo = useLogo()
 
   const volver = () => {
     if (typeof back === 'function') return back()
@@ -43,9 +50,15 @@ export function AuthScreen({ title, back, gradient = 'registro', wide, children 
   return (
     <div className="relative isolate min-h-dvh overflow-clip bg-bg">
       <Circulos />
+      {homeLink && <nav aria-label="Navegación pública" className="relative z-[2] mx-auto flex min-h-16 w-full max-w-[1180px] items-center px-5 pt-safe md:px-6">
+        <Link to={portada} className="inline-flex min-h-12 items-center gap-2 rounded-sm px-2 text-sm font-semibold text-navy hover:bg-blue-100 focus-visible:outline-blue">
+          <ArrowLeft size={18} aria-hidden /> Volver a la portada
+        </Link>
+      </nav>}
       <div
         className={cn(
-          'relative z-[1] flex min-h-dvh flex-col',
+          'relative z-[1] flex flex-col',
+          homeLink ? 'min-h-[calc(100dvh_-_64px)]' : 'min-h-dvh',
           'md:items-center md:justify-center md:px-6 md:py-10',
           'lg:mx-auto lg:w-full lg:max-w-[1180px] lg:flex-row lg:gap-[clamp(56px,7vw,120px)]',
         )}
@@ -55,7 +68,7 @@ export function AuthScreen({ title, back, gradient = 'registro', wide, children 
             className="hidden lg:flex lg:max-w-[480px] lg:flex-1 lg:basis-0 lg:flex-col lg:gap-6 lg:rounded-[28px] lg:bg-white/95 lg:p-10 lg:shadow-[0_12px_40px_-16px_rgba(12,59,110,0.25)]"
             aria-label="CuidaRed"
           >
-            <img src="/brand/logo.png" alt="CuidaRed · Seguimiento Comunitario" width={517} height={192} className="h-auto w-[min(100%,340px)]" />
+            <img src={logo} alt="CuidaRed · Seguimiento Comunitario" width={517} height={192} className="h-auto w-[min(100%,340px)]" />
             <p className="text-xl font-semibold leading-[1.45] text-navy">
               Una red que conecta a organizaciones, voluntarios y familias para acompañar a los adultos mayores de tu comunidad.
             </p>

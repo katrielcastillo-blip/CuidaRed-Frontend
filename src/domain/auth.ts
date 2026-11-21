@@ -9,9 +9,9 @@ import { avisar } from './avisos'
 import { estaEnLinea } from './conectividad'
 import { nombreCompleto, ROL_LABEL } from './nombres'
 import { MAX_INTENTOS_LOGIN, MINUTOS_BLOQUEO, verificarSecreto } from './seguridad'
-import { abrirSesion, cerrarSesionLocal, getSesion, motivoExpiracion, suscribirSesion, tocarSesion } from './sesion'
+import { abrirSesion, cerrarSesionLocal, claveSesion, fijarMembresiaSesion, getSesion, motivoExpiracion, suscribirSesion, tocarSesion } from './sesion'
 import { getDB, mutate, useDB } from './store'
-import type { Organizacion, Rol, Usuario } from './types'
+import type { Membresia, Organizacion, Rol, Usuario } from './types'
 
 export { nombreCompleto, ROL_LABEL }
 
@@ -21,6 +21,27 @@ export const HOME_BY_ROL: Record<Rol, string> = {
   familiar: '/familiar',
   admin: '/admin',
   coordinador: '/coordinador',
+  cuidador: '/cuidador',
+}
+
+/** Membresías activas del usuario, de la más reciente a la más antigua. */
+export const membresiasActivas = (membresias: Membresia[], usuarioId: string) =>
+  membresias.filter((m) => m.usuarioId === usuarioId && m.estado === 'activa').sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio))
+
+/**
+ * Membresía en la que actúa el usuario: la elegida en la sesión, la que coincide con su cuenta principal o la
+ * más reciente. `undefined` si el usuario no tiene historial de membresías (se usan los datos de Usuario);
+ * `null` si tiene membresías pero ninguna activa: no puede operar (V2: la baja revoca acceso).
+ */
+export function membresiaVigente(membresias: Membresia[], u: Pick<Usuario, 'id' | 'orgId' | 'rol'>, preferida?: string): Membresia | null | undefined {
+  if (!membresias.some((m) => m.usuarioId === u.id)) return undefined
+  const activas = membresiasActivas(membresias, u.id)
+  return activas.find((m) => m.id === preferida) ?? activas.find((m) => m.orgId === u.orgId && m.rol === u.rol) ?? activas[0] ?? null
+}
+
+/** Usuario tal como actúa en la membresía (rol y cuenta de esa membresía). */
+export function usuarioEnMembresia(u: Usuario, m: Membresia | null | undefined): Usuario {
+  return m ? { ...u, rol: m.rol, orgId: m.orgId, etiqueta: ROL_LABEL[m.rol] } : u
 }
 
 export type AuthResult = { ok: true; user: Usuario } | { ok: false; error: string }
@@ -63,12 +84,34 @@ export async function login(email: string, password: string): Promise<AuthResult
     mutate((d) => auditar(d, user, { accion: 'sesion.fallida', entidad: 'sesion', resultado: 'denegado', registroId: user.id, detalle: 'Cuenta inactiva' }))
     return { ok: false, error: 'Tu cuenta no está activa. Contacta al administrador de tu organización.' }
   }
+  const m = membresiaVigente(db.membresias, user)
+  if (m === null) {
+    mutate((d) => auditar(d, user, { accion: 'sesion.fallida', entidad: 'sesion', resultado: 'denegado', registroId: user.id, detalle: 'Sin membresías activas' }))
+    return { ok: false, error: 'Tu acceso a CuidaRed fue desactivado. Contacta a la persona responsable de tu cuenta.' }
+  }
   mutate((d) => {
     delete d.bloqueos[e]
-    auditar(d, user, { accion: 'sesion.iniciar', entidad: 'sesion', registroId: user.id })
+    auditar(d, user, { accion: 'sesion.iniciar', entidad: 'sesion', registroId: user.id, orgId: m?.orgId ?? user.orgId })
   })
-  abrirSesion(user.id)
-  return { ok: true, user }
+  abrirSesion(user.id, m?.id)
+  return { ok: true, user: usuarioEnMembresia(user, m) }
+}
+
+/**
+ * Cambia la cuenta/rol activo (selector de cuenta, CR-177). Devuelve la ruta de inicio del nuevo rol, o null si
+ * la membresía no pertenece al usuario en sesión o no está activa.
+ */
+export function cambiarCuenta(membresiaId: string): string | null {
+  const s = getSesion()
+  if (!s) return null
+  const db = getDB()
+  const m = db.membresias.find((x) => x.id === membresiaId && x.usuarioId === s.usuarioId && x.estado === 'activa')
+  const user = db.usuarios.find((u) => u.id === s.usuarioId)
+  if (!m || !user) return null
+  fijarMembresiaSesion(m.id)
+  const actor = usuarioEnMembresia(user, m)
+  mutate((d) => auditar(d, actor, { accion: 'sesion.cambiar_cuenta', entidad: 'sesion', registroId: user.id, orgId: m.orgId, detalle: `Rol ${ROL_LABEL[m.rol]}` }), { silencioso: true })
+  return HOME_BY_ROL[m.rol]
 }
 
 export function logout(motivo: 'usuario' | 'inactividad' | 'duracion' | 'cuenta' = 'usuario') {
@@ -91,17 +134,36 @@ export function logout(motivo: 'usuario' | 'inactividad' | 'duracion' | 'cuenta'
 
 const getUsuarioSesionId = () => getSesion()?.usuarioId ?? null
 
-/** Usuario en sesión (o null) y su organización. Una cuenta desactivada o eliminada no tiene sesión válida. */
-export function useSession(): { user: Usuario | null; org: Organizacion | null } {
-  const sessionUserId = useSyncExternalStore(suscribirSesion, getUsuarioSesionId, getUsuarioSesionId)
+/**
+ * Usuario en sesión (o null), actuando con el rol y la cuenta de su membresía activa, y esa cuenta.
+ * Una cuenta desactivada o eliminada, o sin membresías activas, no tiene sesión válida.
+ */
+export function useSession(): { user: Usuario | null; org: Organizacion | null; membresia: Membresia | null } {
+  const clave = useSyncExternalStore(suscribirSesion, claveSesion, claveSesion)
   const usuarios = useDB((s) => s.usuarios)
   const orgs = useDB((s) => s.orgs)
+  const membresias = useDB((s) => s.membresias)
   return useMemo(() => {
-    const encontrado = usuarios.find((u) => u.id === sessionUserId) ?? null
-    const user = encontrado && encontrado.estado === 'activo' ? encontrado : null
-    const org = user ? (orgs.find((o) => o.id === user.orgId) ?? null) : null
-    return { user, org }
-  }, [sessionUserId, usuarios, orgs])
+    const [usuarioId, membresiaId] = clave ? clave.split('|') : []
+    const encontrado = usuarios.find((u) => u.id === usuarioId) ?? null
+    if (!encontrado || encontrado.estado !== 'activo') return { user: null, org: null, membresia: null }
+    const m = membresiaVigente(membresias, encontrado, membresiaId || undefined)
+    if (m === null) return { user: null, org: null, membresia: null }
+    const user = usuarioEnMembresia(encontrado, m)
+    const org = orgs.find((o) => o.id === user.orgId) ?? null
+    return { user, org, membresia: m ?? null }
+  }, [clave, usuarios, orgs, membresias])
+}
+
+/** Cuentas en las que el usuario en sesión puede actuar (selector de cuenta, CR-177). */
+export function useMisCuentas(): Array<{ membresia: Membresia; org: Organizacion | undefined; activa: boolean }> {
+  const { user, membresia } = useSession()
+  const membresias = useDB((s) => s.membresias)
+  const orgs = useDB((s) => s.orgs)
+  return useMemo(() => {
+    if (!user) return []
+    return membresiasActivas(membresias, user.id).map((m) => ({ membresia: m, org: orgs.find((o) => o.id === m.orgId), activa: m.id === membresia?.id }))
+  }, [user, membresia, membresias, orgs])
 }
 
 /** Para pantallas dentro de un rol: lanza si no hay sesión (el guard del router lo evita). */
@@ -118,16 +180,18 @@ export function useUser(): Usuario {
 export function useVigilanciaSesion() {
   const sessionUserId = useSyncExternalStore(suscribirSesion, getUsuarioSesionId, getUsuarioSesionId)
   const usuarios = useDB((s) => s.usuarios)
+  const membresias = useDB((s) => s.membresias)
 
-  // Cuenta desactivada o eliminada mientras tenía la sesión abierta.
+  // Cuenta desactivada o eliminada (o sin membresías activas) mientras tenía la sesión abierta.
   useEffect(() => {
     if (!sessionUserId) return
     const u = usuarios.find((x) => x.id === sessionUserId)
-    if ((!u || u.estado !== 'activo') && getSesion()?.usuarioId === sessionUserId) {
+    const sinAcceso = !u || u.estado !== 'activo' || membresiaVigente(membresias, u, getSesion()?.membresiaId) === null
+    if (sinAcceso && getSesion()?.usuarioId === sessionUserId) {
       logout('cuenta')
       avisar('Tu sesión se cerró porque tu cuenta ya no está activa.', 'error')
     }
-  }, [sessionUserId, usuarios])
+  }, [sessionUserId, usuarios, membresias])
 
   // Expiración por inactividad / duración y registro de actividad.
   useEffect(() => {

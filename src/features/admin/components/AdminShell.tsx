@@ -24,7 +24,7 @@ export function AdminShell() {
     () => [
       { to: BASE_ADMIN, label: 'Inicio', icon: House, end: true },
       { to: `${BASE_ADMIN}/adultos`, label: 'Adultos', icon: PersonStanding },
-      { to: `${BASE_ADMIN}/miembros`, label: 'Usuarios', icon: Users },
+      { to: `${BASE_ADMIN}/miembros`, label: 'Miembros', icon: Users },
       { to: `${BASE_ADMIN}/alertas`, label: 'Alertas', icon: BellRing, badge: sinAtender },
       { to: `${BASE_ADMIN}/mas`, label: 'Más', icon: Ellipsis },
     ],

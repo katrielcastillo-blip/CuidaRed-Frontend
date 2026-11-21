@@ -1,8 +1,9 @@
 /*
- * Dashboard.tsx — Panel del administrador: visión general de la organización (KPIs, alertas por urgencia,
+ * Dashboard.tsx — Inicio del Administrador: visión general de la cuenta (indicadores, alertas activas por urgencia,
  * seguimiento RF-05, tareas de agenda pendientes (Tarea_agenda), uso del plan (Plan.Limite_Envejecientes /
- * Limite_Usuarios), usuarios por rol, estadísticas) y accesos a resumen, alertas, agenda, reportes, usuarios,
- * plan y auditoría.
+ * Limite_Usuarios; el voluntario ocasional no cuenta), miembros por rol, estadísticas) y accesos a los módulos
+ * administrativos (alertas, reportes y estadísticas, solicitudes de visita, miembros, roles y permisos, configurar la
+ * organización, plan y suscripción, auditoría). Cada acceso solo aparece si el rol tiene el permiso (puede()).
  * Módulo: admin (SRS §13.1 "Panel de gestión y supervisión" · §8.2.2.1.18 Operabilidad · RF-04 · RF-05 · RF-09).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -11,16 +12,16 @@ import { Link } from 'react-router-dom'
 import {
   BellRing,
   CalendarCheck,
-  CalendarDays,
   CreditCard,
   CalendarClock,
   ChartColumn,
   ChevronRight,
-  ClipboardList,
+  ClipboardCheck,
   HandHeart,
   KeyRound,
   PersonStanding,
   ScrollText,
+  Settings,
   ShieldAlert,
   TrendingUp,
   Users,
@@ -29,14 +30,15 @@ import {
 import { Avatar, Badge, RIESGO_VISUAL } from '@/components/ui'
 import { nombreCompleto, ROL_LABEL, useSession, useUser } from '@/domain/auth'
 import { fechaCorta, fechaLarga, hhmmA12, todayISO } from '@/domain/dates'
-import { puede } from '@/domain/permisos'
+import { puede, type Accion } from '@/domain/permisos'
+import { tipoDeCuenta } from '@/domain/planes'
 import type { SeveridadAlerta } from '@/domain/types'
 import { cn } from '@/lib/cn'
 import { Page, useShell } from '@/layouts/AppShell'
 import { BarraUso } from '../components/BarraUso'
 import { hace, nombreCorto } from '../lib/datos'
 import { ESTADO_SUSCRIPCION, precioPlan } from '../lib/plan'
-import { ORDEN_ROLES } from '../lib/permisos'
+import { rolesDeTipo } from '../lib/permisos'
 import { useResumen, type AlertaReciente } from '../lib/resumen'
 
 const SEVERIDAD: Record<SeveridadAlerta, { label: string; chip: string; borde: string; visual: (typeof RIESGO_VISUAL)['alto'] }> = {
@@ -50,8 +52,13 @@ const VER_TODO = 'inline-flex items-center gap-1 min-h-12 px-1 text-sm font-bold
 
 export default function Dashboard() {
   const user = useUser()
+  const { org } = useSession()
   const { base } = useShell()
   const r = useResumen()
+  const tipo = tipoDeCuenta(org)
+  const roles = rolesDeTipo(tipo)
+  const veMiembros = puede(user, 'usuarios:gestionar')
+  const con = (accion: Accion, ruta: string) => (puede(user, accion) ? `${base}/${ruta}` : undefined)
 
   const visitasMes = r.visitasPorMes.at(-1)?.total ?? 0
 
@@ -89,7 +96,7 @@ export default function Dashboard() {
         </Link>
 
         <Kpi
-          to={`${base}/adultos`}
+          to={con('adultos:ver', 'adultos')}
           icono={PersonStanding}
           label="Adultos activos"
           valor={r.adultosActivos}
@@ -102,7 +109,7 @@ export default function Dashboard() {
           }
         />
         <Kpi
-          to={`${base}/alertas`}
+          to={con('alertas:ver', 'alertas')}
           icono={ShieldAlert}
           label="Casos prioritarios abiertos"
           valor={r.prioritariosAbiertos}
@@ -110,7 +117,7 @@ export default function Dashboard() {
           nota="Riesgo alto o medicamentos pendientes"
         />
         <Kpi
-          to={`${base}/resumen`}
+          to={con('resumen:ver', 'resumen')}
           icono={CalendarClock}
           label={`Más de ${r.umbralDias} días sin visita`}
           valor={r.sinVisita.length}
@@ -118,36 +125,43 @@ export default function Dashboard() {
           nota="Seguimiento familiar (RF-05)"
         />
         <Kpi
-          to={`${base}/resumen`}
+          to={con('resumen:ver', 'resumen')}
           icono={HandHeart}
           label="Necesidades pendientes"
           valor={r.necesidadesPendientes}
           nota={`${r.necesidadesEnProceso} en proceso`}
         />
         <Kpi
-          to={`${base}/miembros`}
+          to={con('usuarios:gestionar', 'miembros')}
           icono={Users}
-          label="Usuarios activos"
+          label="Miembros activos"
           valor={r.usuariosActivos}
-          nota={r.invitados > 0 ? `${r.invitados} invitación(es) pendiente(s)` : 'Sin invitaciones pendientes'}
+          nota={r.invitados > 0 ? `${r.invitados} invitación(es) pendiente(s)` : `${r.usuariosPorRol.cuidador} cuidadores · sin invitaciones pendientes`}
         />
-        <Kpi to={`${base}/reportes`} icono={CalendarCheck} label="Visitas este mes" valor={visitasMes} nota="Sin contar canceladas" />
+        <Kpi to={con('reportes:ver', 'reportes')} icono={CalendarCheck} label="Visitas este mes" valor={visitasMes} nota="Sin contar canceladas" />
       </section>
 
-      {/* ───── Accesos ───── */}
+      {/* ───── Módulos administrativos (cada acceso exige su permiso) ───── */}
       <section className="flex flex-col gap-3" aria-labelledby="h-accesos">
-        <h2 id="h-accesos" className={TITULO_SECCION}>
-          Accesos rápidos
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="h-accesos" className={TITULO_SECCION}>
+            Administración
+          </h2>
+          <Link to={`${base}/mas`} className={VER_TODO}>
+            Más opciones <ChevronRight size={16} aria-hidden />
+          </Link>
+        </div>
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Acceso to={`${base}/resumen`} icono={ClipboardList} titulo="Resumen de seguimiento" />
-          <Acceso to={`${base}/alertas`} icono={BellRing} titulo="Alertas" />
-          {puede(user, 'agenda:ver') && <Acceso to={`${base}/agenda`} icono={CalendarDays} titulo="Agenda de tareas" />}
-          <Acceso to={`${base}/reportes`} icono={ChartColumn} titulo="Reportes" />
-          <Acceso to={`${base}/miembros`} icono={Users} titulo="Usuarios" />
-          <Acceso to={`${base}/roles`} icono={KeyRound} titulo="Roles y permisos" />
+          {puede(user, 'alertas:ver') && <Acceso to={`${base}/alertas`} icono={BellRing} titulo="Alertas" />}
+          {puede(user, 'reportes:ver') && <Acceso to={`${base}/reportes`} icono={ChartColumn} titulo="Reportes y estadísticas" />}
+          {puede(user, 'visitas:autorizar') && <Acceso to={`${base}/solicitudes`} icono={ClipboardCheck} titulo="Solicitudes de visita" />}
+          {veMiembros && <Acceso to={`${base}/miembros`} icono={Users} titulo="Miembros" />}
+          {veMiembros && <Acceso to={`${base}/roles`} icono={KeyRound} titulo="Roles y permisos" />}
+          {puede(user, 'organizacion:configurar') && (
+            <Acceso to={`${base}/configuracion`} icono={Settings} titulo={tipo === 'familia' ? 'Configurar cuenta' : 'Configurar organización'} />
+          )}
           {puede(user, 'cuenta:suscripcion') && <Acceso to={`${base}/suscripcion`} icono={CreditCard} titulo="Plan y suscripción" />}
-          <Acceso to={`${base}/auditoria`} icono={ScrollText} titulo="Auditoría" />
+          {puede(user, 'auditoria:ver') && <Acceso to={`${base}/auditoria`} icono={ScrollText} titulo="Auditoría" />}
         </ul>
       </section>
 
@@ -212,28 +226,39 @@ export default function Dashboard() {
           {/* Plan y uso de los límites */}
           {puede(user, 'cuenta:suscripcion') && <UsoDelPlan r={r} to={`${base}/suscripcion`} />}
 
-          {/* Usuarios por rol */}
+          {/* Miembros por rol (según sus membresías en la cuenta) */}
           <section className="flex flex-col gap-3" aria-labelledby="h-roles">
             <div className="flex items-center justify-between gap-3">
               <h2 id="h-roles" className={TITULO_SECCION}>
-                Usuarios activos por rol
+                Miembros activos por rol
               </h2>
-              <Link to={`${base}/miembros`} className={VER_TODO}>
-                Gestionar <ChevronRight size={16} aria-hidden />
-              </Link>
+              {veMiembros && (
+                <Link to={`${base}/miembros`} className={VER_TODO}>
+                  Gestionar <ChevronRight size={16} aria-hidden />
+                </Link>
+              )}
             </div>
             <ul className="grid grid-cols-2 gap-3">
-              {ORDEN_ROLES.map((rol) => (
-                <li key={rol}>
-                  <Link
-                    to={`${base}/miembros?rol=${rol}`}
-                    className="flex items-center justify-between gap-2 min-h-14 px-4 py-2 rounded-md bg-surface shadow-1 hover:shadow-2 transition-shadow"
-                  >
+              {roles.map((rol) => {
+                const fila = 'flex items-center justify-between gap-2 min-h-14 px-4 py-2 rounded-md bg-surface shadow-1'
+                const contenido = (
+                  <>
                     <span className="text-sm font-semibold text-ink-2">{ROL_LABEL[rol]}</span>
                     <span className="text-2xl font-bold text-ink">{r.usuariosPorRol[rol]}</span>
-                  </Link>
-                </li>
-              ))}
+                  </>
+                )
+                return (
+                  <li key={rol}>
+                    {veMiembros ? (
+                      <Link to={`${base}/miembros?rol=${rol}`} className={cn(fila, 'hover:shadow-2 transition-shadow')}>
+                        {contenido}
+                      </Link>
+                    ) : (
+                      <div className={fila}>{contenido}</div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </section>
 
@@ -311,7 +336,7 @@ function AgendaPendiente({ r, base }: { r: ReturnType<typeof useResumen>; base: 
 
 function UsoDelPlan({ r, to }: { r: ReturnType<typeof useResumen>; to: string }) {
   const { org } = useSession()
-  const { plan } = r.uso
+  const { plan, limites } = r.uso
   const estado = org ? ESTADO_SUSCRIPCION[org.suscripcionEstado] : null
   return (
     <section className="flex flex-col gap-3" aria-labelledby="h-uso-plan">
@@ -331,12 +356,11 @@ function UsoDelPlan({ r, to }: { r: ReturnType<typeof useResumen>; to: string })
           </span>
           {estado && <Badge tone={estado.tono}>{estado.texto}</Badge>}
         </div>
-        {plan && (
-          <>
-            <BarraUso etiqueta="Adultos mayores activos" usado={r.uso.envejecientes} limite={plan.limiteEnvejecientes} excede={r.uso.excedeEnvejecientes} />
-            <BarraUso etiqueta="Usuarios" usado={r.uso.usuarios} limite={plan.limiteUsuarios} excede={r.uso.excedeUsuarios} />
-          </>
-        )}
+        <BarraUso etiqueta="Adultos mayores activos" usado={r.uso.envejecientes} limite={limites.envejecientes} excede={r.uso.excedeEnvejecientes} />
+        <BarraUso etiqueta="Usuarios" usado={r.uso.usuarios} limite={limites.usuarios} excede={r.uso.excedeUsuarios} />
+        <p className="text-xs text-muted">
+          {r.uso.voluntarios === 1 ? '1 voluntario ocasional (sin plan propio) no cuenta' : `${r.uso.voluntarios} voluntarios ocasionales (sin plan propio) no cuentan`} para el límite de usuarios.
+        </p>
         {(r.uso.excedeEnvejecientes || r.uso.excedeUsuarios) && (
           <p className="text-sm font-semibold text-danger">Se superan los límites del plan: considera cambiar a un plan con más capacidad.</p>
         )}
@@ -354,7 +378,8 @@ function Kpi({
   extra,
   alerta,
 }: {
-  to: string
+  /** Sin destino (el rol no tiene el permiso del módulo): la tarjeta es solo informativa. */
+  to?: string
   icono: LucideIcon
   label: string
   valor: number
@@ -362,8 +387,9 @@ function Kpi({
   extra?: ReactNode
   alerta?: boolean
 }) {
-  return (
-    <Link to={to} className="flex flex-col gap-1 min-w-0 p-4 rounded-md bg-surface shadow-1 transition-shadow hover:shadow-2">
+  const clase = 'flex flex-col gap-1 min-w-0 p-4 rounded-md bg-surface shadow-1'
+  const contenido = (
+    <>
       <span className="flex items-center justify-between gap-2 min-h-6">
         <Icono size={24} className={cn('flex-none', alerta ? 'text-danger' : 'text-navy')} aria-hidden />
         {extra}
@@ -371,7 +397,14 @@ function Kpi({
       <span className="mt-1 text-sm text-muted leading-snug">{label}</span>
       <span className={cn('text-[1.75rem] font-bold leading-tight', alerta ? 'text-danger' : 'text-ink')}>{valor}</span>
       {nota && <span className="text-xs text-muted leading-snug">{nota}</span>}
+    </>
+  )
+  return to ? (
+    <Link to={to} className={cn(clase, 'transition-shadow hover:shadow-2')}>
+      {contenido}
     </Link>
+  ) : (
+    <div className={clase}>{contenido}</div>
   )
 }
 

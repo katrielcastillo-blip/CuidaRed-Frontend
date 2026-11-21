@@ -1,69 +1,40 @@
 /*
- * Dashboard.tsx — Inicio del FAMILIAR RESPONSABLE (SRS §13.1 "Módulo de consulta restringida"): solo los
- * adultos mayores con los que tiene vínculo "familiar_responsable" (Vinculo · adultosVisibles) con el estado
- * de su seguimiento: tipo de vínculo, última y próxima visita (con su motivo, Visit_razon; incluye visitas en
- * las que el adulto es adulto adicional del hogar) y necesidades abiertas con su prioridad. El umbral de días
- * sin visita sale de Configuracion_Cuenta (configOrg). Solo lectura (RF-09 · §8.2.2.3.4 c).
+ * Dashboard.tsx — Inicio del FAMILIAR RESPONSABLE (SRS §13.1 "Módulo de consulta restringida"): "Mis
+ * envejecientes", solo los adultos mayores con permiso explícito (vínculo "familiar_responsable") EN LA CUENTA
+ * ACTIVA, con tarjetas de seguimiento: última visita realizada, próxima visita, necesidades abiertas y estado
+ * general. Si no tiene ninguno autorizado se explica por qué y qué hacer. Los datos llegan del hook
+ * `useEnvejecientesFamiliar` (hoy el store local; mañana GET /familiar/envejecientes). Solo lectura
+ * (RF-09 · §8.2.2.3.4 c · Reglas de Negocio V2 §Vínculo).
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
 import { Eye } from 'lucide-react'
 import { Page } from '@/layouts/AppShell'
-import { nombreCompleto, useUser } from '@/domain/auth'
+import { useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
-import { diasSinVisita, ultimaVisitaCompletada } from '@/domain/reglas'
-import { useDB } from '@/domain/store'
 import { EmptyState, SearchInput } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { SeguimientoCard, type Seguimiento } from '../components/SeguimientoCard'
-import { necesidadAbierta, normaliza, proximasVisitas, useAdultosFamilia, useUmbralSinVisita } from '../lib'
+import { SeguimientoCard } from '../components/SeguimientoCard'
+import { SinDatos } from '../components/SinDatos'
+import { useCuentaActivaFamiliar, useEnvejecientesFamiliar } from '../lib/datos'
+import { normaliza } from '../lib/etiquetas'
 
 export default function Dashboard() {
   const user = useUser()
   const enLinea = useEnLinea()
-  const adultos = useAdultosFamilia()
-  const visitas = useDB((s) => s.visitas)
-  const necesidades = useDB((s) => s.necesidades)
-  const vinculos = useDB((s) => s.vinculos)
-  const tiposVinculo = useDB((s) => s.catalogos.tiposVinculo)
+  const cuenta = useCuentaActivaFamiliar()
+  const consulta = useEnvejecientesFamiliar()
   const [q, setQ] = useState('')
-  const umbral = useUmbralSinVisita()
 
-  // Seguimiento de cada adulto; primero los que llevan más días sin visita.
-  const seguimientos = useMemo<Seguimiento[]>(
-    () =>
-      adultos
-        .filter((a) => a.estado === 'activo')
-        .map((a) => {
-          const { dias, conVisitas } = diasSinVisita({ visitas }, a)
-          return {
-            adulto: a,
-            ultima: ultimaVisitaCompletada(visitas, a.id),
-            dias,
-            conVisitas,
-            proxima: proximasVisitas(visitas, a.id)[0],
-            abiertas: necesidades
-              .filter((n) => n.adultoId === a.id && necesidadAbierta(n.estado))
-              .sort((x, y) => y.creadaEn.localeCompare(x.creadaEn)),
-          }
-        })
-        .sort((x, y) => y.dias - x.dias || nombreCompleto(x.adulto).localeCompare(nombreCompleto(y.adulto), 'es')),
-    [adultos, visitas, necesidades],
-  )
-
+  const envejecientes = useMemo(() => (consulta.estado === 'listo' ? consulta.datos : []), [consulta])
   const visibles = useMemo(() => {
     const t = normaliza(q.trim())
-    return t ? seguimientos.filter((s) => normaliza(nombreCompleto(s.adulto)).includes(t)) : seguimientos
-  }, [seguimientos, q])
+    return t ? envejecientes.filter((e) => normaliza(e.nombre).includes(t)) : envejecientes
+  }, [envejecientes, q])
 
-  const totalAbiertas = seguimientos.reduce((n, s) => n + s.abiertas.length, 0)
-  const totalProximas = seguimientos.filter((s) => s.proxima).length
-  /** Tipo de vínculo del usuario con el adulto (Tipo_vinculo). */
-  const vinculoCon = (adultoId: string) => {
-    const v = vinculos.find((x) => x.adultoId === adultoId && x.usuarioId === user.id)
-    return v ? (tiposVinculo.find((t) => t.id === v.tipoVinculoId)?.nombre ?? 'Familiar responsable') : undefined
-  }
+  const totalAbiertas = envejecientes.reduce((n, e) => n + e.seguimiento.necesidadesAbiertasTotal, 0)
+  const totalProximas = envejecientes.filter((e) => e.seguimiento.proximaVisita).length
 
   return (
     <Page title="Inicio" wide>
@@ -73,43 +44,51 @@ export default function Dashboard() {
           <span className={cn('size-2 rounded-full', enLinea ? 'bg-green' : 'bg-warning')} aria-hidden />
           {enLinea ? 'En línea' : 'Sin conexión: ves la última información guardada'}
         </span>
+        {cuenta && (
+          <span className="text-sm text-ink-2">
+            Cuenta activa: <strong className="text-ink">{cuenta.nombre}</strong>
+          </span>
+        )}
       </div>
 
       <p className="flex items-start gap-2 p-3 rounded-sm bg-blue-100 border border-blue text-sm text-ink">
         <Eye size={18} className="flex-none mt-0.5 text-navy" aria-hidden />
         <span>
-          Aquí puedes consultar cómo va el seguimiento de {seguimientos.length === 1 ? 'tu familiar' : 'tus familiares'}: visitas recibidas, próximas
-          visitas, necesidades y contactos de emergencia. Es solo de consulta; si algo no está bien, contacta a la organización.
+          Aquí consultas cómo va el seguimiento de {envejecientes.length === 1 ? 'tu familiar' : 'tus familiares'}: visitas recibidas, próximas visitas,
+          necesidades, indicaciones médicas y contactos de emergencia. Es solo de consulta; si algo no está bien, contacta al equipo de la cuenta.
+          {cuenta?.variasCuentas && ` Solo ves a quienes te autorizaron en ${cuenta.nombre}.`}
         </span>
       </p>
 
-      {seguimientos.length > 1 && (
+      {envejecientes.length > 1 && (
         <section aria-label="Resumen" className="grid grid-cols-3 gap-3">
-          <Resumen label="A tu cargo" valor={seguimientos.length} />
+          <Resumen label="Autorizados" valor={envejecientes.length} />
           <Resumen label="Necesidades abiertas" valor={totalAbiertas} />
           <Resumen label="Con visita programada" valor={totalProximas} />
         </section>
       )}
 
-      <section className="flex flex-col gap-4" aria-labelledby="mis-familiares">
-        <h2 id="mis-familiares" className="text-xl font-bold text-ink">
-          Estado del seguimiento
+      <section className="flex flex-col gap-4" aria-labelledby="mis-envejecientes">
+        <h2 id="mis-envejecientes" className="text-xl font-bold text-ink">
+          Mis envejecientes
         </h2>
-        {seguimientos.length > 3 && <SearchInput value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar adulto mayor" placeholder="Buscar por nombre..." />}
+        {envejecientes.length > 3 && <SearchInput value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar adulto mayor" placeholder="Buscar por nombre..." />}
 
-        {visibles.length > 0 ? (
+        {consulta.estado !== 'listo' ? (
+          <SinDatos consulta={consulta} />
+        ) : visibles.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibles.map((s) => (
-              <SeguimientoCard key={s.adulto.id} s={s} umbral={umbral} vinculo={vinculoCon(s.adulto.id)} />
+            {visibles.map((e) => (
+              <SeguimientoCard key={e.id} e={e} />
             ))}
           </div>
         ) : (
           <EmptyState
-            title={seguimientos.length ? 'Sin resultados' : 'Aún no hay adultos mayores a tu cargo'}
+            title={envejecientes.length ? 'Sin resultados' : 'Aún no tienes envejecientes autorizados'}
             text={
-              seguimientos.length
+              envejecientes.length
                 ? `Nadie coincide con «${q.trim()}».`
-                : 'Cuando la organización te asigne como familiar responsable de un adulto mayor, aparecerá aquí.'
+                : `Solo puedes ver a los adultos mayores para los que la persona que gestiona la cuenta te dio permiso explícito${cuenta ? ` en ${cuenta.nombre}` : ''}. Cuando te autoricen, aparecerán aquí.${cuenta?.variasCuentas ? ' Si tienes acceso en otra cuenta, cámbiala desde el selector de cuenta.' : ''}`
             }
           />
         )}

@@ -48,7 +48,7 @@ export function FilterChip<T extends string>({
       </span>
       <ChevronDown size={16} aria-hidden />
       <select
-        className="absolute inset-0 size-full opacity-0 cursor-pointer text-base appearance-none border-0 bg-transparent"
+        className="absolute -top-px -left-px h-[calc(100%+2px)] w-[calc(100%+2px)] min-h-12 opacity-0 cursor-pointer text-base appearance-none border-0 bg-transparent"
         aria-label={etiqueta}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
