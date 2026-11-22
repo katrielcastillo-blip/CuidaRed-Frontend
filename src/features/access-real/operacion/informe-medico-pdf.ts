@@ -132,7 +132,7 @@ export async function generarInformePdf(informe: InformeMedicoApi): Promise<jsPD
       )
     }
     nota(no_vigentes > 0
-      ? `No se incluyen ${plural(no_vigentes, 'indicación suspendida o finalizada', 'indicaciones suspendidas o finalizadas')}. Solo se transcribe lo indicado por personal de salud.`
+      ? `No se incluyen ${plural(no_vigentes, 'indicación', 'indicaciones')} fuera de vigencia. Solo se transcribe lo indicado por personal de salud.`
       : 'Solo se transcribe lo indicado por personal de salud.')
   }
 

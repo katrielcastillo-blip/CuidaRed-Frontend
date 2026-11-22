@@ -1,11 +1,11 @@
 /*
  * resumen-informe-datos.test.ts — Reglas puras del resumen de casos, del informe médico y de los mensajes de error de
- * la fase 7 conectada: consulta (filtros, orden y búsqueda), textos, opciones de filtro y nombre del archivo.
+ * la fase 7 conectada: consulta (filtros, orden y búsqueda), textos y nombre del archivo.
  * Módulo: pruebas (ID07, RF-07).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { describe, expect, it } from 'vitest'
-import type { CasoResumen, InformeMedicoApi } from '@/features/access-real/api/reportes'
+import type { InformeMedicoApi } from '@/features/access-real/api/reportes'
 import { ApiError } from '@/features/access-real/client'
 import { MOTIVO_OMISION, nombreArchivoInforme, resumenOmitidas, vigenciaIndicacion } from '@/features/access-real/operacion/informe-medico-datos'
 import { mensajeReporte } from '@/features/access-real/operacion/reportes-errores'
@@ -14,19 +14,12 @@ import {
   ESTADOS_ATENCION,
   FILTROS_RESUMEN_INICIALES,
   hayFiltrosResumen,
-  opcionesDeCasos,
   sentidoDeOrden,
   terminoDeBusqueda,
   textoMotivo,
   textoSeguimiento,
 } from '@/features/access-real/operacion/resumen-datos'
 
-const caso = (id: string, extra: Partial<CasoResumen> = {}): CasoResumen => ({
-  envejeciente_id: id, nombres: 'Juana', apellidos: 'Pérez', municipio: { codigo: '0101', nombre: 'Santo Domingo' }, zona: 'Villa Juana', fecha_alta: '2026-08-02T14:10:00+00:00',
-  riesgo_vigente: null, prioridad: 'baja', estado_atencion: 'al_dia', motivos: [], alertas: { abiertas: 0, pendientes: 0, en_proceso: 0, prioritarias_abiertas: 0 }, necesidades_activas: 0,
-  seguimiento: { ultima_visita_id: null, ultima_visita_fecha: null, fecha_referencia: '2026-08-02', dias_sin_visita: 110, umbral_dias: 15, vencido: true },
-  asignados: { total: 0, cuidadores: [], voluntarios: [] }, ...extra,
-})
 
 describe('consulta del resumen de casos', () => {
   it('ordena por prioridad por defecto y no envía filtros vacíos', () => {
@@ -82,21 +75,6 @@ describe('textos del resumen', () => {
     expect(textoSeguimiento({ ultima_visita_id: 'v', ultima_visita_fecha: '2026-11-20', fecha_referencia: '2026-11-20', dias_sin_visita: 0, umbral_dias: 15, vencido: false })).toContain('(hoy)')
     expect(textoSeguimiento({ ultima_visita_id: null, ultima_visita_fecha: null, fecha_referencia: '2026-08-02', dias_sin_visita: 110, umbral_dias: 15, vencido: true }))
       .toBe('Sin visitas realizadas · en seguimiento desde 02/08/2026 (hace 110 días)')
-  })
-})
-
-describe('opciones de los filtros del resumen', () => {
-  it('reúne municipios, sectores y personas sin repetir y ordenados', () => {
-    const ana = { usuario_id: 'u1', nombres: 'Ana', apellidos: 'Gómez' }
-    const luis = { usuario_id: 'u2', nombres: 'Luis', apellidos: 'Peña' }
-    const opciones = opcionesDeCasos([
-      caso('1', { asignados: { total: 1, cuidadores: [ana], voluntarios: [] } }),
-      caso('2', { zona: 'Centro', municipio: { codigo: '2501', nombre: 'Santiago' }, asignados: { total: 2, cuidadores: [ana], voluntarios: [luis] } }),
-      caso('3', { zona: null, municipio: null }),
-    ])
-    expect(opciones.municipios).toEqual([{ value: '0101', label: 'Santo Domingo' }, { value: '2501', label: 'Santiago' }].sort((a, b) => a.label.localeCompare(b.label, 'es')))
-    expect(opciones.sectores.map((o) => o.value)).toEqual(['Centro', 'Villa Juana'])
-    expect(opciones.personas).toEqual([{ value: 'u1', label: 'Ana Gómez · Cuidador' }, { value: 'u2', label: 'Luis Peña · Voluntario' }])
   })
 })
 

@@ -35,6 +35,11 @@ export interface PersonaAsignada {
   nombres: string
   apellidos: string
 }
+export interface OpcionesReporte {
+  municipios: Array<{ codigo: string; nombre: string | null }>
+  sectores: string[]
+  asignados: Array<PersonaAsignada & { rol: 'cuidador' | 'voluntario' }>
+}
 export interface CasoResumen {
   envejeciente_id: string
   nombres: string
@@ -55,12 +60,12 @@ export interface CasoResumen {
     dias_sin_visita: number
     umbral_dias: number
     vencido: boolean
-  }
+  } | null
   asignados: { total: number; cuidadores: PersonaAsignada[]; voluntarios: PersonaAsignada[] }
 }
 export interface IndicadoresResumen {
   fecha_calculo: string
-  umbral_dias_sin_visita: number
+  umbral_dias_sin_visita: number | null
   casos_activos: number
   por_prioridad: Record<PrioridadCaso, number>
   por_estado_atencion: Record<EstadoAtencion, number>
@@ -131,6 +136,7 @@ export interface DetalleVisita {
   hora_fin: string | null
   razon: string | null
   origen: 'interna' | 'solicitud'
+  tipo_visita: 'personal' | 'institucional'
   responsables: PersonaAsignada[]
   adultos: Array<{ envejeciente_id: string; nombres: string; apellidos: string; estado_general: string | null }>
 }

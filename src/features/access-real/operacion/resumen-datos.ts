@@ -1,6 +1,6 @@
 /*
  * resumen-datos.ts — Reglas puras del resumen de casos conectado (fase 7): textos de prioridad, estado de atención y
- * motivos, parámetros de consulta (filtros, orden y búsqueda) y opciones de los filtros.
+ * motivos y parámetros de consulta (filtros, orden y búsqueda).
  * Módulo: access-real (ID07, RF-07). Sin React ni red: se prueba de forma aislada.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  *
@@ -20,7 +20,7 @@ export const ESTADOS_ATENCION: Array<{ value: EstadoAtencion; label: string; ton
   { value: 'alerta_en_proceso', label: 'Alerta en atención', tono: 'warning', descripcion: 'Tiene alertas abiertas y todas ya están en atención.' },
   { value: 'seguimiento_vencido', label: 'Seguimiento vencido', tono: 'warning', descripcion: 'Sin alertas abiertas, pero superó el límite de días sin visita.' },
   { value: 'necesidades_activas', label: 'Necesidades activas', tono: 'info', descripcion: 'Sin lo anterior, pero con necesidades pendientes o en proceso.' },
-  { value: 'al_dia', label: 'Al día', tono: 'success', descripcion: 'Sin alertas abiertas, sin necesidades activas y con visitas al día.' },
+  { value: 'al_dia', label: 'Al día', tono: 'success', descripcion: 'Sin alertas abiertas, necesidades activas ni seguimiento vencido.' },
 ]
 export const ESTADO_ATENCION_TEXTO = Object.fromEntries(ESTADOS_ATENCION.map((e) => [e.value, e.label])) as Record<EstadoAtencion, string>
 export const ESTADO_ATENCION_TONO = Object.fromEntries(ESTADOS_ATENCION.map((e) => [e.value, e.tono])) as Record<EstadoAtencion, Tone>
@@ -92,29 +92,9 @@ export const sentidoDeOrden = (criterio: CriterioOrden, invertido: boolean) =>
 const dias = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`
 
 /** «Última visita: 01/11/2026 (hace 19 días)» o, si nunca fue visitado, desde cuándo se le da seguimiento. */
-export function textoSeguimiento(s: CasoResumen['seguimiento']): string {
+export function textoSeguimiento(s: NonNullable<CasoResumen['seguimiento']>): string {
   const hace = s.dias_sin_visita === 0 ? 'hoy' : `hace ${dias(s.dias_sin_visita)}`
   return s.ultima_visita_fecha
     ? `Última visita realizada: ${fechaCorta(s.ultima_visita_fecha)} (${hace})`
     : `Sin visitas realizadas · en seguimiento desde ${fechaCorta(s.fecha_referencia)} (${hace})`
-}
-
-/** Opciones de los filtros de municipio, sector y persona asignada, sacadas de los casos ya consultados. */
-export function opcionesDeCasos(casos: CasoResumen[]) {
-  const municipios = new Map<string, string>()
-  const sectores = new Set<string>()
-  const personas = new Map<string, string>()
-  for (const caso of casos) {
-    if (caso.municipio) municipios.set(caso.municipio.codigo, caso.municipio.nombre)
-    if (caso.zona) sectores.add(caso.zona)
-    for (const [lista, rol] of [[caso.asignados.cuidadores, 'Cuidador'], [caso.asignados.voluntarios, 'Voluntario']] as const) {
-      for (const persona of lista) personas.set(persona.usuario_id, `${persona.nombres} ${persona.apellidos} · ${rol}`)
-    }
-  }
-  const porTexto = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label, 'es')
-  return {
-    municipios: [...municipios].map(([value, label]) => ({ value, label })).sort(porTexto),
-    sectores: [...sectores].map((value) => ({ value, label: value })).sort(porTexto),
-    personas: [...personas].map(([value, label]) => ({ value, label })).sort(porTexto),
-  }
 }

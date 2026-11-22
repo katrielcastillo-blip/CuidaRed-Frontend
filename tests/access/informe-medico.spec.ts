@@ -60,7 +60,7 @@ test('el informe muestra identificación, indicaciones, riesgo, visitas, aviso, 
   await expect(indicaciones).toContainText('Losartán 50 mg')
   await expect(indicaciones).toContainText('Una tableta en la mañana.')
   await expect(indicaciones).toContainText('Registrada por Ana Gómez')
-  await expect(indicaciones).toContainText('No se incluyen 2 indicaciones suspendidas o finalizadas.')
+  await expect(indicaciones).toContainText('No se incluyen 2 indicaciones fuera de vigencia.')
 
   // El código del factor y del nivel puede ser null en filas heredadas: se muestra su nombre.
   const riesgo = informe.getByRole('region', { name: '3. Riesgo vigente e historial' })

@@ -8,6 +8,7 @@
  * `Content-Disposition`, registro previo de PDF y Excel). Este archivo no es una prueba: solo se ejecutan los `*.spec.ts`.
  */
 import type { Page } from '@playwright/test'
+import type { MunicipioRef, PersonaAsignada } from '../../src/features/access-real/api/reportes'
 import { API, type CuentaSim, type Json } from './ayudas-fase2'
 
 export const cuentaId = '9007199254740993'
@@ -145,17 +146,21 @@ export function reporteDe(tipo: string, consulta: URLSearchParams, opciones: Opc
   if (tipo === 'visitas') {
     return {
       ...cabecera('visitas', 'fecha_visita', consulta, vacio),
-      indicadores: { visitas_realizadas: cero(2), atenciones: cero(3), adultos_visitados: cero(2), adultos_activos: cero(5), promedio_por_adulto: vacio ? null : 1.5, requirieron_atencion: cero(1), situaciones_criticas: 0, visitas_compartidas: cero(1) },
+      indicadores: { visitas_realizadas: cero(2), visitas_personales: cero(1), visitas_institucionales: cero(1), atenciones: cero(1), adultos_visitados: cero(1), adultos_activos: cero(5), promedio_por_adulto: vacio ? null : 1, requirieron_atencion: cero(1), situaciones_criticas: 0, visitas_compartidas: 0 },
       series: {
         por_mes: [punto('2026-11', '2026-11', cero(2), 100)],
-        por_estado_general: [punto('estable', 'Estable', cero(2), 67), punto('requiere_atencion', 'Requiere atención', cero(1), 33), punto('situacion_critica', 'Situación crítica', 0, 0), punto('sin_registro', 'Sin registro', 0, 0)],
+        por_tipo_visita: [punto('personal', 'Con expediente', cero(1), cero(50)), punto('institucional', 'Institucional sin expediente', cero(1), cero(50))],
+        por_estado_general: [punto('estable', 'Estable', 0, 0), punto('requiere_atencion', 'Requiere atención', cero(1), cero(100)), punto('situacion_critica', 'Situación crítica', 0, 0), punto('sin_registro', 'Sin registro', 0, 0)],
       },
       detalle: vacio ? [] : [{
-        visita_id: 'a1111111-1111-4111-8111-111111111111', fecha: '2026-11-18', hora_inicio: '09:00', hora_fin: '09:40', razon: 'Seguimiento mensual', origen: 'interna',
+        visita_id: 'a1111111-1111-4111-8111-111111111111', fecha: '2026-11-18', hora_inicio: '09:00', hora_fin: '09:40', razon: 'Seguimiento mensual', origen: 'interna', tipo_visita: 'personal',
         responsables: [{ usuario_id: 'u1', nombres: 'Ana', apellidos: 'Gómez' }],
         adultos: [{ envejeciente_id: juanaId, nombres: 'Juana', apellidos: 'Pérez Díaz', estado_general: 'requiere_atencion' }],
+      }, {
+        visita_id: 'a2222222-2222-4222-8222-222222222222', fecha: '2026-11-17', hora_inicio: '11:00', hora_fin: '11:30',
+        razon: 'Actividad comunitaria', origen: 'solicitud', tipo_visita: 'institucional', responsables: [], adultos: [],
       }],
-      detalle_total: detalleTotal, detalle_truncado: false,
+      detalle_total: cero(2), detalle_truncado: false,
     }
   }
   if (tipo === 'necesidades') {
@@ -257,7 +262,30 @@ export async function montarReportes(page: Page, cuenta: CuentaSim, opciones: Op
     llamadas.push({ metodo, ruta: sub, consulta: url.searchParams, cuerpo: metodo === 'GET' ? undefined : (peticion.postDataJSON() ?? {}) as Json, autorizacion: peticion.headers().authorization })
     if (sub === '/contexto') return req.fulfill({ json: { data: cuenta } })
 
-    if (sub === '/resumen-casos/indicadores') return opciones.errorResumen ? req.fulfill(error(opciones.errorResumen.status, opciones.errorResumen.code)) : req.fulfill({ json: { data: INDICADORES } })
+    if (sub === '/resumen-casos/indicadores') return opciones.errorResumen
+      ? req.fulfill(error(opciones.errorResumen.status, opciones.errorResumen.code))
+      : req.fulfill({ json: { data: cuenta.tipo === 'familia' ? {
+        ...INDICADORES, umbral_dias_sin_visita: null, seguimiento_vencido: 0,
+      } : INDICADORES } })
+    if (sub === '/resumen-casos/opciones' || sub === '/reportes/opciones') {
+      const municipios = new Map<string, MunicipioRef>()
+      const sectores = new Set<string>()
+      const asignados = new Map<string, PersonaAsignada & { rol: 'cuidador' | 'voluntario' }>()
+      for (const caso of casos) {
+        const municipioCaso = caso.municipio as MunicipioRef | null
+        if (municipioCaso) municipios.set(municipioCaso.codigo, municipioCaso)
+        if (typeof caso.zona === 'string') sectores.add(caso.zona)
+        if (sub !== '/resumen-casos/opciones') continue
+        const personal = caso.asignados as { cuidadores: PersonaAsignada[]; voluntarios: PersonaAsignada[] }
+        for (const persona of personal.cuidadores) asignados.set(persona.usuario_id, { ...persona, rol: 'cuidador' })
+        for (const persona of personal.voluntarios) asignados.set(persona.usuario_id, { ...persona, rol: 'voluntario' })
+      }
+      return req.fulfill({ json: { data: {
+        municipios: [...municipios.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+        sectores: [...sectores].sort((a, b) => a.localeCompare(b, 'es')),
+        asignados: [...asignados.values()],
+      } } })
+    }
     if (sub === '/resumen-casos') {
       if (opciones.errorResumen) return req.fulfill(error(opciones.errorResumen.status, opciones.errorResumen.code))
       return req.fulfill({ json: pagina(filtrarCasos(casos, url.searchParams), url.searchParams) })

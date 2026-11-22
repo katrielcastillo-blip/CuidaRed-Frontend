@@ -24,6 +24,7 @@ import type {
   FiltrosAplicados,
   FiltrosReporte,
   NivelRiesgo,
+  OpcionesReporte,
   PuntoSerie,
   ReporteApi,
   TipoReporte,
@@ -85,9 +86,10 @@ export const SELECCION_INICIAL: SeleccionFiltros = { rango: 'todo', desde: '', h
 
 export const hayFiltros = (s: SeleccionFiltros) => s.rango !== 'todo' || !!(s.municipio || s.zona || s.riesgo || s.categoria)
 
-/** Filtros que viajan al servidor: solo los que tienen valor, y sin fechas mientras el rango personalizado sea incoherente. */
-export function filtrosDeSeleccion(s: SeleccionFiltros, hoy: string): FiltrosReporte {
-  const fechas = errorRango(s.rango, s.desde, s.hasta) ? {} : limitesRango(s.rango, hoy, s.desde, s.hasta)
+/** Un rango incoherente suspende la consulta y la exportación. */
+export function filtrosDeSeleccion(s: SeleccionFiltros, hoy: string): FiltrosReporte | null {
+  if (errorRango(s.rango, s.desde, s.hasta)) return null
+  const fechas = limitesRango(s.rango, hoy, s.desde, s.hasta)
   const categoria = Number(s.categoria)
   return {
     ...fechas,
@@ -101,7 +103,7 @@ export function filtrosDeSeleccion(s: SeleccionFiltros, hoy: string): FiltrosRep
 /* ───────────── Textos ───────────── */
 export const TIPOS_REPORTE: Array<{ value: TipoReporte; label: string; descripcion: string; detalle: string; unidad: [string, string] }> = [
   { value: 'adultos', label: 'Adultos mayores registrados', descripcion: 'Adultos mayores dados de alta en el período, en cualquier estado del expediente.', detalle: 'Detalle de adultos mayores', unidad: ['adulto', 'adultos'] },
-  { value: 'visitas', label: 'Visitas realizadas', descripcion: 'Visitas completadas en el período y estado observado de cada adulto atendido.', detalle: 'Detalle de visitas realizadas', unidad: ['visita', 'visitas'] },
+  { value: 'visitas', label: 'Visitas realizadas', descripcion: 'Visitas completadas en el período, incluidas las institucionales. Las atenciones corresponden a adultos con expediente asociado.', detalle: 'Detalle de visitas realizadas', unidad: ['visita', 'visitas'] },
   { value: 'necesidades', label: 'Necesidades frecuentes y atendidas', descripcion: 'Necesidades registradas en el período, agrupadas por categoría y con su estado actual.', detalle: 'Detalle por categoría de necesidad', unidad: ['necesidad', 'necesidades'] },
   { value: 'casos_prioritarios', label: 'Casos prioritarios', descripcion: 'Alertas prioritarias generadas en el período (riesgo alto, medicamentos pendientes y necesidades prioritarias), con su estado actual.', detalle: 'Detalle de casos prioritarios', unidad: ['alerta', 'alertas'] },
 ]
@@ -168,6 +170,8 @@ const INDICADORES: Record<TipoReporte, DefIndicador[]> = {
   ],
   visitas: [
     { clave: 'visitas_realizadas', etiqueta: 'Visitas realizadas' },
+    { clave: 'visitas_personales', etiqueta: 'Visitas con expediente' },
+    { clave: 'visitas_institucionales', etiqueta: 'Visitas institucionales' },
     { clave: 'atenciones', etiqueta: 'Atenciones', nota: 'Adultos atendidos en esas visitas' },
     { clave: 'adultos_visitados', etiqueta: 'Adultos visitados' },
     { clave: 'adultos_activos', etiqueta: 'Adultos activos' },
@@ -234,6 +238,7 @@ const SERIES: Record<TipoReporte, DefSerie[]> = {
   ],
   visitas: [
     { clave: 'por_mes', titulo: 'Visitas realizadas por mes', descripcion: 'Hasta los 24 últimos meses del período', forma: 'v', unidad: ['visita', 'visitas'] },
+    { clave: 'por_tipo_visita', titulo: 'Visitas por tipo', descripcion: 'Visitas con expediente e institucionales sin expediente', forma: 'h', dona: true, unidad: ['visita', 'visitas'] },
     { clave: 'por_estado_general', titulo: 'Estado observado en las atenciones', descripcion: 'Un adulto atendido en una visita cuenta una vez', forma: 'h', dona: true, unidad: ['atención', 'atenciones'] },
   ],
   necesidades: [
@@ -294,7 +299,7 @@ function tablaAdultos(detalle: DetalleAdulto[]): Pick<TablaReporte, 'columnas' |
 
 function tablaVisitas(detalle: DetalleVisita[]): Pick<TablaReporte, 'columnas' | 'filas'> {
   const columnas: Columna[] = [
-    { etiqueta: 'Fecha' }, { etiqueta: 'Horario' }, { etiqueta: 'Razón' }, { etiqueta: 'Origen' }, { etiqueta: 'Responsables' }, { etiqueta: 'Adultos atendidos' },
+    { etiqueta: 'Fecha' }, { etiqueta: 'Horario' }, { etiqueta: 'Razón' }, { etiqueta: 'Origen' }, { etiqueta: 'Tipo de visita' }, { etiqueta: 'Responsables' }, { etiqueta: 'Adultos atendidos' },
   ]
   return {
     columnas,
@@ -303,6 +308,7 @@ function tablaVisitas(detalle: DetalleVisita[]): Pick<TablaReporte, 'columnas' |
       d.hora_inicio ? `${d.hora_inicio}${d.hora_fin ? ` – ${d.hora_fin}` : ''}` : '—',
       d.razon ?? '—',
       ORIGEN_VISITA[d.origen] ?? d.origen,
+      d.tipo_visita === 'institucional' ? 'Institucional sin expediente' : 'Con expediente',
       d.responsables.map(nombre).join(', ') || '—',
       d.adultos.map((a) => `${nombre(a)}${a.estado_general ? ` (${ESTADO_GENERAL[a.estado_general] ?? a.estado_general})` : ''}`).join('; ') || '—',
     ])),
@@ -384,12 +390,15 @@ const columnasComparativo = (conVisitas: boolean): Columna[] => [
   { etiqueta: 'Adultos activos', tipo: 'numero' }, { etiqueta: 'Riesgo alto', tipo: 'numero' },
   ...(conVisitas ? [{ etiqueta: 'Visitas realizadas', tipo: 'numero' as const }, { etiqueta: 'Visitas por adulto', tipo: 'numero' as const }] : []),
   { etiqueta: 'Necesidades activas', tipo: 'numero' }, { etiqueta: 'Alertas abiertas', tipo: 'numero' },
-  { etiqueta: 'Días sin visita (prom.)', tipo: 'numero' }, { etiqueta: 'Sin personal asignado', tipo: 'numero' },
+  ...(conVisitas ? [{ etiqueta: 'Días sin visita (prom.)', tipo: 'numero' as const }] : []),
+  { etiqueta: 'Sin personal asignado', tipo: 'numero' },
 ]
 const celdasComparativo = (d: FilaComparativo, conVisitas: boolean): Array<string | number> => [
   d.adultos_activos, d.riesgo_alto,
   ...(conVisitas ? [celdaConteo(d.visitas_realizadas), celdaDecimal(d.visitas_por_adulto, 2)] : []),
-  d.necesidades_activas, d.alertas_abiertas, celdaDecimal(d.dias_sin_visita_promedio, 1), d.sin_personal_asignado,
+  d.necesidades_activas, d.alertas_abiertas,
+  ...(conVisitas ? [celdaDecimal(d.dias_sin_visita_promedio, 1)] : []),
+  d.sin_personal_asignado,
 ]
 
 /** Etiqueta de cada sector; si un mismo sector existe en dos municipios, se añade el municipio. */
@@ -502,12 +511,11 @@ export function tiposDisponibles(cuenta: CuentaAcceso): TipoReporte[] {
 export const incluyeFuncionalidad = (cuenta: Pick<CuentaMe, 'funcionalidades'>, funcionalidad: 'dashboard_metricas' | 'reportes_avanzados') =>
   cuenta.funcionalidades?.includes(funcionalidad) === true
 
-/** Municipios y sectores que existen entre los adultos activos, para los filtros (sacados del reporte de adultos sin filtrar). */
-export function opcionesUbicacion(api: ReporteApi | undefined) {
-  const opcion = (punto: PuntoSerie) => ({ value: punto.clave, label: punto.etiqueta })
+/** Opciones de ubicación del alcance que devuelve el servidor. */
+export function opcionesUbicacion(api: OpcionesReporte | undefined) {
   return {
-    municipios: (api?.series.por_municipio ?? []).map(opcion),
-    sectores: (api?.series.por_zona ?? []).filter((punto) => punto.clave !== 'sin_zona').map(opcion),
+    municipios: (api?.municipios ?? []).map(({ codigo, nombre }) => ({ value: codigo, label: nombre ?? codigo })),
+    sectores: (api?.sectores ?? []).map((sector) => ({ value: sector, label: sector })),
   }
 }
 

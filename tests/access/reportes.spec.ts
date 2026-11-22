@@ -184,8 +184,8 @@ test('si el servidor recorta el detalle, lo avisa y muestra las filas por tramos
 test('los filtros envían los parámetros filter[...] del contrato, sin page ni limit', async ({ page }) => {
   const { de } = await abrir(page, cuentaDe({ funcionalidades: PLAN_AVANZADO }), 'reportes')
   const ultima = (patron: RegExp) => de(patron).at(-1)!.consulta
-  await expect(page.getByLabel('Municipio', { exact: true }).locator('option')).toHaveText(['Todos', 'Santo Domingo de Guzmán', 'Santiago de los Caballeros'])
-  await expect(page.getByLabel('Sector', { exact: true }).locator('option')).toHaveText(['Todos', 'Villa Juana', 'Centro'])
+  await expect(page.getByLabel('Municipio', { exact: true }).locator('option')).toHaveText(['Todos', 'Santiago de los Caballeros', 'Santo Domingo de Guzmán'])
+  await expect(page.getByLabel('Sector', { exact: true }).locator('option')).toHaveText(['Todos', 'Centro', 'Villa Juana'])
   expect(ultima(/^\/reportes\/adultos$/).size).toBe(0)
 
   // Rango predefinido: del día 1 del mes a hoy, en el calendario de Santo Domingo.
@@ -211,19 +211,24 @@ test('los filtros envían los parámetros filter[...] del contrato, sin page ni 
   await expect.poll(() => de(/^\/reportes\/adultos$/).at(-1)?.consulta.size).toBe(0)
 })
 
-test('el rango personalizado envía solo fechas válidas y avisa si «hasta» es anterior a «desde»', async ({ page }) => {
-  const { de } = await abrir(page, cuentaDe({ funcionalidades: PLAN_METRICAS }), 'reportes')
+test('un rango personalizado inválido suspende el reporte, el análisis y las exportaciones', async ({ page }) => {
+  const { de } = await abrir(page, cuentaDe({ funcionalidades: PLAN_AVANZADO }), 'reportes')
   await page.getByLabel('Período').selectOption('personalizado')
   await page.getByLabel('Desde').fill('2026-10-01')
   await page.getByLabel('Hasta').fill('2026-10-31')
   await expect.poll(() => de(/^\/reportes\/adultos$/).at(-1)?.consulta.get('filter[hasta]')).toBe('2026-10-31')
   expect(de(/^\/reportes\/adultos$/).at(-1)!.consulta.get('filter[desde]')).toBe('2026-10-01')
+  await expect(page.getByRole('button', { name: 'Análisis en PDF' })).toBeEnabled()
+  const consultas = de(/^\/reportes\/(adultos|analisis-avanzado)$/).length
 
   await page.getByLabel('Desde').fill('2026-11-05')
   await expect(page.getByText('La fecha «hasta» debe ser igual o posterior a «desde».')).toBeVisible()
-  // Con el rango incoherente no se mandan fechas (el servidor respondería 422).
-  await expect.poll(() => de(/^\/reportes\/adultos$/).at(-1)?.consulta.has('filter[desde]')).toBe(false)
-  expect(de(/^\/reportes\/adultos$/).at(-1)!.consulta.has('filter[hasta]')).toBe(false)
+  await expect(page.getByRole('button', { name: /Descargar CSV|Exportar PDF|Exportar Excel|Análisis en PDF|Análisis en Excel/ })).toHaveCount(0)
+  expect(de(/^\/reportes\/(adultos|analisis-avanzado)$/)).toHaveLength(consultas)
+
+  await page.getByLabel('Hasta').fill('2026-11-10')
+  await expect(page.getByRole('button', { name: 'Descargar CSV' })).toBeEnabled()
+  expect(de(/^\/reportes\/adultos$/).at(-1)!.consulta.get('filter[hasta]')).toBe('2026-11-10')
 })
 
 test('la categoría de necesidad solo viaja en el reporte de necesidades', async ({ page }) => {
@@ -342,13 +347,24 @@ test('análisis avanzado: registra analisis_avanzado antes de generar el PDF', a
 })
 
 test('sin conexión no se puede exportar: se explica el motivo', async ({ page }) => {
+  const erroresGraficos: string[] = []
+  page.on('pageerror', (error) => {
+    if (/GraficoChart|configGrafico/i.test(error.message)) erroresGraficos.push(error.message)
+  })
+  await page.route('**/GraficoChart.tsx*', (route) => route.abort('internetdisconnected'))
+  await page.route('**/configGrafico.ts*', (route) => route.abort('internetdisconnected'))
   await abrir(page, cuentaDe({ funcionalidades: PLAN_AVANZADO }), 'reportes')
   await expect(page.getByRole('heading', { level: 2, name: 'Adultos mayores registrados' })).toBeVisible()
+  await expect(page.getByText('El gráfico no está disponible. Puedes consultar la tabla de datos.').first()).toBeVisible()
   await page.context().setOffline(true)
   await expect(page.getByText('Sin conexión: las exportaciones necesitan Internet')).toBeVisible()
   for (const nombre of ['Descargar CSV', 'Exportar PDF', 'Exportar Excel']) await expect(page.getByRole('button', { name: nombre })).toBeDisabled()
   await page.context().setOffline(false)
   await expect(page.getByRole('button', { name: 'Descargar CSV' })).toBeEnabled()
+  const descarga = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Exportar PDF' }).click()
+  expect((await descarga).suggestedFilename()).toMatch(/^reporte-adultos-.*\.pdf$/)
+  expect(erroresGraficos).toEqual([])
 })
 
 /* ───────────── Errores ───────────── */
@@ -473,6 +489,38 @@ test('resumen: la búsqueda espera a tener 2 caracteres y se envía como filter[
   await buscador.fill('Pedro')
   await expect.poll(() => lista().at(-1)?.consulta.get('filter[q]')).toBe('Pedro')
   await expect(page.getByTestId('caso-resumen')).toHaveCount(1)
+})
+
+test('los filtros incluyen las opciones de un caso fuera de los primeros 100', async ({ page }) => {
+  const casos = Array.from({ length: 101 }, (_, i) => casoDe(i + 1, { zona: i === 100 ? 'Sector 101' : 'Centro' }))
+  const { de } = await abrir(page, cuentaDe(), 'resumen', { casos })
+  await expect(page.getByTestId('total-casos')).toContainText('101 casos activos')
+  await page.getByLabel('Sector', { exact: true }).selectOption('Sector 101')
+  await expect(page.getByTestId('total-casos')).toContainText('1 caso coincide')
+  expect(de(/^\/resumen-casos$/).every((l) => l.consulta.get('limit') === '20')).toBe(true)
+  await page.goto(`${ruta}/reportes`)
+  await page.getByLabel('Sector', { exact: true }).selectOption('Sector 101')
+  await expect.poll(() => de(/^\/reportes\/adultos$/).at(-1)?.consulta.get('filter[zona]')).toBe('Sector 101')
+})
+
+test('una Familia consulta el resumen sin métricas ni filtros de visitas', async ({ page }) => {
+  await abrir(page, cuentaDe({ tipo: 'familia' }), 'resumen', {
+    casos: [casoDe(3, { seguimiento: null, estado_atencion: 'al_dia' })],
+  })
+  await expect(page.getByTestId('caso-resumen')).toHaveCount(1)
+  await expect(page.getByText(/días sin visita|Sin visitas realizadas/i)).toHaveCount(0)
+  await expect(page.getByRole('option', { name: 'Seguimiento vencido' })).toHaveCount(0)
+  await expect(page.getByRole('option', { name: 'Última visita' })).toHaveCount(0)
+})
+
+test('el reporte distingue las visitas institucionales de las atenciones a adultos', async ({ page }) => {
+  await abrir(page, cuentaDe(), 'reportes')
+  await page.getByRole('radio', { name: 'Visitas realizadas' }).click()
+  const indicadores = page.getByTestId('indicadores-reporte')
+  await expect(indicadores.getByRole('article').filter({ hasText: 'Visitas realizadas' })).toContainText('2')
+  await expect(indicadores.getByRole('article').filter({ hasText: 'Visitas institucionales' })).toContainText('1')
+  await expect(indicadores.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Atenciones', exact: true }) })).toContainText('1')
+  await expect(page.getByRole('row').filter({ hasText: 'Actividad comunitaria' })).toContainText('Institucional sin expediente')
 })
 
 test('resumen: sin casos activos muestra un estado vacío válido y, con filtros, permite quitarlos', async ({ page }) => {

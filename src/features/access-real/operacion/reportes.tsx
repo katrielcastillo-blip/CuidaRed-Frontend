@@ -27,7 +27,9 @@ import {
   rutaReporte,
   type AnalisisAvanzadoApi,
   type ExportacionApi,
+  type FiltrosReporte,
   type FormatoRegistrado,
+  type OpcionesReporte,
   type ReporteApi,
   type TipoReporte,
 } from '../api/reportes'
@@ -128,7 +130,7 @@ function Bloqueo({ titulo, texto, cuenta, raiz, id }: { titulo: string; texto: s
 /* ───────────── Análisis avanzado ───────────── */
 function SeccionAvanzada({ base, token, cuenta, filtros, revision, enLinea, ocupado, ejecutar, nombresFiltro }: {
   base: string; token: string; cuenta: OperacionProps['cuenta']; revision: number; enLinea: boolean
-  filtros: ReturnType<typeof filtrosDeSeleccion>; ocupado: string | null
+  filtros: FiltrosReporte; ocupado: string | null
   ejecutar: (clave: string, tarea: () => Promise<string>) => void
   nombresFiltro: { municipio?: string }
 }) {
@@ -168,8 +170,8 @@ function SeccionAvanzada({ base, token, cuenta, filtros, revision, enLinea, ocup
           Las visitas no se muestran porque Visitas no está disponible para tu rol o para este tipo de cuenta.
         </p>}
         <div className="grid gap-4 md:grid-cols-2 md:items-start">
-          {!analisis.zonas.vacio && <PanelGrafico g={analisis.zonas.grafico} />}
-          {!analisis.tendencias.vacio && <PanelGrafico g={analisis.tendencias.grafico} />}
+          {!analisis.zonas.vacio && <PanelGrafico g={analisis.zonas.grafico} enLinea={enLinea} />}
+          {!analisis.tendencias.vacio && <PanelGrafico g={analisis.tendencias.grafico} enLinea={enLinea} />}
         </div>
         {!analisis.zonas.vacio && <TablaDatos tabla={analisis.zonas.tabla} etiqueta="Comparativo por sector" id="tabla-sectores" />}
         {analisis.municipios && !analisis.municipios.vacio && <TablaDatos tabla={analisis.municipios.tabla} etiqueta="Comparativo por municipio" id="tabla-municipios" />}
@@ -194,9 +196,8 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
   const errorFechas = errorRango(seleccion.rango, seleccion.desde, seleccion.hasta)
   const filtros = useMemo(() => filtrosDeSeleccion(seleccion, hoy), [seleccion, hoy])
 
-  const consulta = useDatos<ReporteApi>(rutaReporte(base, tipo, filtros), token, revision)
-  // Los municipios y sectores del filtro salen del reporte de adultos sin filtrar; las categorías, del catálogo.
-  const ubicaciones = useDatos<ReporteApi>(`${base}/reportes/adultos`, token)
+  const consulta = useDatos<ReporteApi>(filtros && rutaReporte(base, tipo, filtros), token, revision)
+  const ubicaciones = useDatos<OpcionesReporte>(`${base}/reportes/opciones`, token, revision)
   const categorias = useDatos<TipoNecesidad[]>(tipo === 'necesidades' ? '/catalogos/tipos-necesidad' : null, token)
   const opciones = opcionesUbicacion(ubicaciones.datos)
 
@@ -281,11 +282,14 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
         <TextField label="Desde" type="date" max={seleccion.hasta || hoy} value={seleccion.desde} onChange={(event) => set('desde', event.currentTarget.value)} />
         <TextField label="Hasta" type="date" min={seleccion.desde || undefined} max={hoy} value={seleccion.hasta} onChange={(event) => set('hasta', event.currentTarget.value)} error={errorFechas} />
       </div>}
-      {errorFechas && <p className="text-sm text-ink-2">Mientras el rango sea incorrecto no se aplican las fechas.</p>}
+      {ubicaciones.error && <EstadoConsulta consulta={ubicaciones} />}
+      {errorFechas && <p role="status" className="text-sm text-ink-2">Corrige el período para consultar y exportar reportes.</p>}
+      {tipo === 'visitas' && (seleccion.municipio || seleccion.zona || seleccion.riesgo) &&
+        <p className="text-sm text-ink-2">Las visitas institucionales sin expediente se incluyen al filtrar solo por período.</p>}
       {hayFiltros(seleccion) && <div><Button variant="ghost" size="sm" onClick={() => setSeleccion(SELECCION_INICIAL)}>Quitar filtros</Button></div>}
     </section>
 
-    <EstadoConsulta consulta={consulta} />
+    {filtros && <EstadoConsulta consulta={consulta} />}
     {datos && reporte && <section className="grid min-w-0 gap-5" aria-labelledby="titulo-reporte" aria-live="polite">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div className="min-w-0">
@@ -323,19 +327,19 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
           </article>)}
         </div>
         <div className="grid gap-4 md:grid-cols-2 md:items-start">
-          {reporte.graficos.map((g) => <PanelGrafico key={`${tipo}-${g.id}`} g={g} />)}
+          {reporte.graficos.map((g) => <PanelGrafico key={`${tipo}-${g.id}`} g={g} enLinea={enLinea} />)}
         </div>
         <TablaDatos key={`${tipo}-${datos.generado_en}`} tabla={reporte.tabla} etiqueta={reporte.tabla.titulo} raiz={raiz} id="tabla-reporte" />
       </>}
     </section>}
 
-    <section className="grid min-w-0 gap-4" aria-labelledby="titulo-avanzado" data-testid="analisis-avanzado">
+    {filtros && <section className="grid min-w-0 gap-4" aria-labelledby="titulo-avanzado" data-testid="analisis-avanzado">
       <h2 id="titulo-avanzado" className="text-xl font-bold text-navy">Análisis avanzado</h2>
       {planAvanzado
         ? <SeccionAvanzada base={base} token={token} cuenta={cuenta} filtros={filtros} revision={revision} enLinea={enLinea} ocupado={ocupado} ejecutar={ejecutar} nombresFiltro={nombresFiltro} />
         : <Bloqueo id="avanzado-bloqueado" titulo="Comparativo por sector y tendencias no incluidos en tu plan" cuenta={cuenta} raiz={raiz}
           texto="El análisis avanzado compara los sectores y los municipios lado a lado y muestra la evolución mensual de visitas, necesidades y alertas." />}
-    </section>
+    </section>}
   </section>
 }
 

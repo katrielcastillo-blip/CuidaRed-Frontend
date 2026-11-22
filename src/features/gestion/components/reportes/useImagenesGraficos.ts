@@ -13,11 +13,13 @@ type Imagenes = Record<string, ImagenGrafico>
 const SIN_IMAGENES: Imagenes = {}
 
 async function generar(graficos: GraficoReporte[]): Promise<Imagenes> {
-  const { imagenDeGrafico } = await import('./configGrafico')
+  // Los archivos pueden conservar las tablas si la conexión se pierde al cargar Chart.js.
+  const modulo = await import('./configGrafico').catch(() => null)
+  if (!modulo) return SIN_IMAGENES
   const imagenes: Imagenes = {}
   for (const g of graficos) {
     try {
-      imagenes[g.id] = imagenDeGrafico(g)
+      imagenes[g.id] = modulo.imagenDeGrafico(g)
     } catch {
       /* Sin imagen: la exportación incluye igualmente la tabla de datos. */
     }

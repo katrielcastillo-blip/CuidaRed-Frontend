@@ -127,7 +127,7 @@ En **Resumen** (Coordinador y Administrador de la organización) ves **todos los
 **Indicadores de arriba.** Cubren todos los casos activos y no cambian con los filtros:
 
 - Casos activos, y cuántos tienen prioridad alta, media o baja.
-- Adultos con seguimiento vencido (más de los días sin visita configurados en la cuenta) y adultos sin personal asignado.
+- Adultos sin personal asignado. En Organización también se muestran los adultos que superaron el umbral de días sin visita.
 - **Adultos prioritarios:** personas con al menos una alerta prioritaria abierta. Cada persona se cuenta una vez.
 - **Alertas abiertas:** se cuentan una por una. Dos alertas de la misma persona suman dos alertas, pero un solo adulto prioritario.
 - Necesidades activas (pendientes o en proceso).
@@ -158,7 +158,7 @@ CuidaRed crea las alertas **automáticamente** y genera **una alerta por cada ca
 | **Riesgo alto** | La persona tiene un factor de riesgo de nivel **Alto** vigente. Hay **una alerta por cada factor** | Alta |
 | **Medicamento pendiente** | Hay una necesidad de **Medicamentos** pendiente. Hay **una alerta por cada necesidad** registrada | Alta |
 | **Necesidad prioritaria** | Hay una necesidad pendiente de **otra categoría** con prioridad **Alta**. Se crea al registrarla o al subirle la prioridad | Alta |
-| **Seguimiento familiar sin visita** | Pasan **más de 15 días calendario** desde la última visita completada de la cuenta, o desde el alta si todavía no hay visitas: el día 15 no genera alerta y el día 16 sí. Quien configura la cuenta puede cambiar el número en *Días sin visita para generar alerta* | Media |
+| **Seguimiento familiar sin visita** | Solo en Organización. Se genera al superar **15 días calendario** desde la última visita completada o desde el alta. Puedes cambiar el umbral en *Días sin visita para generar alerta*. | Media |
 
 Los tres primeros tipos forman los **casos prioritarios**. No existe una alerta de «Emergencia»: marcar **Situación crítica** en una visita queda registrado en la visita, pero no crea una alerta.
 
@@ -220,14 +220,14 @@ Para usar Reportes, tu plan debe incluir **métricas**. Si no lo incluye, la pan
 **Tipos de reporte**
 
 - **Adultos mayores registrados:** los dados de alta en el período.
-- **Visitas realizadas:** visitas completadas y estado observado de cada adulto. Solo aparece en cuentas de organización.
+- **Visitas realizadas:** incluye las visitas institucionales completadas y las muestra por separado. Solo las visitas con expediente suman atenciones a adultos. Los filtros de municipio, sector o riesgo se aplican a expedientes. Disponible solo en Organización.
 - **Necesidades frecuentes y atendidas:** por categoría y con su estado actual.
 - **Casos prioritarios:** alertas prioritarias del período y su estado actual.
 
 **Cómo generar un reporte**
 
 1. Elige el tipo de reporte.
-2. Elige el **período**: todo el tiempo, este mes, últimos 3 meses, últimos 6 meses, este año o personalizado (desde / hasta). La fecha «hasta» no puede ser anterior a «desde».
+2. Elige el **período**: todo el tiempo, este mes, últimos 3 meses, últimos 6 meses, este año o personalizado (desde / hasta). Si «hasta» es anterior a «desde», corrige el rango para consultar o exportar.
 3. Si quieres, filtra por municipio, sector o riesgo. En *Necesidades*, también por categoría.
 4. Revisa los indicadores, los gráficos y la tabla de datos. Cada gráfico tiene su tabla con los mismos números. Toca **Mostrar filas más** para ver el detalle completo. Los nombres abren su expediente.
 
@@ -252,7 +252,7 @@ El informe médico es un PDF que resume el expediente de una persona, para que l
 El informe contiene:
 
 - Identificación mínima: nombre, cédula, fecha de nacimiento, sexo, municipio y estado del expediente.
-- Indicaciones médicas vigentes.
+- Indicaciones médicas activas cuya fecha de inicio ya llegó y cuyo fin sigue vigente.
 - Riesgo vigente e historial (hasta 15 registros).
 - Las últimas 10 visitas realizadas, con sus observaciones.
 - Quién lo generó y cuándo.

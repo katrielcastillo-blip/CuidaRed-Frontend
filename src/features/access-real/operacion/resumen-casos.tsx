@@ -9,10 +9,11 @@ import { Link } from 'react-router-dom'
 import { ArrowDownUp, RefreshCw } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, HelpTip, RiesgoBadge, SearchInput, SelectField } from '@/components/ui'
 import { fechaCorta } from '@/domain/dates'
-import type { CasoResumen, IndicadoresResumen } from '../api/reportes'
+import type { CasoResumen, IndicadoresResumen, OpcionesReporte } from '../api/reportes'
+import { ROL_TEXTO } from '../cuentas-datos'
 import { idRuta, Paginador, useDatos, usePagina } from './controles'
 import { EstadoConsulta } from './estado-consulta'
-import { textoRiesgo } from './reportes-modelo'
+import { opcionesUbicacion, textoRiesgo } from './reportes-modelo'
 import {
   BUSQUEDA_MAX,
   consultaResumen,
@@ -22,7 +23,6 @@ import {
   ESTADOS_ATENCION,
   FILTROS_RESUMEN_INICIALES,
   hayFiltrosResumen,
-  opcionesDeCasos,
   PRIORIDAD_TEXTO,
   PRIORIDAD_TONO,
   sentidoDeOrden,
@@ -66,7 +66,7 @@ function Indicadores({ datos }: { datos: IndicadoresResumen }) {
       <Indicador etiqueta="Prioridad alta" valor={datos.por_prioridad.alta} peligro />
       <Indicador etiqueta="Prioridad media" valor={datos.por_prioridad.media} />
       <Indicador etiqueta="Prioridad baja" valor={datos.por_prioridad.baja} />
-      <Indicador etiqueta={`Más de ${datos.umbral_dias_sin_visita} días sin visita`} valor={datos.seguimiento_vencido} peligro />
+      {datos.umbral_dias_sin_visita !== null && <Indicador etiqueta={`Más de ${datos.umbral_dias_sin_visita} días sin visita`} valor={datos.seguimiento_vencido} peligro />}
       <Indicador etiqueta="Sin personal asignado" valor={datos.sin_personal_asignado} peligro />
     </div>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -110,17 +110,17 @@ function TarjetaCaso({ caso, raiz }: { caso: CasoResumen; raiz: string }) {
       <Badge tone={ESTADO_ATENCION_TONO[caso.estado_atencion]}>{ESTADO_ATENCION_TEXTO[caso.estado_atencion]}</Badge>
     </div>
     {caso.motivos.length > 0 && <p className="text-xs text-muted">{caso.motivos.map(textoMotivo).join(' · ')}</p>}
-    <dl className="grid grid-cols-3 gap-2 border-t border-line-soft pt-3 text-center">
+    <dl className={`grid ${seguimiento ? 'grid-cols-3' : 'grid-cols-2'} gap-2 border-t border-line-soft pt-3 text-center`}>
       <div><dt className="text-xs text-muted">Alertas abiertas</dt><dd className={alertas.abiertas > 0 ? 'text-lg font-bold text-danger' : 'text-lg font-bold'}>{alertas.abiertas}</dd></div>
       <div><dt className="text-xs text-muted">Necesidades activas</dt><dd className="text-lg font-bold">{caso.necesidades_activas}</dd></div>
-      <div><dt className="text-xs text-muted">Días sin visita</dt><dd className={seguimiento.vencido ? 'text-lg font-bold text-danger' : 'text-lg font-bold'}>{seguimiento.dias_sin_visita}</dd></div>
+      {seguimiento && <div><dt className="text-xs text-muted">Días sin visita</dt><dd className={seguimiento.vencido ? 'text-lg font-bold text-danger' : 'text-lg font-bold'}>{seguimiento.dias_sin_visita}</dd></div>}
     </dl>
     {alertas.abiertas > 0 && <p className="text-sm text-ink-2">
       {plural(alertas.abiertas, 'alerta abierta', 'alertas abiertas')}: {alertas.pendientes} pendientes, {alertas.en_proceso} en atención, {alertas.prioritarias_abiertas} prioritarias.
     </p>}
-    <p className={seguimiento.vencido ? 'text-sm font-semibold text-danger' : 'text-sm text-ink-2'}>
+    {seguimiento && <p className={seguimiento.vencido ? 'text-sm font-semibold text-danger' : 'text-sm text-ink-2'}>
       {textoSeguimiento(seguimiento)}{seguimiento.vencido ? `. Supera el límite de ${seguimiento.umbral_dias} días.` : ''}
-    </p>
+    </p>}
     <p className="text-sm text-ink-2">
       {personal.length === 0 ? <span className="font-semibold text-warning-700">Sin personal asignado</span>
         : <><b className="text-ink">{plural(personal.length, 'persona asignada', 'personas asignadas')}:</b> {personal.map((p) => `${p.nombres} ${p.apellidos} (${p.rol})`).join(', ')}</>}
@@ -139,13 +139,17 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
   const consulta = consultaResumen({ ...filtros, busqueda }, criterio, invertido)
   const indicadores = useDatos<IndicadoresResumen>(`${base}/resumen-casos/indicadores`, token, revision)
   const lista = usePagina<CasoResumen>(`${base}/resumen-casos`, token, revision, consulta)
-  // Las opciones de municipio, sector y persona salen de los casos de la cuenta, no de la página filtrada.
-  const universo = usePagina<CasoResumen>(`${base}/resumen-casos`, token, 0, { limit: 100 })
-  const opciones = opcionesDeCasos(universo.datos?.data ?? [])
+  const universo = useDatos<OpcionesReporte>(`${base}/resumen-casos/opciones`, token, revision)
+  const opciones = opcionesUbicacion(universo.datos)
+  const personal = (universo.datos?.asignados ?? []).map((p) => ({
+    value: p.usuario_id, label: `${p.nombres} ${p.apellidos} · ${ROL_TEXTO[p.rol]}`,
+  }))
   const total = lista.datos?.meta.total
   const filtrando = hayFiltrosResumen(filtros)
   const sentido = sentidoDeOrden(criterio, invertido)
   const terminoCorto = filtros.busqueda.trim().length > 0 && !terminoDeBusqueda(filtros.busqueda)
+  const estados = ESTADOS_ATENCION.filter((e) => cuenta.tipo === 'organizacion' || e.value !== 'seguimiento_vencido')
+  const criterios = CRITERIOS_ORDEN.filter((c) => cuenta.tipo === 'organizacion' || c.value !== 'ultima_visita')
 
   return <section className="grid gap-5" aria-label="Resumen de casos">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -165,7 +169,7 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
       {terminoCorto && <p role="status" className="text-sm text-ink-2">Escribe al menos 2 caracteres para buscar.</p>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SelectField label="Estado de atención" value={filtros.estado} onChange={(event) => set('estado', event.currentTarget.value)}
-          options={[{ value: '', label: 'Todos' }, ...ESTADOS_ATENCION.map((e) => ({ value: e.value, label: e.label }))]} />
+          options={[{ value: '', label: 'Todos' }, ...estados.map((e) => ({ value: e.value, label: e.label }))]} />
         <SelectField label="Prioridad" value={filtros.prioridad} onChange={(event) => set('prioridad', event.currentTarget.value)}
           options={[{ value: '', label: 'Todas' }, ...(['alta', 'media', 'baja'] as const).map((p) => ({ value: p, label: PRIORIDAD_TEXTO[p] }))]} />
         <SelectField label="Riesgo" value={filtros.riesgo} onChange={(event) => set('riesgo', event.currentTarget.value)}
@@ -175,13 +179,14 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
         <SelectField label="Sector" value={filtros.zona} onChange={(event) => set('zona', event.currentTarget.value)}
           options={[{ value: '', label: 'Todos' }, ...opciones.sectores]} />
         <SelectField label="Asignado a" value={filtros.asignado} onChange={(event) => set('asignado', event.currentTarget.value)}
-          options={[{ value: '', label: 'Todos' }, { value: 'sin', label: 'Sin personal asignado' }, { value: 'con', label: 'Con personal asignado' }, ...opciones.personas]} />
+          options={[{ value: '', label: 'Todos' }, { value: 'sin', label: 'Sin personal asignado' }, { value: 'con', label: 'Con personal asignado' }, ...personal]} />
       </div>
+      {universo.error && <EstadoConsulta consulta={universo} />}
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1 sm:max-w-xs">
           <SelectField label="Ordenar por" value={criterio} onChange={(event) => { setCriterio(event.currentTarget.value as CriterioOrden); setInvertido(false) }}
-            options={CRITERIOS_ORDEN.map((c) => ({ value: c.value, label: c.label }))}
-            help={<>{ESTADOS_ATENCION.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}</>} />
+            options={criterios.map((c) => ({ value: c.value, label: c.label }))}
+            help={<>{estados.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}</>} />
         </div>
         <Button variant="outline" size="sm" icon={<ArrowDownUp size={18} aria-hidden />} onClick={() => setInvertido((valor) => !valor)}>
           Orden: {sentido}<span className="sr-only"> (activar para invertir el orden)</span>
@@ -195,7 +200,7 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
     {lista.datos && <p className="flex flex-wrap items-center gap-1 text-sm text-ink-2" aria-live="polite">
       <span data-testid="total-casos">{filtrando ? `${plural(total ?? 0, 'caso coincide', 'casos coinciden')} con los filtros` : plural(total ?? 0, 'caso activo', 'casos activos')} · ordenados por {CRITERIOS_ORDEN.find((c) => c.value === criterio)?.label.toLowerCase()} ({sentido})</span>
       <HelpTip label="Ayuda: estados de atención">
-        {ESTADOS_ATENCION.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}
+        {estados.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}
       </HelpTip>
     </p>}
     {lista.datos?.data.length === 0 && (filtrando

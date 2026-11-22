@@ -83,7 +83,7 @@ describe('filtros del contrato', () => {
     expect(filtrosDeSeleccion(SELECCION_INICIAL, '2026-11-20')).toEqual({})
     expect(filtrosDeSeleccion({ ...SELECCION_INICIAL, rango: 'mes', municipio: '0101', zona: 'Villa Juana', riesgo: 'sin_evaluacion' }, '2026-11-20'))
       .toEqual({ desde: '2026-11-01', hasta: '2026-11-20', municipio_cod: '0101', zona: 'Villa Juana', riesgo: 'sin_evaluacion' })
-    expect(filtrosDeSeleccion({ ...SELECCION_INICIAL, rango: 'personalizado', desde: '2026-11-05', hasta: '2026-11-01' }, '2026-11-20')).toEqual({})
+    expect(filtrosDeSeleccion({ ...SELECCION_INICIAL, rango: 'personalizado', desde: '2026-11-05', hasta: '2026-11-01' }, '2026-11-20')).toBeNull()
     expect(filtrosDeSeleccion({ ...SELECCION_INICIAL, categoria: '3' }, '2026-11-20')).toEqual({ tipo_necesidad_id: 3 })
     expect(filtrosDeSeleccion({ ...SELECCION_INICIAL, categoria: 'x' }, '2026-11-20')).toEqual({})
   })
@@ -274,8 +274,12 @@ describe('reporte de adultos', () => {
     expect(construirReporte({ ...api, detalle_truncado: true, detalle_total: 9000 }).tabla.nota).toContain('de 9,000 filas')
   })
 
-  it('saca las opciones de municipio y sector de las series y descarta el sector vacío', () => {
-    expect(opcionesUbicacion(api)).toEqual({
+  it('saca las opciones de municipio y sector del catálogo autorizado', () => {
+    expect(opcionesUbicacion({
+      municipios: [{ codigo: '0101', nombre: 'Santo Domingo de Guzmán' }],
+      sectores: ['Villa Juana'],
+      asignados: [],
+    })).toEqual({
       municipios: [{ value: '0101', label: 'Santo Domingo de Guzmán' }],
       sectores: [{ value: 'Villa Juana', label: 'Villa Juana' }],
     })
@@ -284,24 +288,29 @@ describe('reporte de adultos', () => {
 })
 
 describe('reporte de visitas', () => {
-  it('usa los estados del servidor y no cuenta visitas sin adultos', () => {
+  it('distingue las visitas institucionales de las atenciones a adultos', () => {
     const api: ReporteApi = {
       ...base, tipo: 'visitas', campo_fecha: 'fecha_visita',
-      indicadores: { visitas_realizadas: 2, atenciones: 3, adultos_visitados: 2, adultos_activos: 5, promedio_por_adulto: 1.5, requirieron_atencion: 1, situaciones_criticas: 0, visitas_compartidas: 1 },
-      series: { por_mes: [punto('2026-11', '2026-11', 2, 100)], por_estado_general: [punto('estable', 'Estable', 2, 67), punto('requiere_atencion', 'Requiere atención', 1, 33), punto('situacion_critica', 'Situación crítica', 0), punto('sin_registro', 'Sin registro', 0)] },
+      indicadores: { visitas_realizadas: 2, visitas_personales: 1, visitas_institucionales: 1, atenciones: 3, adultos_visitados: 2, adultos_activos: 5, promedio_por_adulto: 1.5, requirieron_atencion: 1, situaciones_criticas: 0, visitas_compartidas: 1 },
+      series: { por_mes: [punto('2026-11', '2026-11', 2, 100)], por_tipo_visita: [punto('personal', 'Con expediente', 1, 50), punto('institucional', 'Institucional sin expediente', 1, 50)], por_estado_general: [punto('estable', 'Estable', 2, 67), punto('requiere_atencion', 'Requiere atención', 1, 33), punto('situacion_critica', 'Situación crítica', 0), punto('sin_registro', 'Sin registro', 0)] },
       detalle: [{
-        visita_id: 'v1', fecha: '2026-11-18', hora_inicio: '09:00', hora_fin: '09:40', razon: 'Seguimiento', origen: 'solicitud',
+        visita_id: 'v1', fecha: '2026-11-18', hora_inicio: '09:00', hora_fin: '09:40', razon: 'Seguimiento', origen: 'solicitud', tipo_visita: 'personal',
         responsables: [{ usuario_id: 'u1', nombres: 'Ana', apellidos: 'Gómez' }],
         adultos: [{ envejeciente_id: 'a1', nombres: 'Juana', apellidos: 'Pérez', estado_general: 'requiere_atencion' }, { envejeciente_id: 'a2', nombres: 'Pedro', apellidos: 'Ramos', estado_general: null }],
+      }, {
+        visita_id: 'v2', fecha: '2026-11-17', hora_inicio: null, hora_fin: null, razon: 'Actividad', origen: 'solicitud',
+        tipo_visita: 'institucional', responsables: [], adultos: [],
       }],
-      detalle_total: 1,
+      detalle_total: 2,
     }
     const r = construirReporte(api)
     expect(r.kpis.find((k) => k.etiqueta === 'Promedio por adulto visitado')?.valor).toBe('1.50')
     expect(r.kpis.find((k) => k.etiqueta === 'Requirieron atención')).toMatchObject({ valor: 1, peligro: true })
-    expect(r.graficos.map((g) => g.id)).toEqual(['visitas-por_mes', 'visitas-por_estado_general'])
+    expect(r.graficos.map((g) => g.id)).toEqual(['visitas-por_mes', 'visitas-por_tipo_visita', 'visitas-por_estado_general'])
+    expect(r.kpis.find((k) => k.etiqueta === 'Visitas institucionales')?.valor).toBe(1)
     expect(r.tabla.filas[0]!.adultoId).toBeUndefined()
-    expect(r.tabla.filas[0]!.celdas).toEqual(['18/11/2026', '09:00 – 09:40', 'Seguimiento', 'Por solicitud', 'Ana Gómez', 'Juana Pérez (Requiere atención); Pedro Ramos'])
+    expect(r.tabla.filas[0]!.celdas).toEqual(['18/11/2026', '09:00 – 09:40', 'Seguimiento', 'Por solicitud', 'Con expediente', 'Ana Gómez', 'Juana Pérez (Requiere atención); Pedro Ramos'])
+    expect(r.tabla.filas[1]!.celdas).toContain('Institucional sin expediente')
   })
 })
 
@@ -385,10 +394,10 @@ describe('análisis avanzado', () => {
     const a = construirAvanzado(sinVisitas)
     const etiquetas = [...a.zonas.tabla.columnas, ...a.municipios!.tabla.columnas, ...a.tendencias.tabla.columnas].map((c) => c.etiqueta)
     expect(etiquetas.some((e) => /isitas realizadas|isitas por adulto|ariación de visitas/.test(e))).toBe(false)
-    expect(etiquetas).toContain('Días sin visita (prom.)')
+    expect(etiquetas).not.toContain('Días sin visita (prom.)')
     expect(a.zonas.grafico.series.map((s) => s.nombre)).toEqual(['Adultos activos', 'Necesidades activas'])
     expect(a.tendencias.grafico.series.map((s) => s.nombre)).not.toContain('Visitas realizadas')
-    expect(a.zonas.tabla.filas[0]!.celdas).toEqual(['Villa Juana', 'Santo Domingo', 8, 2, 3, 4, '9.5', 1])
+    expect(a.zonas.tabla.filas[0]!.celdas).toEqual(['Villa Juana', 'Santo Domingo', 8, 2, 3, 4, 1])
     expect(a.zonas.tabla.filas[0]!.celdas).toHaveLength(a.zonas.tabla.columnas.length)
     expect(a.tendencias.tabla.filas[0]!.celdas).toEqual(['Oct 2026', 2, 1, 0])
     expect(JSON.stringify(a)).not.toContain('null')

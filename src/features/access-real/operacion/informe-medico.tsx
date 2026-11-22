@@ -62,7 +62,7 @@ function Vista({ informe }: { informe: InformeMedicoApi }) {
               <p className="text-xs text-muted">{[i.frecuencia_horario, vigenciaIndicacion(i.fecha_inicio, i.fecha_fin), i.registrada_por ? `Registrada por ${nombre(i.registrada_por)}` : null].filter(Boolean).join(' · ')}</p>
             </Card>
           </li>)}</ul>}
-        <p className="text-xs text-muted">{indicaciones.no_vigentes > 0 ? `No se incluyen ${indicaciones.no_vigentes} indicaciones suspendidas o finalizadas. ` : ''}Solo se transcribe lo indicado por personal de salud.</p>
+        <p className="text-xs text-muted">{indicaciones.no_vigentes > 0 ? `No se incluyen ${indicaciones.no_vigentes} ${indicaciones.no_vigentes === 1 ? 'indicación' : 'indicaciones'} fuera de vigencia. ` : ''}Solo se transcribe lo indicado por personal de salud.</p>
       </>}
     </section>
 
