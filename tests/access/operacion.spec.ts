@@ -288,9 +288,11 @@ test('el gestor consulta auditoría y gestiona una solicitud de visita existente
   await page.route(`${backend}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname
     if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
-    if (path.endsWith('/auditoria')) return r.fulfill({ json: pagina([{
-      auditoria_id: '11', actor: 'Persona Revisora', accion: 'alta', entidad: 'cuenta', fecha: '2026-11-09T16:00:00Z', resultado: 'confirmado',
-    }]) })
+    if (path.endsWith('/auditoria')) return r.fulfill({ json: pagina([
+      { auditoria_id: '11', actor: 'Persona Revisora', accion: 'alta', entidad: 'cuenta', fecha: '2026-11-09T16:00:00Z', resultado: 'confirmado' },
+      { auditoria_id: '12', actor: 'Persona Revisora', accion: 'exportacion', entidad: 'exportacion_reporte', fecha: '2026-11-09T16:05:00Z', resultado: 'confirmado' },
+      { auditoria_id: '13', actor: 'Persona Revisora', accion: 'exportacion', entidad: 'informe_medico', fecha: '2026-11-09T16:06:00Z', resultado: 'confirmado' },
+    ]) })
     if (path.endsWith('/solicitudes-visita')) return r.fulfill({ json: pagina([
       { solicitud_visita_id: id, estado: rechazo ? 'rechazada' : 'pendiente', visitante: { nombres: 'Juan', apellidos: 'Prueba' },
         persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Visita comunitaria' },
@@ -312,7 +314,9 @@ test('el gestor consulta auditoría y gestiona una solicitud de visita existente
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/auditoria`)
   await expect(page.getByText('Alta · Cuenta')).toBeVisible()
-  await expect(page.getByText(/Persona Revisora/)).toBeVisible()
+  await expect(page.getByText('Exportación · Reporte exportado')).toBeVisible()
+  await expect(page.getByText('Exportación · Informe médico')).toBeVisible()
+  await expect(page.getByText(/Persona Revisora/).first()).toBeVisible()
   await page.goto(`${ruta}/solicitudes-visita`)
   await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click()
   await page.getByLabel(/^Motivo del rechazo/).fill('La fecha debe confirmarse con el equipo.')

@@ -4,7 +4,7 @@
  * Módulo: gestión · reportes (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { esGraficoSeries, type GraficoReporte, type GraficoSeries } from '../../lib/reportes'
+import { esGraficoSeries, type GraficoReporte, type GraficoSeries } from '../../lib/reportes-comun'
 
 /** Las barras agrupadas con muchas zonas se dibujan en horizontal. */
 export const horizontalSeries = (g: GraficoSeries) => g.forma === 'barras' && g.etiquetas.length > 5

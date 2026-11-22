@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Evidencias } from './visitas-evidencias'
-import { CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from 'lucide-react'
 import { Badge, Button, ButtonLink, Card, Chip, EmptyState, RiesgoBadge, SelectField } from '@/components/ui'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { SECCIONES } from '@/features/gestion/lib/riesgo'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn'
 import { api } from '../client'
 import type { ColaOperaciones } from './cola-operaciones'
 import { campo, Estado, Formulario, idRuta, Paginador, useDatos, usePagina, type Campo } from './controles'
+import { InformeMedico } from './informe-medico'
 import { Necesidades } from './necesidades'
 import type { Candidato, OperacionProps } from './visitas'
 
@@ -374,8 +375,14 @@ export function Seguimiento({ riesgo, abrirEvaluacion, abrirAsignacion, adultoId
   if (permisos.includes('indicaciones:ver')) opciones.push({ value: 'indicaciones', label: 'Indicaciones' })
   if (permisos.includes('necesidades:ver')) opciones.push({ value: 'necesidades', label: 'Necesidades' })
   const vigente = opciones.some((opcion) => opcion.value === seleccion) ? seleccion : 'historial'
+  // Las alertas solo existen para expedientes activos (la API no lista las de un adulto inactivo).
+  const verAlertas = permisos.includes('alertas:ver') && props.adultoActivo
 
   return <section className="grid gap-3" aria-label="Seguimiento del expediente">
+    {verAlertas && <ButtonLink variant="outline" size="sm" className="justify-self-start" icon={<Bell size={18} aria-hidden />}
+      to={`/operacion/${idRuta(props.cuenta.cuenta_id)}/alertas?bandeja=alertas&adulto=${idRuta(adultoId)}`}>Ver alertas de este adulto</ButtonLink>}
+    {/* Informe médico (`informe:exportar`): sirve para cualquier estado del expediente mientras conserve el consentimiento. */}
+    <InformeMedico base={props.base} token={props.token} cuenta={props.cuenta} adultoId={adultoId} />
     {opciones.length > 1 && <div className="flex flex-wrap gap-2" role="group" aria-label="Secciones de seguimiento">
       {opciones.map((opcion) => <button key={opcion.value} type="button" aria-pressed={vigente === opcion.value} onClick={() => {
         seleccionar(opcion.value)

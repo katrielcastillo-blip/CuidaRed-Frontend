@@ -1,5 +1,29 @@
 # Cambios actuales
 
+## 21/11/2026 — Ajustes de la fase 7
+
+- Los filtros de Resumen y Reportes cargan municipios, sectores y personal autorizado según el módulo. Un período invertido suspende la consulta, el análisis avanzado y las exportaciones hasta que se corrija.
+- La tabla, los indicadores y el gráfico de visitas distinguen las institucionales sin expediente. Familia deja de mostrar los controles, estados e indicadores de seguimiento por ausencia de visitas.
+- El informe médico describe como fuera de vigencia las indicaciones omitidas. La verificación del inicio y el fin se hace en el backend al generar el informe.
+- Los gráficos conservan sus tablas accesibles si se interrumpe la descarga del componente. La pantalla mantiene los datos y vuelve a habilitar las exportaciones al recuperar la conexión. El PDF puede descargarse con las tablas si el módulo de gráficos sigue inaccesible.
+- Validación: 168 pruebas de componentes, 148 pruebas de navegador y compilación correctas. Tras el ajuste final del PDF se repitieron seis pruebas de exportación y reconexión en móvil y escritorio.
+- Supabase CuidaRed tiene aplicada la migración de Reportes CUIDARED-012 (`20261121064256`) desde el 21/11/2026, con aprobación del usuario. Falta probar el recorrido conectado con una sesión real.
+
+## 20/11/2026 — Cierre de la fase 6 y fase 7 (reportes) en modo conectado
+
+- Alertas (fase 6): la campana con contador solo aparece a quien recibe avisos (Coordinador y Administrador de Organización). Se quitó el filtro «Archivadas», se añadió el filtro por adulto mayor en Alertas y el botón «Ver alertas de este adulto» en el expediente, y una alerta que cambió de estado muestra un mensaje propio. Pruebas en `tests/access/alertas.spec.ts`. Actualizados el manual (§6.2) y la RTM (CU-09 y CU-10).
+- Resumen de casos y reportes (fase 7): nuevas pantallas `resumen-casos.tsx` (ruta `/operacion/:cuentaId/resumen`, permiso `resumen:ver`) y `reportes.tsx` (ruta `/operacion/:cuentaId/reportes`, permiso `reportes:ver` y plan con `dashboard_metricas`), con `resumen-datos.ts`, `reportes-modelo.ts`, `reportes-errores.ts` y `api/reportes.ts`. Los cuatro reportes son adultos registrados, visitas realizadas (solo Organización), necesidades y casos prioritarios. El CSV lo entrega el servidor; el PDF y el Excel se generan en el navegador después de registrar la exportación; el Excel y el análisis avanzado requieren `reportes_avanzados`.
+- Informe médico (fase 7): botón en el expediente para Coordinador y Cuidador con alcance. El PDF se arma en el navegador (`informe-medico.tsx`, `informe-medico-pdf.ts`, `informe-medico-datos.ts`). No está disponible sin conexión.
+- Demo separado: `src/features/gestion/lib/reportes-comun.ts` reúne el modelo y las utilidades de descarga sin el almacén del prototipo, así que el modo conectado ya no carga el almacén demo (`lib/reportes.ts` lo reexporta). `client.ts` incorpora `apiDescarga` para bajar el CSV con la sesión. Auditoría muestra la acción «Exportación» y las entidades «Reporte exportado» e «Informe médico».
+- Validación: typecheck correcto; vitest, 169 pruebas en 8 archivos; test:access, 284 pruebas superadas; oxlint sin advertencias nuevas; build correcto.
+- En modo conectado la salida de impresión es el PDF.
+- Pendiente tras la revisión independiente (sin bloqueantes):
+  - Si el archivo falla después de registrar la exportación, el mensaje no lo dice y un reintento crea otro registro.
+  - Accesibilidad: la región `aria-live` cubre todo el reporte y el selector de tipo no se maneja con flechas.
+  - El aviso de exportación sigue visible al cambiar filtros. Algunos 403 pierden su mensaje específico.
+  - En el PDF del informe, el sexo sale como `F`/`M`, la nota final puede pisar el pie y un estado general vacío se explica como restricción de rol.
+  - Faltan pruebas del error de CSV y del contenido de PDF/Excel.
+
 ## 19/11/2026 — Integración de visitas y acceso conectado
 
 - La portada, las solicitudes de visita y el calendario conviven con Backoffice, la recuperación de sesión al abrir avisos y Web Push. Se conservan la programación recurrente, la revisión de evidencias y la sincronización de necesidades.

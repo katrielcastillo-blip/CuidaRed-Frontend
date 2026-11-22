@@ -3,6 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Cake, MapPin, Phone, Plus, ShieldCheck, VenusAndMars } from 'lucide-react'
 import {
   Badge, Button, Card, Checkbox, CheckboxGroup, EmptyState, IconTile, InfoRow, RiesgoBadge,
@@ -58,6 +59,7 @@ const ESTADO: Record<EstadoAdulto, string> = { activo: 'Activo', inactivo: 'Inac
 const SEXOS = [{ value: 'F', label: 'Femenino' }, { value: 'M', label: 'Masculino' }]
 const PASOS = ['Identificación', 'Ubicación y cuidado', 'Contacto principal y consentimiento']
 const POR_QUIEN = [{ value: 'adulto', label: 'El adulto mayor' }, { value: 'representante', label: 'Su representante' }]
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const nombre = (persona: { nombres: string; apellidos: string }) => `${persona.nombres} ${persona.apellidos}`
 const telefono = (valor: string) => valor.replace(/[\s()-]/g, '')
 const cedulaVisible = (valor: string) => valor.replace(/^(\d{3})(\d{7})(\d)$/, '$1-$2-$3')
@@ -371,7 +373,10 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
 
 export function Envejecientes(props: OperacionProps & { cola: ColaOperaciones }) {
   const { base, token, cuenta } = props
-  const [vista, setVista] = useState<Vista>({ tipo: 'lista' })
+  // El resumen y los reportes enlazan al expediente con `?adulto=<uuid>`; un valor que no es UUID se ignora.
+  const [parametros, fijarParametros] = useSearchParams()
+  const adultoEnlazado = parametros.get('adulto')
+  const [vista, setVista] = useState<Vista>(() => adultoEnlazado && UUID.test(adultoEnlazado) ? { tipo: 'perfil', id: adultoEnlazado } : { tipo: 'lista' })
   const [revision, setRevision] = useState(0)
   const [estado, setEstado] = useState('')
   const [busqueda, setBusqueda] = useState('')
@@ -381,7 +386,10 @@ export function Envejecientes(props: OperacionProps & { cola: ColaOperaciones })
   const criterio = normaliza(busqueda.trim())
   const adultos = listado.datos?.data.filter((adulto) => !criterio || normaliza(`${nombre(adulto)} ${adulto.zona ?? ''}`).includes(criterio)) ?? []
   const refrescar = () => setRevision((n) => n + 1)
-  const volver = () => setVista({ tipo: 'lista' })
+  const volver = () => {
+    setVista({ tipo: 'lista' })
+    if (adultoEnlazado) fijarParametros({}, { replace: true })
+  }
   const puedeCrear = cuenta.permisos.includes('adultos:crear')
   const puedeArchivar = cuenta.permisos.includes('adultos:desactivar')
   const retiros = usePagina<{ envejeciente_id: string; nombre: string; fecha: string; motivo: string | null; actor: string | null }>(

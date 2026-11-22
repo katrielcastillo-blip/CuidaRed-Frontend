@@ -81,11 +81,11 @@ function DatosContacto({ base, token, cuenta, datos, actualizar, cancelar }: Ope
   </Formulario>
 }
 
-function Configuracion({ base, token, actualizar }: Pick<OperacionProps, 'base' | 'token'> & { actualizar: () => void }) {
+function Configuracion({ base, token, cuenta, actualizar }: Pick<OperacionProps, 'base' | 'token' | 'cuenta'> & { actualizar: () => void }) {
   const [revision, setRevision] = useState(0)
   const [borrador, setBorrador] = useState<Record<string, string | null>>({})
   const config = useDatos<Parametro[]>(`${base}/configuracion`, token, revision)
-  const parametros = config.datos ?? []
+  const parametros = (config.datos ?? []).filter((p) => cuenta.tipo === 'organizacion' || p.nombre !== 'dias_sin_visita_alerta')
   const grupos = [
     { titulo: 'Umbrales de alerta', icono: SlidersHorizontal, items: parametros.filter((p) => p.tipo_dato === 'entero' || p.tipo_dato === 'decimal') },
     { titulo: 'Notificaciones', icono: Bell, items: parametros.filter((p) => p.tipo_dato === 'booleano') },
@@ -100,7 +100,7 @@ function Configuracion({ base, token, actualizar }: Pick<OperacionProps, 'base' 
   })
 
   return <section aria-label="Preferencias de la cuenta" className="grid gap-4">
-    <Estado consulta={config} vacio={config.datos?.length === 0 ? 'Sin parámetros disponibles.' : undefined} />
+    <Estado consulta={config} vacio={config.datos && parametros.length === 0 ? 'Sin parámetros disponibles.' : undefined} />
     {parametros.length > 0 && <Formulario titulo="Preferencias de la cuenta" campos={[]} accion="Guardar preferencias"
       submitDisabled={!Object.keys(borrador).length || config.error} exito="Preferencias guardadas."
       cancelar={Object.keys(borrador).length ? () => setBorrador({}) : undefined}

@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { fechaLarga, hora12 } from '@/domain/dates'
-import { descargarBlob, graficosDelReporte, SIN_DATOS, tablaDeGrafico, type Columna } from '../../lib/reportes'
+import { descargarBlob, graficosDelReporte, SIN_DATOS, tablaDeGrafico, tablasAvanzadas, type Columna } from '../../lib/reportes-comun'
 import type { ContextoExportacion } from './tipos'
 
 type Celda = string | number | { value: string | number; fontWeight?: 'bold'; fontStyle?: 'italic'; fontSize?: number; textColor?: string; backgroundColor?: string; align?: 'left' | 'right'; wrap?: boolean }
@@ -50,12 +50,13 @@ export async function exportarExcel(ctx: ContextoExportacion, nombreArchivo: str
     [etiqueta('Cuenta'), ctx.cuenta],
     [etiqueta('Generado'), `${fechaLarga(ctx.generado)}, ${hora12(ctx.generado)}`],
     [etiqueta('Generado por'), ctx.generadoPor],
+    ...(ctx.constancia ? [[etiqueta('Constancia'), ctx.constancia]] : []),
     ...ctx.filtros.map((f, i): Fila => [i === 0 ? etiqueta('Filtros aplicados') : '', f]),
     [],
   ]
   if (r.vacio) resumen.push([{ value: SIN_DATOS, fontStyle: 'italic' }])
-  else resumen.push([seccion('Indicadores')], ...tablaEn([{ etiqueta: 'Indicador' }, { etiqueta: 'Valor', tipo: 'numero' }, { etiqueta: 'Nota' }], r.kpis.map((k) => [k.etiqueta, k.valor, k.nota ?? ''])))
-  if (!ctx.avanzado) resumen.push([], [{ value: `Comparativos por zona y tendencias: ${ctx.avisoAvanzado}`, fontStyle: 'italic', textColor: '#64748b' }])
+  else if (!ctx.soloAvanzado) resumen.push([seccion('Indicadores')], ...tablaEn([{ etiqueta: 'Indicador' }, { etiqueta: 'Valor', tipo: 'numero' }, { etiqueta: 'Nota' }], r.kpis.map((k) => [k.etiqueta, k.valor, k.nota ?? ''])))
+  if (!ctx.avanzado && ctx.avisoAvanzado) resumen.push([], [{ value: `Comparativos por zona y tendencias: ${ctx.avisoAvanzado}`, fontStyle: 'italic', textColor: '#64748b' }])
   hojas.push({ sheet: nombreHoja('Resumen', usados), data: resumen, columns: [{ width: 28 }, { width: 62 }, { width: 38 }] })
 
   if (!r.vacio) {
@@ -69,13 +70,15 @@ export async function exportarExcel(ctx: ContextoExportacion, nombreArchivo: str
       })
     }
     /* Detalle */
-    hojas.push({
-      sheet: nombreHoja('Detalle', usados),
-      data: [[seccion(r.tabla.titulo)], [], ...tablaEn(r.tabla.columnas, r.tabla.filas.map((f) => f.celdas))],
-      columns: anchos(r.tabla.columnas.length, 30),
-    })
+    if (!ctx.soloAvanzado) {
+      hojas.push({
+        sheet: nombreHoja('Detalle', usados),
+        data: [[seccion(r.tabla.titulo)], [], ...tablaEn(r.tabla.columnas, r.tabla.filas.map((f) => f.celdas)), ...(r.tabla.nota ? [[], [{ value: r.tabla.nota, fontStyle: 'italic' as const }]] : [])],
+        columns: anchos(r.tabla.columnas.length, 30),
+      })
+    }
     /* Análisis avanzado (plan «reportes_avanzados») */
-    for (const a of ctx.avanzado ? [ctx.avanzado.zonas, ctx.avanzado.tendencias] : []) {
+    for (const a of ctx.avanzado ? tablasAvanzadas(ctx.avanzado) : []) {
       if (a.vacio) continue
       hojas.push({
         sheet: nombreHoja(a.tabla.titulo, usados),

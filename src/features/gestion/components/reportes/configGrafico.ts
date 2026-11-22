@@ -22,7 +22,7 @@ import {
   type ChartConfiguration,
   type Plugin,
 } from 'chart.js'
-import { esGraficoSeries, type Grafico, type GraficoReporte, type GraficoSeries } from '../../lib/reportes'
+import { esGraficoSeries, type Grafico, type GraficoReporte, type GraficoSeries } from '../../lib/reportes-comun'
 import { alturaGrafico, horizontalSeries } from './alturaGrafico'
 
 Chart.register(ArcElement, BarController, BarElement, CategoryScale, DoughnutController, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip)

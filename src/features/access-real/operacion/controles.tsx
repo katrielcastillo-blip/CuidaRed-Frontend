@@ -9,7 +9,7 @@ import { api, apiPage, ApiError } from '../client'
 import { mensajeDeError } from '../errores'
 import type { CollectionQuery, PaginatedResponse } from '@/lib/api-contract'
 
-type Consulta<T> = { clave: string; token: string; datos?: T; error?: true }
+type Consulta<T> = { clave: string; token: string; datos?: T; error?: true; fallo?: unknown }
 
 const conexionReal = () => typeof navigator === 'undefined' || navigator.onLine
 export const useConexionReal = () => useSyncExternalStore(suscribirConectividad, conexionReal, conexionReal)
@@ -25,12 +25,12 @@ function useConsulta<T>(ruta: string | null, token: string, revision: number, co
     const respuesta = consulta === undefined ? api<T>(ruta, token) : apiPage(ruta, token, JSON.parse(consulta) as CollectionQuery)
     void respuesta.then(
       (datos) => { if (vigente) setResultado({ clave, token, datos: datos as T }) },
-      () => { if (vigente) setResultado({ clave, token, error: true }) },
+      (fallo: unknown) => { if (vigente) setResultado({ clave, token, error: true, fallo }) },
     )
     return () => { vigente = false }
   }, [ruta, clave, token, revision, reintento, consulta, enLinea])
   const actual = clave && resultado?.clave === clave && resultado.token === token ? resultado : undefined
-  return { datos: actual?.datos, error: actual?.error, sinConexion: !enLinea, reintentar: () => setReintento((n) => n + 1) }
+  return { datos: actual?.datos, error: actual?.error, fallo: actual?.fallo, sinConexion: !enLinea, reintentar: () => setReintento((n) => n + 1) }
 }
 
 export function useDatos<T>(ruta: string | null, token: string, revision = 0) {
