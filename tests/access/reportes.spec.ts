@@ -24,6 +24,12 @@ const PERMISOS_REPORTES = [...BASE, 'visitas:ver', 'resumen:ver', 'reportes:ver'
 const cuentaDe = (datos: Partial<CuentaSim> = {}) =>
   cuentaActiva({ cuenta_id: '9007199254740993', nombre: 'Fundación Esperanza', tipo: 'organizacion', rol: 'coordinador', permisos: PERMISOS_REPORTES, funcionalidades: PLAN_AVANZADO, ...datos })
 
+const cuentaIntegral = () => cuentaDe({
+  tipo: 'familia',
+  nombre: 'Familia Esperanza',
+  permisos: PERMISOS_REPORTES.filter((p) => p !== 'visitas:ver'),
+})
+
 async function abrir(page: Page, cuenta: CuentaSim, seccion: 'resumen' | 'reportes' | 'cuenta', opciones: OpcionesReportes = {}) {
   const sim = await simular(page, { cuentas: [cuenta] })
   const api = await montarReportes(page, cuenta, opciones)
@@ -104,8 +110,10 @@ test('plan: con reportes_avanzados se habilitan el Excel y el análisis avanzado
   expect(de(/^\/reportes\/analisis-avanzado$/).every((l) => !l.consulta.has('filter[tipo_necesidad_id]'))).toBe(true)
 })
 
-test('plan: sin visitas:ver las visitas del análisis avanzado llegan null y no se muestran como cero', async ({ page }) => {
-  await abrir(page, cuentaDe({ tipo: 'familia', permisos: PERMISOS_REPORTES.filter((p) => p !== 'visitas:ver') }), 'reportes', { sinVisitas: true })
+test('Cuidado Integral ofrece análisis avanzado sin reportes ni métricas de Visitas', async ({ page }) => {
+  await abrir(page, cuentaIntegral(), 'reportes', { sinVisitas: true })
+  await expect(page.getByRole('radio', { name: 'Visitas realizadas' })).toHaveCount(0)
+  await expect(page.locator('#avanzado-bloqueado')).toHaveCount(0)
   const avanzado = page.getByTestId('analisis-avanzado')
   await expect(avanzado.getByTestId('aviso-sin-visitas')).toBeVisible()
   await expect(avanzado.getByRole('columnheader', { name: 'Adultos activos' }).first()).toBeVisible()
@@ -315,9 +323,9 @@ for (const [estado, codigo, mensaje] of [
   })
 }
 
-test('Excel: con reportes_avanzados registra xlsx y genera el libro', async ({ page }) => {
+test('Excel: Cuidado Integral registra xlsx y genera el libro', async ({ page }) => {
   test.setTimeout(60_000)
-  const { de, orden } = await abrir(page, cuentaDe(), 'reportes')
+  const { de, orden } = await abrir(page, cuentaIntegral(), 'reportes', { sinVisitas: true })
   await expect(page.getByRole('heading', { level: 2, name: 'Adultos mayores registrados' })).toBeVisible()
   const [descarga] = await Promise.all([page.waitForEvent('download', { timeout: 45_000 }), page.getByRole('button', { name: 'Exportar Excel' }).click()])
   expect(descarga.suggestedFilename()).toBe(`reporte-adultos-${hoyRD()}.xlsx`)

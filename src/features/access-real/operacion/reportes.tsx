@@ -123,7 +123,7 @@ function Bloqueo({ titulo, texto, cuenta, raiz, id }: { titulo: string; texto: s
       <h2 id={id} className="font-semibold text-ink">{titulo}</h2>
     </div>
     <p className="text-sm text-ink-2">{texto}{prueba ? ' Tu cuenta está en prueba gratuita y esta funcionalidad no forma parte de ella.' : ''}</p>
-    {cuenta.permisos.includes('cuenta:suscripcion') && <div><Link to={`${raiz}/cuenta`} className="inline-flex min-h-12 items-center font-semibold text-navy underline underline-offset-2">Ver la suscripción de la cuenta</Link></div>}
+    {cuenta.permisos.includes('cuenta:suscripcion') && <div><Link to={`${raiz}/suscripcion`} className="inline-flex min-h-12 items-center font-semibold text-navy underline underline-offset-2">Ver la suscripción de la cuenta</Link></div>}
   </section>
 }
 
