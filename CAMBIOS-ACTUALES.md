@@ -1,5 +1,38 @@
 # Cambios actuales
 
+## 25/11/2026 — Revisión de suscripciones y pagos
+
+- En `src/features/access-real/operacion/suscripcion.tsx`, las tarjetas muestran los términos de un pago iniciado, distinguen la oferta nueva del contrato vigente y permiten actualizar los planes. Los mensajes de cotización y pago aparecen junto a su oferta y las acciones esperan a que termine la actualización de los datos.
+- La vista explica cómo retomar un pago al salir de Stripe y cómo proceder ante un intento vencido. El estado y los cupos usan etiquetas accesibles y un diseño adaptable a pantallas estrechas.
+- Pasaron las 36 pruebas de Suscripción con servicios simulados en móvil y escritorio. También pasaron la comprobación de tipos, el lint de los archivos modificados y la compilación de producción.
+
+## 24/11/2026 — Contratación de planes de Organización
+
+- `src/features/access-real/operacion/suscripcion.tsx` ofrece Operación Base por tarifa publicada y muestra precio y cupos por ciclo para Gestión Comunitaria Avanzada. CuidaRed envía la versión revisada y refresca los términos si la cotización cambió.
+- Pasaron 30 pruebas de Suscripción en móvil y escritorio con servicios simulados y la comprobación de tipos.
+
+## 24/11/2026 — Reportes avanzados en Cuidado Integral
+
+- La pantalla de Suscripción muestra «Análisis avanzado y exportación a Excel» cuando la funcionalidad figura en el catálogo del servidor. Las pruebas de Reportes cubren la descarga de Excel en Cuidado Integral y la exclusión de Visitas en Familia.
+- Pasaron ocho pruebas de Reportes y Suscripción en móvil y escritorio, además de la comprobación de tipos.
+
+## 22/11/2026 — Catálogo dinámico de planes
+
+- Suscripción consulta límites, beneficios y precios de referencia desde la API en `suscripcion.tsx`. La pantalla vuelve a consultar al recuperar visibilidad y cada 30 segundos mientras permanece visible.
+- Básico Familiar muestra el cupo de cuidadores configurado en Backoffice. Cuidado Integral muestra cuidadores sin límite. El selector de periodicidad conserva su selección durante la actualización.
+- Pasaron las 28 pruebas de Suscripción en móvil y escritorio y la compilación de producción.
+
+## 22/11/2026 — Fase 8 · Suscripción y pagos de prueba
+
+- El resumen de la cuenta y el aviso de plan de Reportes abren Suscripción y pagos. La vista conserva el acceso de los roles autorizados cuando la cuenta vence.
+- La vista consulta ofertas compatibles y el historial paginado. Solo la persona titular puede iniciar Stripe Checkout en Sandbox. El retorno consulta el estado del servidor y reconoce los pagos que CuidaRed ya recibió de Stripe.
+- La persona titular puede retomar Checkout, solicitar una cotización de Organización, confirmar un cambio de plan o cancelar la renovación al final del período. Las fechas y operaciones pendientes provienen del servidor.
+- Pasaron 22 pruebas de suscripción y 10 de regresión en móvil y escritorio con Supabase, CuidaRed y Stripe interceptados. Los precios y límites de los planes se consultan al servidor. La pantalla simulada conserva sus flujos de demostración.
+- La pantalla conectada de Suscripción muestra una tarjeta por plan con alcance, beneficios y selector mensual o anual. Las cotizaciones de Organización se muestran en la tarjeta del plan y conservan su propio estado por ciclo.
+- Familia puede consultar Básico Familiar y Cuidado Integral antes de la publicación de tarifas. La pantalla distingue los precios iniciales de referencia de los importes publicados. Solo una oferta del servidor habilita un pago.
+- La consulta manual se ofrece mientras hay un pago o cambio inmediato por confirmar. La pantalla informa cuándo terminó la consulta y conserva la actualización automática temporal.
+- Validación del rediseño en `suscripcion.tsx` y `suscripcion-planes.ts`. Pasaron las 26 pruebas de suscripción en móvil y escritorio, la revisión de tipos y la compilación.
+
 ## 21/11/2026 — Ajustes de la fase 7
 
 - Los filtros de Resumen y Reportes cargan municipios, sectores y personal autorizado según el módulo. Un período invertido suspende la consulta, el análisis avanzado y las exportaciones hasta que se corrija.

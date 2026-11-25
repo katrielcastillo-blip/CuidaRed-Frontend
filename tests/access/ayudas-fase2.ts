@@ -168,7 +168,7 @@ export async function simularSesionDelNavegador(route: Route, token: string, id:
   if (!ruta.startsWith(base)) return false
   const accion = ruta.slice(base.length)
   const headers: Record<string, string> = {
-    'access-control-allow-origin': 'http://localhost:5174',
+    'access-control-allow-origin': (await solicitud.headerValue('origin')) ?? 'http://localhost:5174',
     'access-control-allow-credentials': 'true',
     'access-control-allow-headers': 'content-type,authorization',
     'access-control-allow-methods': 'POST,OPTIONS',

@@ -2,7 +2,7 @@
  * portal.tsx — Navegación operativa por cuenta, con autorización consultada al servidor.
  * © 2026 Equipo CuidaRed – INTEC.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Building2, CalendarClock, ChartColumn, ChevronRight, ClipboardList, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 import { useLogo } from '@/lib/marca'
 import { PantallaMiembros } from '../miembros'
 import { ResumenCuenta } from '../resumen-cuenta'
-import { recibeAvisosDeAlertas, ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
+import { puedeConsultarSuscripcion, recibeAvisosDeAlertas, ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
 import type { CuentaMe } from '../client'
 import { Agenda } from './agenda'
 import { Alertas } from './alertas'
@@ -23,6 +23,7 @@ import { Necesidades } from './necesidades'
 import { Reportes } from './reportes'
 import { ResumenCasos } from './resumen-casos'
 import { SolicitudesVisita } from './solicitudes-visita'
+import { SuscripcionCuenta } from './suscripcion'
 import { Visitas } from './visitas'
 
 type Seccion = {
@@ -111,6 +112,7 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
   const { cuentaId, seccion = 'cuenta' } = useParams()
   const { key: navegacion } = useLocation()
   const [revision, setRevision] = useState(0)
+  const actualizarContexto = useCallback(() => setRevision((n) => n + 1), [])
   const enLinea = useConexionReal()
   const contenido = useRef<HTMLElement>(null)
   const base = cuentaId && /^[1-9][0-9]{0,18}$/.test(cuentaId) ? `/cuentas/${idRuta(cuentaId)}` : null
@@ -134,6 +136,7 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
     (!modulo.soloOrganizacion || cuenta?.tipo === 'organizacion') &&
     (!modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso))))
   const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
+  const suscripcion = seccion === 'suscripcion' && puedeConsultarSuscripcion(cuenta)
   // La campana solo se muestra a quien recibe avisos de alertas (ver `recibeAvisosDeAlertas`); el resto tendría un contador siempre en cero.
   const mostrarAvisos = !!cuenta && recibeAvisosDeAlertas(cuenta) && visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
   const avisos = usePagina<unknown>(base && mostrarAvisos ? `${base}/notificaciones-alerta` : null, token, revision,
@@ -141,7 +144,8 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
   const pendientes = avisos.datos?.meta.total ?? 0
   const props = cuenta && base ? { base, token, cuenta, usuarioId } : undefined
   const titulo = seccion === 'cuenta' ? cuenta?.nombre ?? 'Cuenta de CuidaRed'
-    : actual?.id === 'configuracion' && cuenta?.tipo === 'organizacion' ? 'Configurar organización'
+    : suscripcion ? 'Suscripción y pagos'
+      : actual?.id === 'configuracion' && cuenta?.tipo === 'organizacion' ? 'Configurar organización'
       : actual?.titulo ?? 'Cuenta de CuidaRed'
   const IconoConexion = enLinea ? Wifi : WifiOff
   if (props && actual?.id === 'miembros') return <PantallaMiembros token={token} cuenta={props.cuenta} usuarioId={usuarioId} volver={`${raiz}/cuenta`} />
@@ -175,7 +179,7 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
       <main ref={contenido} id="contenido-operativo" tabIndex={-1} className="mx-auto grid w-full max-w-[calc(var(--content-max)+var(--gutter)*2)] gap-5 px-[var(--gutter)] py-5 focus:outline-none sm:py-6">
         {!base ? <p role="alert">No se encontró la cuenta.</p> : <Estado consulta={contexto} />}
         {props && <div key={props.cuenta.cuenta_id} className="grid min-w-0 gap-5">
-          {!actual && <p role="alert" className="rounded-md border border-line-soft bg-surface p-4">No tienes acceso a este módulo de la cuenta.</p>}
+          {!actual && !suscripcion && <p role="alert" className="rounded-md border border-line-soft bg-surface p-4">No tienes acceso a este módulo de la cuenta.</p>}
           {actual?.id === 'cuenta' && <>
             <div className="flex items-center gap-3">
               <span className="grid size-12 flex-none place-items-center rounded-md bg-blue-100 text-navy"><Building2 size={23} aria-hidden /></span>
@@ -199,6 +203,7 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
           {actual?.id === 'reportes' && <Reportes {...props} />}
           {actual?.id === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
           {actual?.id === 'auditoria' && <AuditoriaCuenta {...props} />}
+          {suscripcion && <SuscripcionCuenta {...props} actualizarContexto={actualizarContexto} />}
         </div>}
       </main>
     </div>

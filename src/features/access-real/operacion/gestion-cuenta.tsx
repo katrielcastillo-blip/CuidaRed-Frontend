@@ -185,6 +185,7 @@ function Transferir({ base, token, cuenta, actualizar, cerrar }: OperacionProps 
       await transferirTitularidad(token, cuenta.cuenta_id, campo(datos, 'membresia'))
       actualizar()
     }}>
+      <p className="text-sm text-ink-2">Si hay una suscripción de Stripe, termina su renovación al finalizar el período pagado. La nueva persona titular podrá contratar su propio plan.</p>
       <Checkbox label="Confirmo que la persona seleccionada será titular de esta cuenta." required />
     </Formulario>}
     {candidatos.datos && <Paginador pagina={candidatos.pagina} total={candidatos.datos.meta.totalPages} cambiar={candidatos.cambiar} />}

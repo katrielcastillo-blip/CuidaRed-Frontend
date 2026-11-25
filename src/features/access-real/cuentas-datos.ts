@@ -33,6 +33,10 @@ const SUSCRIPCION_TEXTO: Record<EstadoSuscripcion, string> = {
 }
 export const suscripcionTexto = (estado: CuentaMe['estado_suscripcion']) => (estado ? SUSCRIPCION_TEXTO[estado] : 'Sin suscripción')
 
+/** La suscripción sigue accesible al vencer el plan, para los roles autorizados por el servidor. */
+export const puedeConsultarSuscripcion = (cuenta: CuentaMe | undefined) =>
+  cuenta?.permisos.includes('cuenta:suscripcion') === true
+
 /** La gestión de miembros exige `usuarios:gestionar` en la cuenta activa (Coordinador en Familia, Administrador en Organización). */
 export const puedeGestionarMiembros = (cuenta: CuentaMe | undefined) =>
   cuenta?.acceso_operativo === true && cuenta.permisos.includes('usuarios:gestionar')

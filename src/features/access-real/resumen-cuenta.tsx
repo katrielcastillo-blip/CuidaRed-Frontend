@@ -14,7 +14,7 @@ import { Aviso } from '../auth/components/Piezas'
 import { obtenerSuscripcion, type Suscripcion } from './api/cuentas'
 import { aceptarMembresia, rechazarMembresia } from './api/miembros'
 import type { CuentaMe } from './client'
-import { puedeGestionarMiembros, ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
+import { puedeConsultarSuscripcion, puedeGestionarMiembros, ROL_TEXTO, suscripcionTexto, TIPO_TEXTO } from './cuentas-datos'
 import { mensajeDeError } from './errores'
 
 /* ───────────── Invitaciones pendientes ───────────── */
@@ -155,6 +155,9 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
           Esta cuenta no tiene acceso operativo. Puedes consultar sus datos y acceder a la suscripción según tu rol.
         </Aviso>
       )}
+      {puedeConsultarSuscripcion(cuenta) && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/suscripcion`} variant="outline" size="sm" className="self-start">
+        Ver suscripción y pagos
+      </ButtonLink>}
       {mostrarAcciones && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/cuenta`} variant="outline" size="sm" className="self-start">
         Abrir cuenta
       </ButtonLink>}

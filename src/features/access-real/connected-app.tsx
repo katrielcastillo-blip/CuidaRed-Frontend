@@ -27,6 +27,7 @@ import { useColaOperaciones } from './operacion/cola-operaciones'
 function AccessRoutes() {
   const { pathname, search } = useLocation()
   const enlaceAvisos = /^\/operacion\/[1-9][0-9]{0,18}\/alertas$/.test(pathname) && search === '?bandeja=avisos'
+  const retornoStripe = /^\/operacion\/[1-9][0-9]{0,18}\/suscripcion$/.test(pathname) && /^\?checkout=(retorno|cancelado)$/.test(search)
   const [configuration] = useState(() => {
     try {
       validarConfiguracion()
@@ -319,7 +320,7 @@ function AccessRoutes() {
       <Route path="/cuenta/miembros" element={miembros} />
       <Route path="/operacion/:cuentaId/:seccion" element={perfilListo && session ? (
         <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} cola={cola} />
-      ) : enlaceAvisos && !session ? <AccessForm notice={error} onSession={abrirSesion} /> : account} />
+      ) : (enlaceAvisos || retornoStripe) && !session ? <AccessForm notice={error} onSession={abrirSesion} /> : account} />
       <Route path="/" element={session ? <Navigate to="/inicio" replace /> : <PortadaConectada />} />
       <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />} />
       <Route

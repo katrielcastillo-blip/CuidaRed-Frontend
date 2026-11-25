@@ -262,6 +262,20 @@ Si tu rol no puede ver alguna sección, el informe la omite y dice cuál y por q
 
 Cada informe queda registrado en la auditoría. Generarlo necesita Internet. Contiene datos sensibles: compártelo solo con quien corresponda.
 
+### 6.7 Suscripción y pagos de prueba
+
+Desde el resumen de la cuenta, abre **Ver suscripción y pagos** para consultar el estado, los planes disponibles y el historial. Los roles autorizados conservan acceso a esta pantalla cuando termina la prueba o vence el plan.
+
+Cada tarjeta muestra los beneficios y límites de un plan. Elige **Mensual** o **Anual** en la misma tarjeta. En Familia, las tarifas publicadas por Backoffice sustituyen a los precios de referencia y habilitan la contratación cuando Stripe Sandbox está disponible.
+
+La pantalla consulta los valores vigentes al volver a la pestaña y se actualiza mientras permanece abierta. El cupo de cuidadores de Básico Familiar es inicialmente de cinco y Backoffice puede ajustarlo.
+
+En una organización, **Operación Base** se contrata directamente cuando Backoffice publica la tarifa de la periodicidad elegida. Para **Gestión Comunitaria Avanzada**, selecciona el ciclo y usa **Solicitar cotización**. La tarjeta muestra el importe en USD y los cupos acordados de adultos mayores, integrantes del equipo, cuidadores y familiares cuando Backoffice los publica. Cada periodicidad tiene su propia cotización. Pulsa **Actualizar planes** para consultar la tarifa o cotización más reciente.
+
+La persona titular puede contratar en **Stripe Sandbox** con datos de prueba. Al volver, CuidaRed revisa el estado mientras espera la confirmación. Durante esa espera, **Consultar estado del pago** permite consultar si el pago ya se refleja en el historial. Si saliste de Stripe con un pago todavía abierto, retómalo desde la tarjeta del plan para ver el precio y los cupos de ese intento.
+
+La persona titular de una suscripción de prueba activa puede cambiar de plan o cancelar la renovación. Un plan más caro con la misma periodicidad se aplica cuando se confirma el cargo proporcional. Un plan de menor precio o una periodicidad distinta se aplica en el próximo corte. Al cancelar la renovación, el acceso se mantiene hasta el final del período pagado.
+
 ## 7. Colores y formas del nivel de riesgo
 
 El riesgo se reconoce **por el color y por la forma**, sin necesidad de leer:
