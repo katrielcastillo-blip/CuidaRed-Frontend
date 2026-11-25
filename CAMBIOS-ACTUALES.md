@@ -1,5 +1,20 @@
 # Cambios actuales
 
+## 25/11/2026 — Integración reciente y preparación del PR de visitas
+
+- Actualizada la base desde `origin/Integracion` hasta `bbe2ff4`, con suscripciones y pagos de prueba. El formulario compartido conserva los nuevos controles y el tamaño de acciones de visitas; la ayuda de pruebas conserva la lectura de origen de la versión remota.
+- Se restauraron visitas, acceso móvil, identidad visual, soporte e imágenes desde el respaldo local. El PR de visitas selecciona solo sus pantallas, validaciones, pruebas y documentación; los demás cambios siguen conservados localmente. El entorno privado no se modifica.
+- Verificación: 168 pruebas de componentes, 88 pruebas de navegador de visitas/operación/suscripciones en móvil y escritorio, compilación y caché de PWA correctas (2,62 MB). La copia exacta del PR también se comprueba por tipos. No se envían correos ni se procesan pagos reales.
+
+## 23/11/2026 — Seguimiento de visitas por rol y aportes públicos
+
+- La programación organizativa identifica persona o grupo y contacto externo, con correo obligatorio, sin crear un usuario visitante. Se separan contacto y horario en dos pasos y se conserva la selección al editar. La revisión de solicitudes precarga inicio y fin; Historial ofrece solicitudes rechazadas.
+- `src/features/access-real/operacion/confirmar-visita.tsx` permite a Administrador/Coordinador confirmar el resultado después del horario que valida el servidor. Las actividades grupales identifican los adultos que realmente asistieron; una cancelación no se muestra como realización verificada. El registro de campo queda pendiente de esa confirmación.
+- `visitas-publicas.tsx` habilita observación y hasta tres fotografías desde el inicio de la visita autorizada, mediante código. Se conserva la selección ante errores de carga, se consulta el estado periódicamente y se respeta movimiento reducido. Los aportes se muestran al equipo separados del informe interno en `visitas-aportes.tsx`.
+- Formulario público con correo e inicio/fin obligatorios; portada, guías y manual explican el nuevo recorrido. Una cuenta Familia no recibe acceso a Visitas. Iconos Lucide, fuente y tokens existentes, áreas táctiles de 48 px; selector de archivos acotado al ancho móvil para no cubrir el botón de adjuntar.
+- Los botones de programación, revisión y confirmación usan tamaño de texto de 16 px y objetivo táctil de 48 px. `controles.tsx` admite ese tamaño sin alterar el predeterminado de otras pantallas. Coordinar personalmente no muestra el aviso contradictorio de ausencia de responsables.
+- Validación: 168 pruebas de componentes, 52 pruebas de navegador móvil/escritorio con API y Auth interceptados, compilación y tipos correctos. Caché de la PWA comprobada (2,60 MB); oxlint de las pantallas sin nuevos avisos, con los avisos históricos de exportaciones de Fast Refresh en `controles.tsx`. La prueba SQL del backend verifica la migración real aplicada. El envío real de correos sigue pendiente de la [contraseña de aplicación del propietario](../CuidaRed-Backend/docs/ACTIVAR-CORREO-PROYECTO.md); no se enviaron correos ni se usaron identidades reales durante las pruebas.
+
 ## 25/11/2026 — Revisión de suscripciones y pagos
 
 - En `src/features/access-real/operacion/suscripcion.tsx`, las tarjetas muestran los términos de un pago iniciado, distinguen la oferta nueva del contrato vigente y permiten actualizar los planes. Los mensajes de cotización y pago aparecen junto a su oferta y las acciones esperan a que termine la actualización de los datos.

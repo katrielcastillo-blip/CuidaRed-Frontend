@@ -2,6 +2,8 @@
 
 **Versión 1.0.0** · Para coordinadores y voluntarios · © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
 
+> **Actualización de visitas, 23/11/2026:** el módulo operativo está disponible solo en cuentas Organización. La cuenta Familia no tiene visitas, solicitudes ni indicadores por ausencia de visitas. El visitante de la portada utiliza un código de seguimiento y no crea una cuenta. Las capturas históricas del manual pueden diferir de la interfaz conectada actual; para el recorrido vigente usa las secciones 6.4 y 10.
+
 > CuidaRed ayuda a organizar el acompañamiento de personas mayores. **No sustituye servicios médicos, instituciones públicas ni organismos de emergencia.** En una emergencia llama al **9-1-1**.
 
 Este manual explica, paso a paso y sin tecnicismos, las tareas más comunes. Dentro de la aplicación también encontrarás ayuda: el botón **?** junto a muchos campos explica qué escribir, y la sección **Ayuda** (en *Mi perfil* o en *Más*) resume todo esto.
@@ -19,6 +21,7 @@ Este manual explica, paso a paso y sin tecnicismos, las tareas más comunes. Den
 7. [Colores y formas del nivel de riesgo](#7-colores-y-formas-del-nivel-de-riesgo)
 8. [Privacidad y buen uso de la información](#8-privacidad-y-buen-uso-de-la-información)
 9. [Preguntas frecuentes](#9-preguntas-frecuentes)
+10. [Visitante sin cuenta: solicitud y observaciones](#10-visitante-sin-cuenta-solicitud-y-observaciones)
 
 ---
 
@@ -70,7 +73,7 @@ Al tocar una persona ves su perfil: datos de contacto, condición general, histo
 3. Toca cómo encontraste a la persona: **Estable**, **Requiere atención** o **Situación crítica**.
 4. Marca los **aspectos que verificaste** (alimentación, medicamentos, higiene, vivienda, ánimo, movilidad).
 5. Escribe las **observaciones**. Puedes usar abreviaturas que se completan solas, por ejemplo: `sn` → *sin novedad*, `meds` → *medicamentos*, `pa` → *presión arterial*. Toca **?** para ver la lista.
-6. Toca **Registrar visita**. Verás «Visita registrada correctamente».
+6. Toca **Registrar visita**. El informe queda guardado y pendiente de confirmación por Administrador o Coordinador, después de terminar el horario. Todavía no actualiza la última visita efectiva.
 
 ![Registrar visita](manual/img/05-registrar-visita.png)
 
@@ -207,7 +210,16 @@ Desde el perfil puedes **editar** los datos, **asignar voluntarios**, hacer la *
 
 ### 6.4 Programar visitas
 
-**Visitas → Programar visita**: elige la persona, el voluntario responsable, la fecha, la hora y notas para el voluntario. CuidaRed avisa si la fecha ya pasó o si el voluntario tiene otra visita a esa hora.
+En una **Organización**, Administrador y Coordinador pueden programar, revisar solicitudes y confirmar su realización.
+
+1. Abre **Visitas → Programar visita**. Identifica a la **persona/familiar** o **institución/grupo** que visitará. Registra el contacto responsable y su correo. Para grupos incluye entidad, tipo, cantidad y actividad o aporte previsto.
+2. Continúa con el horario. Elige fecha, inicio y fin, motivo, personas mayores cuando corresponda y responsable interno. **Yo coordino la visita** permite asumir esa coordinación; también se puede asignar un cuidador habilitado. Una actividad institucional puede programarse sin escoger un expediente individual.
+3. **Programar y autorizar visita** la incorpora al calendario. El visitante recibe el horario y el código cuando el servicio de correo esté activo.
+4. En **Solicitudes**, abre **Revisar y autorizar**: ambos horarios propuestos ya vienen llenos. Confírmalos o cámbialos según disponibilidad. Un rechazo requiere motivo y se conserva en **Historial → Ver solicitudes rechazadas**.
+5. Después del fin de la cita, abre su detalle y toca **Confirmar si se realizó**. Indica el resultado y una constancia. Si no se realizó, queda cancelada con motivo. Si se realizó, queda completada con su fecha efectiva, aunque la revisión se haga otro día. Solo entonces cambia la última visita y los días sin visita de los adultos asociados.
+6. En una actividad institucional identifica únicamente a los adultos que realmente participaron. Dejarla sin participantes individuales conserva la actividad institucional sin reiniciar los contadores de todos los expedientes.
+
+Las fotografías y observaciones externas aparecen separadas del informe del equipo en el detalle. Las evidencias internas pendientes de revisión deben ser validadas por Coordinador antes de confirmar el cierre. El registro de campo conserva su captura offline; programar, autorizar, confirmar y adjuntar archivos requieren conexión.
 
 ![Programar visita](manual/img/14-programar-visita.png)
 
@@ -309,3 +321,15 @@ Más detalles en *Mi perfil → Política de privacidad* y *Términos de uso*.
 **¿Cómo veo la versión y los créditos?** *Mi perfil → Acerca de CuidaRed*.
 
 ![Mi perfil](manual/img/17-perfil-menu.png)
+
+## 10. Visitante sin cuenta: solicitud y observaciones
+
+1. Desde la portada toca **Solicitar una visita**. Elige la organización e indica tus datos, incluido el **correo obligatorio** para los avisos.
+2. Elige visita **personal** si visitarás a una persona mayor, o **institucional** si una fundación, iglesia, universidad u otro grupo realizará una actividad. Indica fecha, hora de inicio y hora de fin. Enviar la solicitud no confirma disponibilidad.
+3. Guarda el código **VIS-XXXX-XXXX** que aparece en pantalla. En **Consultar mi solicitud** puedes ver aceptación, rechazo con motivo, cancelación y cualquier cambio de horario.
+4. Desde la hora de inicio de una visita autorizada se habilita **Comparte cómo fue tu visita**. Escribe una observación y, si quieres, adjunta hasta **tres fotografías JPG, PNG o WebP de 2 MB** cada una. Usa imágenes autorizadas y evita información médica o documentos de identidad. No necesitas registrarte ni iniciar sesión.
+5. El equipo ve tus aportes, pero estos no confirman por sí solos que la visita se realizó. Administrador o Coordinador lo verifica después del horario. Puedes seguir consultando el mismo código.
+
+Con el correo activo recibirás el acuse, la decisión, los cambios de horario, el recordatorio y un enlace a observaciones al empezar la visita. Ingresa tu código al abrir el enlace. Si todavía no llega un correo, conserva el código y consulta el estado en la portada.
+
+**Nota para quien instala el proyecto:** la cola local sigue pausada hasta que el propietario del Gmail complete la [configuración mínima de correo](../../CuidaRed-Backend/docs/ACTIVAR-CORREO-PROYECTO.md). No hace falta comprar un dominio ni configurar Resend.
