@@ -21,9 +21,9 @@ export function GuiasPublicas({ conectado = true, conSesion = false }: { conecta
         <ol className="list-decimal space-y-2 pl-5 text-ink-2">
           <li>Selecciona la organización y completa los datos de la persona que será el contacto responsable.</li>
           <li>Elige una visita personal para visitar a alguien concreto. Para una fundación, iglesia, universidad u otro grupo, elige la visita institucional e indica su nombre, la cantidad de visitantes y la actividad o aporte previsto.</li>
-          <li>Propón una fecha y una hora. La organización confirmará el horario y la disponibilidad para recibir al grupo.</li>
+          <li>Indica un correo válido y propón la fecha, la hora de inicio y la hora de fin. La organización confirmará el horario y la disponibilidad.</li>
           <li>Guarda el código que aparece al enviar el formulario. Úsalo para ver si la organización aceptó tu solicitud o cambió el horario.</li>
-          <li>Cuando el equipo marque la visita como realizada, consulta el mismo código para compartir una observación.</li>
+          <li>Desde el inicio del horario autorizado, consulta el mismo código para compartir observaciones y hasta tres fotografías. Recibirás un correo con el enlace; la organización confirmará la realización después del horario.</li>
         </ol>
         <div className="flex flex-wrap gap-x-6">
           <Link className={enlace} to={conectado ? '/solicitar-visita' : '/#solicitar-visita'}>Solicitar una visita <ArrowRight size={17} aria-hidden /></Link>

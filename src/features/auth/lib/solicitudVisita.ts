@@ -28,6 +28,7 @@ export interface DatosSolicitud {
   personaAVisitar: string
   fechaPropuesta: string
   horaPropuesta: string
+  horaFinPropuesta?: string
   motivo: string
 }
 
@@ -46,6 +47,7 @@ export const SOLICITUD_INICIAL: DatosSolicitud = {
   personaAVisitar: '',
   fechaPropuesta: '',
   horaPropuesta: '',
+  horaFinPropuesta: '',
   motivo: '',
 }
 
@@ -53,7 +55,7 @@ export const SOLICITUD_INICIAL: DatosSolicitud = {
 export const CAMPOS_SOLICITUD_PASO: Record<1 | 2 | 3, Array<keyof DatosSolicitud>> = {
   1: ['orgId', 'nombres', 'apellidos', 'cedula', 'telefono', 'correo'],
   2: ['tipoVisita', 'entidadVisitante', 'tipoEntidad', 'cantidadVisitantes', 'aportePrevisto', 'personaAVisitar'],
-  3: ['fechaPropuesta', 'horaPropuesta', 'motivo'],
+  3: ['fechaPropuesta', 'horaPropuesta', 'horaFinPropuesta', 'motivo'],
 }
 
 export const TIPOS_ENTIDAD_VISITANTE = [
@@ -74,7 +76,7 @@ export function validarPasoVisitante(d: DatosSolicitud): ErroresSolicitud {
     apellidos: errorNombre(d.apellidos, 'apellido'),
     cedula: errorCedula(d.cedula),
     telefono: errorTelefono(d.telefono),
-    correo: d.correo.trim() ? errorEmail(d.correo) : undefined,
+    correo: d.correo.trim() ? errorEmail(d.correo) : 'Escribe el correo donde recibirás el seguimiento de tu visita.',
   }
 }
 
@@ -98,6 +100,7 @@ export function validarPasoVisita(d: DatosSolicitud, acepto: boolean): ErroresSo
     ...validarPasoDestino(d),
     fechaPropuesta: fecha,
     horaPropuesta: /^\d{2}:\d{2}$/.test(d.horaPropuesta) ? undefined : 'Indica la hora.',
+    horaFinPropuesta: !/^([01]\d|2[0-3]):[0-5]\d$/.test(d.horaFinPropuesta ?? '') ? 'Indica la hora de fin.' : d.horaFinPropuesta! <= d.horaPropuesta ? 'La hora de fin debe ser posterior al inicio.' : undefined,
     motivo: errorTexto(d.motivo, 'el motivo de la visita', 3, 300),
     acepto: acepto ? undefined : 'Debes aceptar la Política de Privacidad para enviar la solicitud.',
   }

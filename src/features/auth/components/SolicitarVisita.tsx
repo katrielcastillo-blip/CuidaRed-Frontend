@@ -217,7 +217,7 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
           <ShieldCheck size={20} aria-hidden className="mt-0.5 flex-none text-blue" />
           <p>
             <strong className="text-ink">Una persona responsable de la organización debe autorizar tu solicitud.</strong> Hasta que lo haga, la visita no está
-            confirmada. {soloMemoria ? 'Podrás dejar una observación cuando el equipo registre la visita como realizada.' : 'Cuando consultes con tu código verás si fue autorizada o no y, el día de la visita, podrás dejar tu observación.'}
+            confirmada. Desde el inicio del horario autorizado podrás consultar tu código y agregar observaciones y fotografías.
           </p>
         </div>
 
@@ -286,7 +286,8 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
           />
           <div className="visita-campo-ancho">
             <TextField
-              label="Correo electrónico (opcional)"
+              label="Correo electrónico"
+              required
               type="email"
               inputMode="email"
               autoComplete="email"
@@ -351,7 +352,8 @@ export function SolicitarVisita({ organizaciones, enviar, disponible = true, rut
             error={errores.fechaPropuesta}
             onChange={(e) => set('fechaPropuesta', e.target.value)}
           />
-          <TextField label="Hora propuesta" type="time" value={d.horaPropuesta} error={errores.horaPropuesta} onChange={(e) => set('horaPropuesta', e.target.value)} />
+          <TextField label="Hora propuesta" type="time" value={d.horaPropuesta} error={errores.horaPropuesta} onChange={(e) => set('horaPropuesta', e.target.value)} required />
+          <TextField label="Hora de fin propuesta" type="time" value={d.horaFinPropuesta ?? ''} error={errores.horaFinPropuesta} onChange={(e) => set('horaFinPropuesta', e.target.value)} required />
           <div className="visita-campo-ancho">
             <TextareaField
               label="Motivo de la visita"

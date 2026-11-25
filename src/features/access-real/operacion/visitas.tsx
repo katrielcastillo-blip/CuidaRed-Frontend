@@ -2,7 +2,7 @@
  * Visitas conectadas: programación, registro autorizado e historial · RF-02, RF-10.
  * © 2026 Equipo CuidaRed – INTEC.
  */
-import { useState } from 'react'
+import { useEffect,useState } from 'react'
 import { ArrowLeft, CalendarDays, CalendarPlus, CircleUserRound, Frown, Meh, Smile, WifiOff, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Card, Checkbox, CheckboxGroup, IconTile, Segmented, SelectField, TextareaField, TextField, type Tone } from '@/components/ui'
@@ -19,6 +19,9 @@ import { CalendarioVisitas, VentanaVisita } from './calendario-visitas'
 import { SolicitudesExternas } from './solicitudes-externas'
 import { fechaDominicana, leerVentana } from './visitas-fechas'
 import { avisoPerfilCuidador, responsablesVisita } from './visitas-responsables'
+import { ContactoVisitante,type ContactoProgramado } from './contacto-visitante'
+import { ConfirmarVisita } from './confirmar-visita'
+import { AportesVisitante } from './visitas-aportes'
 
 export interface AdultoNombre { envejeciente_id: string; nombres: string; apellidos: string }
 export interface Candidato { usuario_id: string; membresia_id: string; cuidador_id: string | null; nombre: string; rol: RolCuenta }
@@ -36,6 +39,11 @@ interface Visita {
   hora_programada: string | null
   hora_fin_programada?: string | null
   fecha_realizacion?: string | null
+  registro_campo_en?:string|null
+  confirmada_en?:string|null
+  confirmacion_notas?:string|null
+  puede_confirmar_realizacion?:boolean
+  observacion_visitante?:string|null
   reprogramada_en?: string | null
   pendiente_autorizacion?: boolean
   hora_inicio?: string | null
@@ -85,7 +93,7 @@ function SeleccionMultiple({ titulo, opciones, seleccionadas, maximo, pagina, ca
       <legend className="px-1 text-sm font-semibold">{titulo} ({seleccionadas.length}/{maximo})</legend>
       {!!seleccionadas.length && <ul aria-label={`${titulo} seleccionados`} className="flex flex-wrap gap-1.5">
         {seleccionadas.map((opcion) => <li key={opcion.id} className="min-w-0 max-w-full">
-          <button type="button" aria-label={`Quitar ${opcion.etiqueta}`} className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-pill bg-blue-100 px-3 text-left text-sm font-semibold text-navy hover:bg-blue-200"
+          <button type="button" aria-label={`Quitar ${opcion.etiqueta}`} className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-pill bg-blue-100 px-3 text-left text-sm font-semibold text-navy hover:bg-blue-200"
             onClick={() => cambiar(seleccionadas.filter((seleccionada) => seleccionada.id !== opcion.id))}>
             <span className="wrap-anywhere">{opcion.etiqueta}</span><X size={16} className="shrink-0" aria-hidden />
           </button>
@@ -102,12 +110,15 @@ function SeleccionMultiple({ titulo, opciones, seleccionadas, maximo, pagina, ca
   )
 }
 
-function Programar({ base, token, cuenta, listo, volver }: Pick<OperacionProps, 'base' | 'token' | 'cuenta'> & { listo: (visita: Visita, cantidad?: number) => void; volver: () => void }) {
+function Programar({ base, token, cuenta,usuarioId, listo, volver }: Pick<OperacionProps, 'base' | 'token' | 'cuenta'|'usuarioId'> & { listo: (visita: Visita, cantidad?: number) => void; volver: () => void }) {
   const adultos = usePagina<AdultoNombre>(`${base}/envejecientes`, token, 0, { filters: { estado: 'activo' } })
   const personas = usePagina<Candidato>(`${base}/candidatos/visita`, token)
   const { disponibles, faltanPerfiles } = responsablesVisita(personas.datos?.data)
   const [seleccionAdultos, setAdultos] = useState<Opcion[]>([])
-  const [seleccionPersonas, setPersonas] = useState<Opcion[]>([])
+  const [seleccionPersonas, setPersonas] = useState<Opcion[]>([{id:usuarioId,etiqueta:'Yo coordino la visita'}])
+  const [paso,setPaso]=useState<'contacto'|'agenda'>('contacto')
+  const [contacto,setContacto]=useState<ContactoProgramado>({tipo:'personal',nombre:'',correo:'',cantidad:1})
+  const institucional=contacto.tipo==='institucional'
   const [frecuencia, setFrecuencia] = useState<Repeticion>('ninguna')
   const [dias, setDias] = useState<string[]>([])
   const recurrentes = cuenta.funcionalidades?.includes('visitas_recurrentes')
@@ -119,18 +130,21 @@ function Programar({ base, token, cuenta, listo, volver }: Pick<OperacionProps, 
   const prepararPagina = (consulta: typeof adultos | typeof personas) =>
     consulta.datos && { pagina: consulta.pagina, total: consulta.datos.meta.totalPages, cambiar: consulta.cambiar }
 
-  return <Formulario titulo="Programar visita" campos={campos} accion={frecuencia === 'ninguna' ? 'Guardar visita pendiente' : 'Programar serie'} cancelar={volver} disabled={!enLinea}
-    submitDisabled={!seleccionAdultos.length || !seleccionPersonas.length}
+  return <><div hidden={paso!=='contacto'}><ContactoVisitante valor={contacto} cambiar={setContacto} continuar={()=>setPaso('agenda')} disabled={!enLinea}/></div><div hidden={paso!=='agenda'}>
+  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-sm bg-blue-100 p-3 text-sm"><p><strong>{institucional?contacto.entidad:contacto.nombre}</strong><br/>{contacto.correo} · {contacto.cantidad} visitante(s)</p><Button size="sm" variant="ghost" onClick={()=>setPaso('contacto')}>Editar visitante</Button></div>
+  <Formulario titulo="Paso 2 de 2 · Horario y coordinación" campos={campos} tamanoAccion="sm" accion={frecuencia === 'ninguna' ? 'Programar y autorizar visita' : 'Programar y autorizar serie'} cancelar={volver} disabled={!enLinea}
+    submitDisabled={(!institucional && !seleccionAdultos.length) || !seleccionPersonas.length}
     enviar={async (datos) => {
-      if (!seleccionAdultos.length || !seleccionPersonas.length) throw new Error('Selecciona al menos un adulto y una persona visitante.')
+      if ((!institucional && !seleccionAdultos.length) || !seleccionPersonas.length) throw new Error('Selecciona la persona a visitar y un responsable de la organización.')
       const { fecha, hora, hora_fin_programada } = leerVentana(datos)
       const entrada = {
         fecha, hora_programada: hora, hora_fin_programada, razon: campo(datos, 'razon'),
         notas: campo(datos, 'notas') || undefined, envejeciente_ids: seleccionAdultos.map((adulto) => adulto.id),
         participante_ids: seleccionPersonas.map((persona) => persona.id),
+        visitante_externo:{...contacto,nombre:contacto.nombre.trim(),correo:contacto.correo.trim(),telefono:contacto.telefono||undefined,entidad:contacto.entidad?.trim()||undefined,aporte:contacto.aporte?.trim()||undefined},
       }
       if (frecuencia === 'ninguna') {
-        listo(await api<Visita>(`${base}/visitas`, token, 'POST', { ...entrada, autorizar: false }))
+        listo(await api<Visita>(`${base}/visitas`, token, 'POST', { ...entrada, autorizar: true }))
         return
       }
       const hasta = campo(datos, 'hasta')
@@ -157,18 +171,19 @@ function Programar({ base, token, cuenta, listo, volver }: Pick<OperacionProps, 
         options={DIAS_SEMANA.map((dia) => ({ value: String(dia.value), label: dia.largo }))} value={dias} onChange={setDias} />}
     </>}
     <div className="grid gap-2">
-      <Estado consulta={adultos} vacio={adultos.datos?.data.length === 0 ? 'Sin adultos activos disponibles.' : undefined} />
-      <SeleccionMultiple titulo="Adultos de la visita" opciones={adultos.datos?.data.map((adulto) => ({ id: adulto.envejeciente_id, etiqueta: nombre(adulto) })) ?? []}
+      <Estado consulta={adultos} vacio={!institucional && adultos.datos?.data.length === 0 ? 'Sin adultos activos disponibles.' : undefined} />
+      {institucional && <p className="text-sm text-muted">Puedes registrar una actividad para la organización sin elegir una persona específica. Al confirmar su realización se podrán identificar quienes participaron.</p>}
+      <SeleccionMultiple titulo={institucional?'Personas previstas (opcional)':'Adultos de la visita'} opciones={adultos.datos?.data.map((adulto) => ({ id: adulto.envejeciente_id, etiqueta: nombre(adulto) })) ?? []}
         seleccionadas={seleccionAdultos} maximo={4} pagina={prepararPagina(adultos)} cambiar={setAdultos} />
     </div>
     <div className="grid gap-2">
-      <Estado consulta={personas} vacio={personas.datos && !disponibles.length ? 'No hay responsables disponibles en esta página.' : undefined} />
+      <Estado consulta={personas} />
       {faltanPerfiles && <p className="text-sm text-ink-2">{avisoPerfilCuidador}</p>}
-      <SeleccionMultiple titulo="Cuidadores o voluntarios responsables" opciones={disponibles.map((persona) => ({ id: persona.usuario_id, etiqueta: persona.nombre }))}
+      <SeleccionMultiple titulo="Responsables de la organización" opciones={[{id:usuarioId,etiqueta:'Yo coordino la visita'},...disponibles.filter(p=>p.rol==='cuidador' && p.usuario_id!==usuarioId).map((persona) => ({ id: persona.usuario_id, etiqueta: persona.nombre }))]}
         seleccionadas={seleccionPersonas} maximo={3} pagina={prepararPagina(personas)} cambiar={setPersonas} />
     </div>
-    <p className="text-sm text-muted md:col-span-2">La visita aparecerá en el calendario. El equipo asignado podrá iniciarla después de la autorización.</p>
-  </Formulario>
+    <p className="text-sm text-muted md:col-span-2">La visita quedará autorizada en el calendario. El visitante recibirá el horario y un código de seguimiento por correo cuando el servicio de correo esté activo.</p>
+  </Formulario></div></>
 }
 
 function RegistroVisita({ visita, voluntario, enviar, volver, deshabilitado }: {
@@ -218,7 +233,7 @@ function RegistroVisita({ visita, voluntario, enviar, volver, deshabilitado }: {
 
 function TarjetaVisita({ visita, abrir }: { visita: Visita; abrir: () => void }) {
   const titular = visita.adultos[0]
-  const estado = visita.estado === 'programada' && visita.pendiente_autorizacion ? { texto: 'Pendiente de autorización', tono: 'warning' as const } : ESTADOS[visita.estado]
+  const estado = visita.puede_confirmar_realizacion ? {texto:'Confirmar realización',tono:'warning' as const} : visita.registro_campo_en && visita.estado==='en_curso' ? {texto:'Pendiente de confirmación',tono:'warning' as const} : visita.estado === 'programada' && visita.pendiente_autorizacion ? { texto: 'Pendiente de autorización', tono: 'warning' as const } : ESTADOS[visita.estado]
   return <Card className="grid gap-3 bg-bg">
     <div className="flex items-start gap-3">
       <IconTile><CalendarDays size={24} aria-hidden /></IconTile>
@@ -274,6 +289,8 @@ function DatosVisita({ visita, enCurso }: { visita: Visita; enCurso: boolean }) 
     {visita.notas && <p className="rounded-sm bg-blue-100 p-3 text-sm whitespace-pre-line"><strong>Notas</strong><br />{visita.notas}</p>}
     {visita.aporte_previsto && <p className="text-sm whitespace-pre-line"><strong>Actividad o aporte previsto</strong><br />{visita.aporte_previsto}</p>}
     {visita.informe_general && <p className="text-sm whitespace-pre-line"><strong>Informe de la visita institucional</strong><br />{visita.informe_general}</p>}
+    {visita.confirmada_en && <p className={`rounded-sm p-3 text-sm ${visita.estado === 'completada' ? 'bg-success-100 text-success-700' : 'bg-bg text-ink-2'}`}><strong>{visita.estado === 'completada' ? 'Realización verificada por la organización' : 'Se confirmó que la visita no se realizó'}</strong><br/>{visita.confirmacion_notas}</p>}
+    {visita.registro_campo_en && visita.estado==='en_curso' && <p className="rounded-sm bg-blue-100 p-3 text-sm">Registro de campo recibido. La organización debe confirmar si la visita se realizó después del horario programado.</p>}
     {visita.motivo_cancelacion && <p className="rounded-sm bg-danger-100 p-3 text-sm"><strong>Motivo de cancelación:</strong> {visita.motivo_cancelacion}</p>}
     {!!visita.checklist?.length && <p className="text-sm"><strong>Aspectos verificados:</strong> {aspectosVisita.filter((opcion) => visita.checklist?.includes(opcion.value)).map(({ label }) => label).join(', ')}</p>}
   </Card>
@@ -291,7 +308,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
   const accion = params.get('accion')
   const puedeProgramar = permite(cuenta, 'visitas:programar') && permite(cuenta, 'visitas:autorizar')
   const puedeRevisarSolicitudes = cuenta.tipo === 'organizacion' && permite(cuenta, 'visitas:autorizar')
-  const viendoSolicitudes = !id && accion === 'solicitudes' && puedeRevisarSolicitudes
+  const viendoSolicitudes = !id && ['solicitudes','rechazadas'].includes(accion??'') && puedeRevisarSolicitudes
   const viendoCalendario = !id && accion === 'calendario' && puedeRevisarSolicitudes
   const programando = accion === 'programar' && puedeProgramar
   const actualizar = () => setRevision((r) => r + 1)
@@ -327,7 +344,9 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
   const autorizada = !!visita?.autorizada_por && !!visita.hora_programada && participante
   const puedeRegistrar = permite(cuenta, 'visitas:registrar') && autorizada
   const puedeCapturar = enLinea || permite(cuenta, 'sync:usar')
-  const registrando = accion === 'registrar' && abierta && enCurso && puedeRegistrar && !registroPendiente
+  const registrando = accion === 'registrar' && abierta && enCurso && puedeRegistrar && !registroPendiente && !visita?.registro_campo_en
+  const confirmando=accion==='confirmar' && visita?.puede_confirmar_realizacion && puedeRevisarSolicitudes
+  useEffect(()=>{const recargar=()=>setRevision(r=>r+1);const timer=window.setInterval(()=>{if(navigator.onLine)recargar()},30000);window.addEventListener('focus',recargar);return()=>{clearInterval(timer);window.removeEventListener('focus',recargar)}},[])
   const abrir = (visitaId: string, panel?: string) => setParams({ visita: visitaId, ...(panel ? { accion: panel } : {}) })
   const volver = () => setParams({})
   const cambiarVista = (nueva: Vista) => { setVista(nueva); setAviso('') }
@@ -354,6 +373,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
     </div>}
     {aviso && <p className="rounded-sm bg-teal-100 p-3 text-sm font-semibold" role="status">{aviso}</p>}
     {viendoSolicitudes && <SolicitudesExternas base={base} token={token}
+      usuarioId={usuarioId} inicial={accion==='rechazadas'?'rechazada':'pendiente'}
       volver={volver} abrirVisita={(visitaId) => { actualizar(); abrir(visitaId) }} />}
     {viendoCalendario && <>
       <Button variant="ghost" className="justify-self-start" onClick={volver}>Volver a visitas</Button>
@@ -363,10 +383,10 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
       <CalendarioVisitas base={base} token={token} fecha={diaCalendario} abrir={abrir} />
     </>}
     {(id || programando) && <Button size="sm" variant="ghost" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />}
-      onClick={() => id && (registrando || reprogramando || accion === 'cancelar') ? abrir(id) : volver()}>{registrando || reprogramando || accion === 'cancelar' ? 'Volver al detalle' : 'Volver a visitas'}</Button>}
-    {programando && <Programar base={base} token={token} cuenta={cuenta} volver={volver} listo={(creada, cantidad) => {
+      onClick={() => id && (registrando || reprogramando || confirmando || accion === 'cancelar') ? abrir(id) : volver()}>{registrando || reprogramando || confirmando || accion === 'cancelar' ? 'Volver al detalle' : 'Volver a visitas'}</Button>}
+    {programando && <Programar base={base} token={token} cuenta={cuenta} usuarioId={usuarioId} volver={volver} listo={(creada, cantidad) => {
       actualizar()
-      setAviso(cantidad ? `${cantidad} visita(s) programada(s) con sus participantes autorizados.` : 'Visita programada y pendiente de autorización.')
+      setAviso(cantidad ? `${cantidad} visita(s) programada(s) con sus participantes autorizados.` : 'Visita programada y autorizada. El aviso al visitante quedó preparado para su envío.')
       setVista(creada.fecha === hoy ? 'hoy' : 'proximas')
       abrir(creada.visita_id)
     }} />}
@@ -385,6 +405,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
         { value: 'completada', label: 'Completadas' }, { value: 'cancelada', label: 'Canceladas' },
         { value: 'programada', label: 'Programadas de fechas anteriores' }, { value: 'en_curso', label: 'En curso de fechas anteriores' },
       ]} />}
+      {vista==='historial' && puedeRevisarSolicitudes && <Button variant="outline" onClick={()=>setParams({accion:'rechazadas'})}>Ver solicitudes rechazadas</Button>}
       <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'No hay visitas en este período.' : undefined} />
       <div className="grid gap-3 sm:grid-cols-2">
         {listado.datos?.data.map((item) => <TarjetaVisita key={item.visita_id} visita={item} abrir={() => abrir(item.visita_id)} />)}
@@ -396,6 +417,10 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
       <h2 className="text-xl font-bold">{registrando ? 'Registrar visita' : 'Detalle de visita'}</h2>
       {!enLinea && <p className="flex items-center gap-2 rounded-sm bg-blue-100 p-3 text-sm"><WifiOff size={18} aria-hidden /> {puedeCapturar ? 'Sin conexión. Las capturas autorizadas se enviarán al reconectar.' : 'Conéctate a internet para registrar cambios.'}</p>}
       <DatosVisita visita={visita} enCurso={enCurso} />
+      {visita.visitante && <AportesVisitante ruta={ruta} token={token} revision={recarga} observacion={visita.observacion_visitante}/>}
+      {confirmando ? <ConfirmarVisita base={base} token={token} institucional={visita.tipo_visita==='institucional'} cancelar={()=>abrir(visita.visita_id)} guardar={async datos=>{
+        await api(`${ruta}/confirmar-realizacion`,token,'POST',datos);actualizar();abrir(visita.visita_id);setAviso('Confirmación guardada. El seguimiento se actualiza únicamente para las personas que participaron.')
+      }}/> : visita.puede_confirmar_realizacion && puedeRevisarSolicitudes && <Button disabled={!enLinea} onClick={()=>abrir(visita.visita_id,'confirmar')}>Confirmar si se realizó</Button>}
       {reprogramando && <Formulario titulo="Reprogramar visita" campos={[]} accion="Confirmar nuevo horario" cancelar={() => abrir(visita.visita_id)} disabled={!enLinea}
         enviar={async (datos) => {
           await api(`${ruta}/reprogramar`, token, 'POST', leerVentana(datos))
@@ -419,7 +444,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
             await api(`${ruta}/evidencias/${idRuta(evidencia)}/revision`, token, 'POST', aceptar ? {} : { motivo })
             actualizar()
           } : undefined} />}
-      {!reprogramando && (registrando ? <RegistroVisita visita={visita} voluntario={cuenta.rol === 'voluntario'} deshabilitado={!puedeCapturar}
+      {!reprogramando && !confirmando && (registrando ? <RegistroVisita visita={visita} voluntario={cuenta.rol === 'voluntario'} deshabilitado={!puedeCapturar}
         enviar={(datos) => enviar('registrar', datos)} volver={() => abrir(visita.visita_id)} />
         : <>
           {visita.estado === 'programada' && visita.pendiente_autorizacion && puedeRevisarSolicitudes && accion !== 'cancelar' &&
@@ -430,7 +455,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
           {visita.estado === 'programada' && puedeProgramar && !reprogramando && accion !== 'cancelar' && <Button size="sm" variant="outline" disabled={!enLinea} onClick={() => abrir(visita.visita_id, 'reprogramar')}>Reprogramar visita</Button>}
           {puedeRegistrar && abierta && !enCurso && <Formulario titulo="Iniciar visita autorizada" campos={[]} accion="Iniciar visita"
             disabled={!puedeCapturar || accionesPendientes.some((captura) => captura.operacion.tipo === 'iniciar')} enviar={() => enviar('iniciar')} />}
-          {puedeRegistrar && abierta && enCurso && !registroPendiente && (visita.adultos.length > 0 || visita.tipo_visita === 'institucional') &&
+          {puedeRegistrar && abierta && enCurso && !registroPendiente && !visita.registro_campo_en && (visita.adultos.length > 0 || visita.tipo_visita === 'institucional') &&
             <Button size="sm" disabled={!puedeCapturar} onClick={() => abrir(visita.visita_id, 'registrar')}>Registrar realización</Button>}
           {abierta && permite(cuenta, 'visitas:programar') && (accion === 'cancelar'
             ? <Formulario titulo="Cancelar visita" accion="Confirmar cancelación" cancelar={() => abrir(visita.visita_id)} disabled={!enLinea}

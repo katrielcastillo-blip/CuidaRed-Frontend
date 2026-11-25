@@ -103,7 +103,7 @@ function CampoFormulario({ name, label, type, options, value, optional, checked,
     min={min} max={maxNumber} step={step} inputMode={inputMode} autoComplete={autoComplete} placeholder={placeholder} />
 }
 
-export function Formulario({ titulo, campos, children, enviar, accion = 'Guardar', disabled, submitDisabled, cancelar, cancelLabel = 'Cancelar', exito = 'Cambios guardados.' }: {
+export function Formulario({ titulo, campos, children, enviar, accion = 'Guardar', disabled, submitDisabled, cancelar, cancelLabel = 'Cancelar', exito = 'Cambios guardados.', tamanoAccion = 'md' }: {
   titulo: string
   campos: Campo[]
   children?: ReactNode
@@ -114,6 +114,7 @@ export function Formulario({ titulo, campos, children, enviar, accion = 'Guardar
   cancelar?: () => void
   cancelLabel?: string
   exito?: string
+  tamanoAccion?: 'sm' | 'md'
 }) {
   const id = useId()
   const [mensaje, setMensaje] = useState<{ error: boolean; texto: string }>()
@@ -144,8 +145,8 @@ export function Formulario({ titulo, campos, children, enviar, accion = 'Guardar
     </fieldset>}
     {mensaje && <p role={mensaje.error ? 'alert' : 'status'} className={mensaje.error ? 'rounded-md bg-danger-100 p-3 text-danger-700' : 'rounded-md bg-success-100 p-3 text-success-700'}>{mensaje.texto}</p>}
     <div className="flex flex-col gap-2 sm:flex-row">
-      <Button type="submit" disabled={disabled || submitDisabled} loading={guardando}>{accion}</Button>
-      {cancelar && <Button variant="outline" onClick={cancelar} disabled={guardando}>{cancelLabel}</Button>}
+      <Button type="submit" size={tamanoAccion} disabled={disabled || submitDisabled} loading={guardando}>{accion}</Button>
+      {cancelar && <Button size={tamanoAccion} variant="outline" onClick={cancelar} disabled={guardando}>{cancelLabel}</Button>}
     </div>
   </form>
 }
