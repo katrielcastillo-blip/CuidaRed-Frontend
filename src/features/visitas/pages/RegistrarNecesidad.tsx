@@ -18,7 +18,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Laugh, TriangleAlert } from 'lucide-react'
+import { Laugh, TriangleAlert } from '@/components/icons'
 import { nombreCompleto, useSession } from '@/domain/auth'
 import { DATOS_NECESIDAD_VACIOS, registrarNecesidad, UNIDADES, validarNecesidad, type DatosNecesidad } from '@/domain/api'
 import { useEnLinea } from '@/domain/conectividad'

@@ -6,8 +6,8 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
-import type { LucideIcon } from 'lucide-react'
-import { Bus, CircleEllipsis, Frown, HeartHandshake, Meh, Pill, Smile, Utensils } from 'lucide-react'
+import type { LucideIcon } from '@/components/icons'
+import { Bus, CircleEllipsis, Frown, HeartHandshake, Meh, Pill, Smile, Utensils } from '@/components/icons'
 import { TIPOS_NECESIDAD_TEXTO } from '@/domain/catalogos'
 import { fechaCorta, hhmmA12, pad } from '@/domain/dates'
 import { useSession } from '@/domain/auth'

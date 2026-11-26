@@ -13,7 +13,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { WifiOff } from 'lucide-react'
+import { WifiOff } from '@/components/icons'
 import { ButtonLink, ChoicePills, FormPasos, SelectField, SuccessOverlay, Switch, TextField, useFormulario, useToast } from '@/components/ui'
 import { crearTareas, DATOS_TAREA_VACIOS, fechasDeSerie, guardarTarea, MAX_OCURRENCIAS, siguientesDeSerie, validarTarea, type DatosTarea } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'

@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useNavigate } from 'react-router-dom'
-import { Building2, House, LogOut, ShieldAlert } from 'lucide-react'
+import { Building2, House, LogOut, ShieldAlert } from '@/components/icons'
 import { Badge, Button, useToast } from '@/components/ui'
 import { cambiarCuenta, logout, nombreCompleto, ROL_LABEL, useMisCuentas, useSession } from '@/domain/auth'
 import { TIPO_CUENTA_LABEL, tipoDeCuenta } from '@/domain/planes'

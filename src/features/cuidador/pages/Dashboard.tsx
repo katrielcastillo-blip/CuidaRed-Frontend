@@ -9,7 +9,7 @@
  */
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarCheck, CircleCheck, ClipboardPlus, CloudOff, HandHeart, RefreshCw, UsersRound } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CircleCheck, ClipboardPlus, CloudOff, HandHeart, RefreshCw, UsersRound } from '@/components/icons'
 import { useSession, useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaLarga, todayISO } from '@/domain/dates'

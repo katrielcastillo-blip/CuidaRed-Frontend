@@ -10,7 +10,7 @@
  */
 import { useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Bell, Cake, CircleUserRound, ClipboardPlus, HandHeart, MapPin, Phone, VenusAndMars } from 'lucide-react'
+import { ArrowRight, Bell, Cake, CircleUserRound, ClipboardPlus, HandHeart, MapPin, Phone, VenusAndMars } from '@/components/icons'
 import { nombreCompleto, useUser } from '@/domain/auth'
 import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'
 import { edad, fechaCorta } from '@/domain/dates'

@@ -22,23 +22,23 @@ const BASE =
   'active:enabled:translate-y-px disabled:opacity-55 disabled:cursor-not-allowed aria-disabled:opacity-55'
 
 const VARIANTES: Record<Variant, string> = {
-  primary: 'border-transparent bg-navy text-white hover:enabled:bg-navy-700 [&:is(a)]:hover:bg-navy-700',
+  primary: 'border-transparent bg-primary text-white hover:enabled:bg-navy [&:is(a)]:hover:bg-navy',
   outline: 'bg-bg text-navy border-navy hover:bg-blue-100',
-  soft: 'bg-teal-100 text-success-700 border-teal text-lg hover:brightness-[.97]',
+  soft: 'bg-teal-100 text-success-700 border-teal hover:brightness-[.97]',
   danger: 'border-transparent bg-danger text-white hover:brightness-95',
-  'danger-soft': 'bg-danger-100 text-danger border-danger text-lg hover:brightness-[.97]',
+  'danger-soft': 'bg-danger-100 text-danger border-danger hover:brightness-[.97]',
   ghost: 'border-transparent bg-transparent text-navy text-base hover:bg-blue-100',
   light: 'bg-blue-100 text-navy border-blue text-base',
 }
 
 // Objetivo táctil mínimo de 48 px en todos los tamaños (RF-06 · WCAG 2.5.5).
 const TAMANOS = {
-  md: 'min-h-14 px-6 rounded-md text-xl',
+  md: 'min-h-14 px-5 rounded-md text-base',
   sm: 'min-h-12 px-4 rounded-[10px] text-base',
 }
 
 const cls = (v: Variant, fullWidth?: boolean, size: 'md' | 'sm' = 'md') =>
-  cn(BASE, TAMANOS[v === 'ghost' ? 'sm' : size], VARIANTES[v], fullWidth && 'w-full')
+  cn(BASE, 'font-display', TAMANOS[v === 'ghost' ? 'sm' : size], VARIANTES[v], fullWidth && 'w-full')
 
 /** Botón del sistema. primary = navy sólido · outline = borde navy · soft = verde suave (acciones positivas) · danger-soft = rojo suave. */
 export function Button({

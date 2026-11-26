@@ -10,7 +10,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
-import { BadgeCheck, Check, CircleCheck, CircleX, CreditCard, Gift, Layers, Receipt, ShieldAlert, X } from 'lucide-react'
+import { BadgeCheck, Check, CircleCheck, CircleX, CreditCard, Gift, Layers, Receipt, ShieldAlert, X } from '@/components/icons'
 import { Badge, Button, Sheet, useToast } from '@/components/ui'
 import { cambiarEstadoPago } from '@/domain/api'
 import { useSession, useUser } from '@/domain/auth'

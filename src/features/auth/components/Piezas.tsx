@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CircleAlert, Info, TriangleAlert, WifiOff, X } from 'lucide-react'
+import { Check, CircleAlert, Info, TriangleAlert, WifiOff, X } from '@/components/icons'
 import { Checkbox } from '@/components/ui'
 import { REGLAS_PASSWORD } from '@/domain/seguridad'
 import { cn } from '@/lib/cn'
@@ -63,21 +63,22 @@ export function YaTienesCuenta() {
 }
 
 /** Casilla obligatoria de aceptación de Términos y Política de Privacidad (consentimiento informado). */
-export function CasillaLegal({ checked, onChange, error }: { checked: boolean; onChange: (v: boolean) => void; error?: string }) {
+export function CasillaLegal({ checked, onChange, error, id, required }: { checked: boolean; onChange: (v: boolean) => void; error?: string; id?: string; required?: boolean }) {
   return (
     <div className="flex flex-col gap-2">
       <Checkbox
+        id={id}
+        required={required}
         checked={checked}
-        aria-invalid={!!error || undefined}
+        error={error}
         onChange={(e) => onChange(e.target.checked)}
         className="leading-snug"
-        label={
-          <>
-            He leído y acepto los <Link to="/terminos">Términos y Condiciones</Link> y la <Link to="/privacidad">Política de Privacidad</Link> de CuidaRed.
-          </>
-        }
+        label="He leído y acepto los Términos y la Política de privacidad."
       />
-      {error && <Aviso tono="error">{error}</Aviso>}
+      <nav aria-label="Documentos de consentimiento" className="flex flex-wrap gap-x-4 pl-9 text-sm">
+        <Link to="/terminos" target="_blank" rel="noopener" className={ENLACE}>Términos</Link>
+        <Link to="/privacidad" target="_blank" rel="noopener" className={ENLACE}>Política de privacidad</Link>
+      </nav>
     </div>
   )
 }

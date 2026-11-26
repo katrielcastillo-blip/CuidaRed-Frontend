@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { Camera, CircleCheck, ListTodo } from 'lucide-react'
+import { Camera, CircleCheck, ListTodo } from '@/components/icons'
 import { nombreCompleto } from '@/domain/auth'
 import { hhmmA12 } from '@/domain/dates'
 import type { Adulto, EstadoTarea, Tarea } from '@/domain/types'

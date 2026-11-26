@@ -18,7 +18,7 @@
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { CircleCheckBig, Laugh, Paperclip, Plus, UsersRound, X } from 'lucide-react'
+import { CircleCheckBig, Laugh, Paperclip, Plus, UsersRound, X } from '@/components/icons'
 import { nombreCompleto, useSession } from '@/domain/auth'
 import { registrarVisita, validarVisita, type DatosVisita } from '@/domain/api'
 import { ASPECTOS_VISITA } from '@/domain/catalogos'

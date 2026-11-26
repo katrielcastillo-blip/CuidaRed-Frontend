@@ -6,12 +6,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { Mail } from 'lucide-react'
-import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
+import { KeyRound, Mail, UserRoundPlus } from '@/components/icons'
+import { Button, ButtonLink, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
 import { useLogo } from '@/lib/marca'
 import { AuthScreen } from '../auth/components/AuthScreen'
-import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
-import { LogoBadge } from '../auth/components/LogoBadge'
+import { Aviso, CasillaLegal, RequisitosPassword } from '../auth/components/Piezas'
 import { api, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CurrentUser, type Profile } from './client'
 
 const GENERIC_RECOVERY = 'Si el correo pertenece a una cuenta, recibirás un código para restablecer tu contraseña.'
@@ -47,10 +46,10 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
     }
   }
   return (
-    <AuthScreen homeLink>
+    <AuthScreen homeLink fitViewport>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
-      <img className="mb-7 self-center w-[min(279px,100%)]" src={logo} alt="CuidaRed" />
-      <form className="flex flex-col gap-5" onSubmit={submit}>
+      <img className="mb-5 h-auto w-[min(220px,100%)] self-center md:mb-[clamp(12px,2dvh,24px)] md:w-[clamp(200px,32dvh,250px)]" src={logo} alt="CuidaRed" width={517} height={192} />
+      <form className="flex flex-col gap-3 md:gap-[clamp(12px,1.8dvh,20px)]" onSubmit={submit}>
         <TextField
           label="Correo electrónico"
           type="email"
@@ -70,19 +69,23 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
         {new URLSearchParams(window.location.search).has('cierre') && (
           <Aviso tono="warning">Se borró la sesión de este navegador, pero no se pudo confirmar su revocación en el servidor.</Aviso>
         )}
-        <Button type="submit" fullWidth loading={busy}>
+        <Button type="submit" fullWidth loading={busy} size="sm">
           Iniciar sesión
         </Button>
         <ButtonLink to="/recuperar" variant="ghost">
           ¿Olvidaste tu contraseña?
         </ButtonLink>
-        <ButtonLink to="/registro" variant="outline">
-          Activar mi cuenta
-        </ButtonLink>
-        <ButtonLink to="/crear-cuenta" state={location.state} variant="ghost">
-          Crear una cuenta
-        </ButtonLink>
-        <nav className="flex justify-center gap-4">
+        <nav aria-label="Opciones de cuenta" className="mt-1 grid grid-cols-2 gap-2 border-t border-line-soft pt-3 md:mt-2">
+          <Link to="/registro" className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-sm px-1 text-sm font-semibold text-navy transition hover:bg-blue-100 focus-visible:outline-blue">
+            <KeyRound size={18} className="flex-none" aria-hidden />
+            Activar cuenta
+          </Link>
+          <Link to="/crear-cuenta" state={location.state} className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-sm px-1 text-sm font-semibold text-navy transition hover:bg-blue-100 focus-visible:outline-blue">
+            <UserRoundPlus size={18} className="flex-none" aria-hidden />
+            Crear cuenta
+          </Link>
+        </nav>
+        <nav aria-label="Información legal" className="flex justify-center gap-4 text-sm">
           <Link className="inline-flex min-h-12 items-center" to="/terminos">
             Términos
           </Link>
@@ -174,9 +177,10 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
     }
   }
   return (
-    <AuthScreen title="Activar mi cuenta" back="/inicio">
+    <AuthScreen title="Activar mi cuenta" back="/inicio" fitViewport>
       <StepBar step={step} total={3} />
-      <form className="mt-5 flex flex-col gap-5" onSubmit={submit}>
+      <form className="mt-5 flex flex-col gap-5 md:mt-3 md:gap-3" onSubmit={submit}>
+        <div className={'grid min-w-0 gap-4 [&>div>div:first-child]:min-h-8 ' + (step === 2 ? 'sm:grid-cols-2' : 'grid-cols-1')}>
         {step === 1 && (
           <>
             <TextField
@@ -218,27 +222,13 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
               value={confirm}
               onChange={(event) => setConfirm(event.target.value)}
             />
-            <RequisitosPassword password={password} confirmar={confirm} />
-            <Checkbox
-              required
-              checked={accepted}
-              onChange={(event) => setAccepted(event.target.checked)}
-              label={
-                <>
-                  Acepto los{' '}
-                  <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/terminos">
-                    Términos
-                  </Link>{' '}
-                  y la{' '}
-                  <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/privacidad">
-                    Política de privacidad
-                  </Link>
-                  .
-                </>
-              }
-            />
+            <p className="text-sm leading-snug text-muted">Usa al menos 8 caracteres con mayúscula, minúscula, número y símbolo.</p>
+            <div>
+              <CasillaLegal required checked={accepted} onChange={setAccepted} />
+            </div>
           </>
         )}
+        </div>
         {error && <Aviso tono="error">{error}</Aviso>}
         <Button type="submit" loading={busy}>
           {step === 3 ? 'Activar cuenta' : 'Continuar'}
@@ -278,9 +268,8 @@ export function RecoveryForm() {
     }
   }
   return (
-    <AuthScreen title="Recuperar contraseña" back="/inicio" gradient="auth">
-      <LogoBadge />
-      <form className="flex flex-col gap-5" onSubmit={submit}>
+    <AuthScreen title="Recuperar contraseña" back="/inicio" gradient="auth" fitViewport>
+      <form className="flex flex-col gap-5 md:gap-3" onSubmit={submit}>
         <TextField label="Correo electrónico" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
         {sent && <Aviso>{GENERIC_RECOVERY}</Aviso>}
         {error && <Aviso tono="error">{error}</Aviso>}
@@ -358,8 +347,8 @@ export function ResetForm() {
     }
   }
   return (
-    <AuthScreen title="Restablecer contraseña" back="/recuperar" gradient="auth">
-      <form className="flex flex-col gap-5" onSubmit={submit}>
+    <AuthScreen title="Restablecer contraseña" back="/recuperar" gradient="auth" fitViewport>
+      <form className="flex flex-col gap-5 md:grid md:grid-cols-2 md:gap-3" onSubmit={submit}>
         {!tokenHash && <><TextField
           label="Correo electrónico"
           type="email"
@@ -394,9 +383,9 @@ export function ResetForm() {
           value={confirm}
           onChange={(event) => setConfirm(event.target.value)}
         />
-        <RequisitosPassword password={password} confirmar={confirm} />
-        {error && <Aviso tono="error">{error}</Aviso>}
-        <Button type="submit" loading={busy}>
+        <div className="md:col-span-2"><RequisitosPassword password={password} confirmar={confirm} /></div>
+        {error && <Aviso tono="error" className="md:col-span-2">{error}</Aviso>}
+        <Button type="submit" loading={busy} className="md:col-span-2">
           Guardar nueva contraseña
         </Button>
       </form>
@@ -486,7 +475,8 @@ export function ProfileForm({ token, profile, onSaved }: { token: string; profil
     }
   }
   return (
-    <form className="flex flex-col gap-5" onSubmit={submit}>
+    <form className="flex min-w-0 flex-col gap-5 rounded-card border border-line-soft bg-white p-4 shadow-1 sm:p-6" onSubmit={submit}>
+      <h2 className="text-lg font-semibold text-ink">Información personal</h2>
       <div className="flex min-w-0 items-center gap-3 rounded-md border border-line-soft bg-surface p-3">
         <IconTile size={40}><Mail size={20} aria-hidden /></IconTile>
         <dl className="min-w-0">

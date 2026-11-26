@@ -5,7 +5,7 @@
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { CalendarRange, Clock, Info, Paperclip, Pill } from 'lucide-react'
+import { CalendarRange, Clock, Info, Paperclip, Pill } from '@/components/icons'
 import { Badge, EmptyState } from '@/components/ui'
 import { AVISO_INDICACIONES, ESTADO_INDICACION, vigenciaTexto } from '../lib/etiquetas'
 import type { IndicacionVista } from '../lib/modelos'

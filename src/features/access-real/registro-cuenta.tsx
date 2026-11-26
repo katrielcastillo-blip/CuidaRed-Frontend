@@ -11,14 +11,14 @@
  * Cada pantalla tiene como máximo 5 campos de texto, valida junto al campo y conserva lo escrito ante cualquier error.
  */
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { AuthError, Session } from '@supabase/supabase-js'
-import { Button, ButtonLink, Checkbox, PasswordField, SelectField, StepBar, TextField } from '@/components/ui'
+import { Button, ButtonLink, PasswordField, SelectField, StepBar, TextField } from '@/components/ui'
+import { Building2, Users } from '@/components/icons'
 import { DIAS_PRUEBA_GRATUITA } from '@/domain/planes'
 import { cn } from '@/lib/cn'
 import { AuthScreen } from '../auth/components/AuthScreen'
-import { LogoBadge } from '../auth/components/LogoBadge'
-import { Aviso, ENLACE, RequisitosPassword } from '../auth/components/Piezas'
+import { Aviso, CasillaLegal, ENLACE, RequisitosPassword } from '../auth/components/Piezas'
 import { crearCuenta } from './api/cuentas'
 import {
   listarCategoriasCuenta,
@@ -135,6 +135,9 @@ interface Props {
 
 export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCreada }: Props) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const retorno = (location.state as { retornoPortada?: unknown } | null)?.retornoPortada
+  const portada = typeof retorno === 'string' && /^\/(?:#[a-z][a-z0-9-]*)?$/.test(retorno) ? retorno : '/'
   const [conSesionPrevia] = useState(() => !!session)
   const pasos = conSesionPrevia ? PASOS_CON_SESION : PASOS_COMPLETOS
   const [temporal] = useState(temporaryClient)
@@ -220,7 +223,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
   }
   const siguienteDeTipo = (): Paso => (conSesionPrevia || sesionTemporal ? 'cuenta' : 'datos')
   const atras = () => {
-    if (paso === 'tipo') return navigate(conSesionPrevia ? '/cuenta' : '/')
+    if (paso === 'tipo') return navigate(conSesionPrevia ? '/cuenta' : portada)
     // Con el correo ya verificado no tiene sentido volver a pedir la persona: desde la cuenta se vuelve al tipo.
     // Desde el código se vuelve a los datos para corregir el correo si hizo falta.
     irA(paso === 'datos' || paso === 'cuenta' ? 'tipo' : 'datos')
@@ -431,7 +434,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
                   setErrores({})
                 }}
               />
-              <img src={'/figma-miembros/' + opcion + '.svg'} alt="" width={opcion === 'familia' ? 31 : 34} height={opcion === 'familia' ? 31 : 35} />
+              {opcion === 'familia' ? <Users size={32} aria-hidden /> : <Building2 size={32} aria-hidden />}
               {TIPO_TEXTO[opcion]}
             </label>
           ))}
@@ -523,29 +526,18 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
             setErrores((actuales) => ({ ...actuales, confirmar: undefined }))
           }}
         />
-        <RequisitosPassword password={clave} confirmar={confirmar} />
-        <Checkbox
-          id="registro-acepta"
-          checked={acepta}
-          error={errores.acepta}
-          onChange={(e) => {
-            setAcepta(e.target.checked)
-            setErrores((actuales) => ({ ...actuales, acepta: undefined }))
-          }}
-          label={
-            <>
-              Acepto los{' '}
-              <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/terminos">
-                Términos
-              </Link>{' '}
-              y la{' '}
-              <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/privacidad">
-                Política de privacidad
-              </Link>
-              .
-            </>
-          }
-        />
+        <div className="md:col-span-2"><RequisitosPassword password={clave} confirmar={confirmar} /></div>
+        <div className="md:col-span-2">
+          <CasillaLegal
+            id="registro-acepta"
+            checked={acepta}
+            error={errores.acepta}
+            onChange={(valor) => {
+              setAcepta(valor)
+              setErrores((actuales) => ({ ...actuales, acepta: undefined }))
+            }}
+          />
+        </div>
       </>
     )
   } else if (paso === 'codigo') {
@@ -579,10 +571,15 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
     contenido = (
       <>
         {!conSesionPrevia && sesionTemporal && (
-          <Aviso tono="info">Tu correo ya está verificado. Completa estos datos para crear una cuenta a tu cargo o <Link to="/inicio" className={ENLACE}>inicia sesión</Link> para aceptar una invitación existente.</Aviso>
+          <Aviso tono="info" className="md:col-span-2 md:items-center md:py-0">
+            <div className="flex flex-wrap items-center gap-x-3">
+              <span>Correo verificado.</span>
+              <Link to="/inicio" className={ENLACE}>¿Te invitaron? Inicia sesión</Link>
+            </div>
+          </Aviso>
         )}
         {errorCatalogos && (
-          <Aviso tono="error">
+          <Aviso tono="error" className="md:col-span-2">
             <p>{errorCatalogos}</p>
             <Button
               variant="ghost"
@@ -604,7 +601,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
           autoComplete="organization"
           value={cuenta.nombre}
           error={errores.nombre}
-          hint={tipo === 'organizacion' ? 'Por ejemplo: Fundación Esperanza.' : 'Por ejemplo: Familia Pérez.'}
+          hint={tipo === 'organizacion' ? 'Ej.: Fundación Esperanza.' : 'Ej.: Familia Pérez.'}
           onChange={(e) => cambiarCuenta('nombre', e.target.value)}
         />
         <SelectField
@@ -620,7 +617,7 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
         />
         <TextField
           id="registro-telefono"
-          label={tipo === 'organizacion' ? 'Teléfono institucional (opcional)' : 'Teléfono (opcional)'}
+          label="Teléfono (opcional)"
           type="tel"
           maxLength={20}
           autoComplete="tel"
@@ -651,14 +648,14 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
           label="Municipio"
           required
           disabled={!cuenta.provincia || cargandoMunicipios || !!errorMunicipios}
-          placeholder={!cuenta.provincia ? 'Elige primero la provincia' : cargandoMunicipios ? 'Cargando municipios…' : 'Elige un municipio'}
+          placeholder={!cuenta.provincia ? 'Primero la provincia' : cargandoMunicipios ? 'Cargando municipios…' : 'Elige un municipio'}
           options={municipiosDeLaProvincia.map((m) => ({ value: m.municipio_cod, label: m.nombre }))}
           value={cuenta.municipio}
           error={errores.municipio}
           onChange={(e) => cambiarCuenta('municipio', e.target.value)}
         />
         {errorMunicipios && (
-          <Aviso tono="error">
+          <Aviso tono="error" className="md:col-span-2">
             <p>{errorMunicipios}</p>
             <Button variant="ghost" onClick={() => {
               setErrorMunicipios('')
@@ -680,24 +677,27 @@ export function RegistroCuenta({ titulo, tipoInicial, session, onSession, onCrea
   }
 
   return (
-    <AuthScreen title={titulo} back={atras} homeLink={!conSesionPrevia}>
-      <LogoBadge />
+    <AuthScreen title={titulo} back={atras} backLabel={paso === 'tipo' && !conSesionPrevia ? 'Volver a la portada' : 'Volver al paso anterior'} fitViewport>
       <StepBar step={pasos.indexOf(paso) + 1} total={pasos.length} />
-      <form ref={formulario} className="mt-6 flex flex-col gap-5" onSubmit={(e) => void enviar(e)} noValidate>
+      <form ref={formulario} className="mt-4 flex flex-col gap-4 md:mt-3 md:gap-3" onSubmit={(e) => void enviar(e)} noValidate>
         <h2 ref={encabezadoPaso} tabIndex={-1} className="text-lg font-bold text-ink outline-none">{TITULO_PASO[paso]}</h2>
-        {contenido}
+        <div className={cn('flex flex-col gap-4 md:gap-3', (paso === 'datos' || paso === 'clave' || paso === 'cuenta') && 'md:grid md:grid-cols-2')}>
+          {contenido}
+        </div>
         {aviso && <Aviso tono="info">{aviso}</Aviso>}
         {fallo && <AvisoFallo fallo={fallo} />}
-        <Button type="submit" variant={paso === 'tipo' || paso === 'datos' ? 'outline' : 'primary'} loading={ocupado} disabled={paso === 'cuenta' && (cargandoCatalogos || !!errorCatalogos || cargandoMunicipios || !!errorMunicipios)}>
-          {paso === 'cuenta' ? (tipo === 'organizacion' ? 'Guardar organización' : 'Crear cuenta') : paso === 'clave' ? 'Registrarme' : paso === 'codigo' ? 'Verificar correo' : 'Continuar'}
-        </Button>
-        {paso === 'cuenta' && conSesionPrevia ? (
-          <ButtonLink to="/cuenta" variant="outline">Cancelar</ButtonLink>
-        ) : paso === 'datos' || paso === 'clave' ? (
-          <Button variant="ghost" disabled={ocupado} onClick={atras}>
-            Volver
+        <div className={cn('flex flex-col gap-5 md:gap-3', (paso === 'datos' || paso === 'clave' || (paso === 'cuenta' && conSesionPrevia)) && 'md:grid md:grid-cols-2')}>
+          <Button type="submit" variant={paso === 'tipo' || paso === 'datos' ? 'outline' : 'primary'} loading={ocupado} disabled={paso === 'cuenta' && (cargandoCatalogos || !!errorCatalogos || cargandoMunicipios || !!errorMunicipios)}>
+            {paso === 'cuenta' ? (tipo === 'organizacion' ? 'Guardar organización' : 'Crear cuenta') : paso === 'clave' ? 'Registrarme' : paso === 'codigo' ? 'Verificar correo' : 'Continuar'}
           </Button>
-        ) : null}
+          {paso === 'cuenta' && conSesionPrevia ? (
+            <ButtonLink to="/cuenta" variant="outline">Cancelar</ButtonLink>
+          ) : paso === 'datos' || paso === 'clave' ? (
+            <Button variant="ghost" disabled={ocupado} onClick={atras}>
+              Volver
+            </Button>
+          ) : null}
+        </div>
       </form>
     </AuthScreen>
   )

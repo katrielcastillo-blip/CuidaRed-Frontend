@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, Cloud, CloudOff, RefreshCw } from 'lucide-react'
+import { Bell, Cloud, CloudOff, RefreshCw } from '@/components/icons'
 import { nombreCompleto, ROL_LABEL, useMisCuentas, useSession } from '@/domain/auth'
 import { marcarNotificacionesLeidas, notificacionesDe } from '@/domain/api'
 import { useEnLinea } from '@/domain/conectividad'

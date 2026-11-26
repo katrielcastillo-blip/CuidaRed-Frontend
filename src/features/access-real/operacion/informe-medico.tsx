@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState } from 'react'
-import { FileDown, FileHeart } from 'lucide-react'
+import { FileDown, FileHeart } from '@/components/icons'
 import { Badge, Button, Card, Datum, RiesgoBadge } from '@/components/ui'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { rutaInformeMedico, type InformeMedicoApi, type SeccionInforme } from '../api/reportes'

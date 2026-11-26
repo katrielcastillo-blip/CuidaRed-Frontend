@@ -7,7 +7,7 @@
  */
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, MailQuestion } from 'lucide-react'
+import { Building2, MailQuestion } from '@/components/icons'
 import { Button, PasswordField, StepBar, TextField } from '@/components/ui'
 import { HOME_BY_ROL, ROL_LABEL } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

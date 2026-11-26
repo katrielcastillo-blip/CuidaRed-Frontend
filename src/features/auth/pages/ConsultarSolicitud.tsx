@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router-dom'
-import { CalendarClock, ShieldCheck } from 'lucide-react'
+import { CalendarClock, ShieldCheck } from '@/components/icons'
 import { Badge, Button, TextareaField, TextField, useToast, type Tone } from '@/components/ui'
 import { consultarSolicitud, registrarObservacionVisitante, type EstadoPublicoSolicitud } from '@/domain/api/solicitudes'
 import { useEnLinea } from '@/domain/conectividad'

@@ -7,7 +7,7 @@
  */
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Info } from 'lucide-react'
+import { Info } from '@/components/icons'
 import { Chip, EmptyState } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
 import { SolicitudCard } from './components/SolicitudCard'

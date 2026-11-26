@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Building2, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Bell, Building2, ChevronRight, SlidersHorizontal } from '@/components/icons'
 import { Button, ButtonLink, Checkbox, IconTile, SelectField, Switch, TextField } from '@/components/ui'
 import { fechaCorta } from '@/domain/dates'
 import { api } from '../client'

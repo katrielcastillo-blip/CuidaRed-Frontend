@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useState } from 'react'
-import { Table2 } from 'lucide-react'
+import { Table2 } from '@/components/icons'
 import { cn } from '@/lib/cn'
 import { esGraficoSeries, tablaDeGrafico, type GraficoReporte, type TablaDatos } from '../../lib/reportes-comun'
 import { alturaGrafico } from './alturaGrafico'

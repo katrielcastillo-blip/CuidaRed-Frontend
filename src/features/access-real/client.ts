@@ -63,7 +63,7 @@ export class ApiError extends Error {
   }
 }
 
-async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown, credentials: RequestCredentials = 'omit'): Promise<Response> {
+export async function apiResponse(path: string, token: string | undefined, method = 'GET', data?: unknown, credentials: RequestCredentials = 'omit'): Promise<Response> {
   const { api: base } = configuration()
   const res = await fetch(`${base}/api/v1${path}`, {
     method,

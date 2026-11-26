@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarDays, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, UserRound } from '@/components/icons'
 import { Badge, IconTile } from '@/components/ui'
 import { ESTADO_SOLICITUD } from '@/domain/api/solicitudes'
 import { fechaCorta } from '@/domain/dates'

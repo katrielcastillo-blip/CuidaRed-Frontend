@@ -1,5 +1,5 @@
 /* PlanesPortada.tsx — Comparación de opciones de cuidado. Módulo auth. © 2026 Equipo CuidaRed – INTEC. */
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check } from '@/components/icons'
 import { Link } from 'react-router-dom'
 
 // Resumen público del catálogo de referencia de CuidaRed.

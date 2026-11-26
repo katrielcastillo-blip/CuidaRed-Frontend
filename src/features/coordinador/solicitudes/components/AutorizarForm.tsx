@@ -7,7 +7,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
-import { CircleCheck, MessageSquareQuote, WifiOff } from 'lucide-react'
+import { CircleCheck, MessageSquareQuote, WifiOff } from '@/components/icons'
 import { AvisoBorrador, Button, RiesgoBadge, SelectField, TextField, requerido, useFormulario, useToast } from '@/components/ui'
 import { autorizarSolicitud } from '@/domain/api/solicitudes'
 import { nombreCompleto } from '@/domain/auth'

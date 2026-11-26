@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { Ban, Camera, CircleCheck, CircleX, Clock, Hourglass, Paperclip, Pencil, Pill, Play, Repeat, ShieldCheck, WifiOff } from 'lucide-react'
+import { Ban, Camera, CircleCheck, CircleX, Clock, Hourglass, Paperclip, Pencil, Pill, Play, Repeat, ShieldCheck, WifiOff } from '@/components/icons'
 import { Badge, Button, ButtonLink, ChoicePills, Sheet } from '@/components/ui'
 import { EVIDENCIA_MAX_POR_TAREA, motivoSinEvidenciaValidada, ocurrenciasDeSerie, siguientesDeSerie } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'

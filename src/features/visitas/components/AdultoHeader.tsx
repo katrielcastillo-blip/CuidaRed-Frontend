@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { CircleUserRound } from 'lucide-react'
+import { CircleUserRound } from '@/components/icons'
 import { nombreCompleto } from '@/domain/auth'
 import type { Adulto } from '@/domain/types'
 import { IconTile, RiesgoBadge } from '@/components/ui'

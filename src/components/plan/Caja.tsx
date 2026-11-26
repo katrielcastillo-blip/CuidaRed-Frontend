@@ -4,7 +4,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ReactNode } from 'react'
-import { Info, TriangleAlert, WifiOff } from 'lucide-react'
+import { Info, TriangleAlert, WifiOff } from '@/components/icons'
 import { cn } from '@/lib/cn'
 
 const TONOS = {

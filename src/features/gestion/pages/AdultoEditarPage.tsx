@@ -7,7 +7,7 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { EyeOff, Power, PowerOff } from 'lucide-react'
+import { EyeOff, Power, PowerOff } from '@/components/icons'
 import { Badge, Button, Checkbox, Sheet, useToast } from '@/components/ui'
 import { actualizarAdulto, anonimizarAdulto, cambiarEstadoAdulto, datosDesdeAdulto } from '@/domain/api'
 import { useUser } from '@/domain/auth'

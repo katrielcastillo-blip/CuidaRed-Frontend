@@ -3,7 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useId, useState } from 'react'
-import { ExternalLink, FileText, Paperclip } from 'lucide-react'
+import { ExternalLink, FileText, Paperclip } from '@/components/icons'
 import { Badge, Button, Card, IconTile, TextareaField, type Tone } from '@/components/ui'
 import { api, getClient } from '../client'
 import { campo, Estado, Formulario, useConexionReal, useDatos } from './controles'

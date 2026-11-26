@@ -1,6 +1,6 @@
 /* Bandeja conectada de alertas y casos prioritarios · ID06, RF-04/05/18. © 2026 Equipo CuidaRed – INTEC. */
 import { useEffect, useRef, useState } from 'react'
-import { Bell, ChevronRight } from 'lucide-react'
+import { Bell, ChevronRight, Icon } from '@/components/icons'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Card, Chip, Datum, IconTile, SelectField, type Tone } from '@/components/ui'
 import { fechaHora } from '@/domain/dates'
@@ -223,36 +223,51 @@ function ListaAlertas({ base, token, cuenta, abrir, revision, adultoInicial }: P
 function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja & { cambio: () => void }) {
   const [confirmacion, setConfirmacion] = useState(false)
   const [estado, fijarEstado] = useState('')
+  const [ocupada, setOcupada] = useState<string>()
+  const [error, setError] = useState('')
+  const [fechaHoy] = useState(() => new Date())
+  const formatoDia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santo_Domingo' })
+  const hoy = formatoDia.format(fechaHoy)
   const enLinea = useConexionReal()
-  const consulta = usePagina<Notificacion>(`${base}/notificaciones-alerta`, token, revision, { filters: estado ? { estado } : undefined })
+  const consulta = usePagina<Notificacion>(`${base}/notificaciones-alerta`, token, revision, { filters: estado ? { estado } : undefined, sort: ['-fecha_notificacion'] })
+  const todas = usePagina<unknown>(estado ? `${base}/notificaciones-alerta` : null, token, revision, { limit: 1 })
+  const sinLeer = usePagina<unknown>(estado !== 'no_leida' ? `${base}/notificaciones-alerta` : null, token, revision, { limit: 1, filters: { estado: 'no_leida' } })
+  const total = estado ? todas.datos?.meta.total : consulta.datos?.meta.total
+  const pendientes = estado === 'no_leida' ? consulta.datos?.meta.total : sinLeer.datos?.meta.total
+  const grupos = new Map<string, Notificacion[]>()
+  const fechaAyer = formatoDia.format(new Date(fechaHoy.getTime() - 86_400_000))
+  for (const aviso of consulta.datos?.data ?? []) {
+    const dia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santo_Domingo' }).format(new Date(aviso.fecha_notificacion))
+    const titulo = dia === hoy ? 'Hoy' : dia === fechaAyer ? 'Ayer' : new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(aviso.fecha_notificacion))
+    grupos.set(titulo, [...(grupos.get(titulo) ?? []), aviso])
+  }
+  const leer = async (aviso: Notificacion, navegar = false) => {
+    if (ocupada) return
+    setOcupada(aviso.notificacion_id); setError('')
+    try {
+      if (aviso.estado === 'no_leida') {
+        await api(`${base}/notificaciones-alerta/${idRuta(aviso.notificacion_id)}/leer`, token, 'POST', {})
+        setConfirmacion(true); cambio()
+      }
+      if (navegar && aviso.alerta_envejeciente_id) abrir(aviso.alerta_envejeciente_id)
+    } catch { setError('No se pudo actualizar la notificación. Intenta de nuevo.') }
+    finally { setOcupada(undefined) }
+  }
   return <section className="grid gap-3" aria-label="Notificaciones de alertas">
-    <div className="max-w-sm">
-      <SelectField label="Lectura de notificaciones" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
-        options={[{ value: '', label: 'Todas' }, { value: 'no_leida', label: 'Sin leer' }, { value: 'leida', label: 'Leídas' }]} />
+    <div className="flex flex-wrap gap-2 py-2" role="group" aria-label="Lectura de notificaciones">
+      {[{ id: '', texto: `Todas${total === undefined ? '' : ` (${total})`}` }, { id: 'no_leida', texto: `Sin leer${pendientes === undefined ? '' : ` (${pendientes})`}` }, { id: 'leida', texto: 'Leídas' }].map(opcion => <button key={opcion.id} type="button" aria-pressed={estado === opcion.id} onClick={() => fijarEstado(opcion.id)} className={'min-h-12 rounded-pill border px-4 text-sm font-semibold ' + (estado === opcion.id ? 'border-navy bg-navy text-white' : 'border-line bg-white text-ink hover:bg-blue-100')}>{opcion.texto}</button>)}
     </div>
     {confirmacion && <p role="status" className="rounded-sm bg-teal-100 p-3 text-sm font-semibold">Notificación marcada como leída.</p>}
+    {error && <p role="alert" className="rounded-sm bg-danger-100 p-3 text-sm text-danger">{error}</p>}
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin notificaciones de alertas.' : undefined} />
-    {consulta.datos?.data.map((aviso) => (
-      <Card key={aviso.notificacion_id} className="grid gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-semibold whitespace-pre-line wrap-anywhere">{aviso.mensaje}</p>
-          <Badge tone={aviso.estado === 'no_leida' ? 'info' : 'neutral'}>
-            {aviso.estado === 'no_leida' ? 'Sin leer' : aviso.estado === 'archivada' ? 'Archivada' : 'Leída'}
-          </Badge>
-        </div>
-        <time className="text-sm text-muted" dateTime={aviso.fecha_notificacion}>{fechaHora(aviso.fecha_notificacion)}</time>
-        {aviso.fecha_lectura && <p className="text-sm text-ink-2">Leída el <time dateTime={aviso.fecha_lectura}>{fechaHora(aviso.fecha_lectura)}</time></p>}
-        {aviso.alerta_envejeciente_id && <div><Button variant="ghost" size="sm" onClick={() => {
-          if (aviso.alerta_envejeciente_id) abrir(aviso.alerta_envejeciente_id)
-        }}>Ver alerta</Button></div>}
-        {aviso.estado === 'no_leida' && <Formulario titulo="Lectura de la notificación" campos={[]} accion="Marcar como leída"
-          disabled={!enLinea} exito="" enviar={async () => {
-            await api(`${base}/notificaciones-alerta/${idRuta(aviso.notificacion_id)}/leer`, token, 'POST', {})
-            setConfirmacion(true)
-            cambio()
-          }} />}
-      </Card>
-    ))}
+    {[...grupos].map(([titulo, avisos]) => <section key={titulo} aria-label={titulo} className="grid gap-3 py-2"><h3 className="text-sm font-semibold text-muted">{titulo}</h3><ul className="grid gap-3">{avisos.map(aviso => {
+      const contenido = <><span className="grid size-10 shrink-0 place-items-center rounded-sm bg-danger-100 text-danger"><Bell size={24} aria-hidden /></span><span className="min-w-0 flex-1"><span className="block font-semibold whitespace-pre-line wrap-anywhere">{aviso.estado === 'no_leida' && <span aria-label="Sin leer" className="mr-1 inline-block size-2 rounded-full bg-danger" />}{aviso.mensaje}</span><span className="mt-1 block text-sm text-muted"><time dateTime={aviso.fecha_notificacion}>{fechaHora(aviso.fecha_notificacion)}</time> · <span>{aviso.estado === 'no_leida' ? 'Sin leer' : aviso.estado === 'archivada' ? 'Archivada' : 'Leída'}</span></span>{aviso.fecha_lectura && <span className="mt-1 block text-sm text-muted">Leída el <time dateTime={aviso.fecha_lectura}>{fechaHora(aviso.fecha_lectura)}</time></span>}</span>{aviso.alerta_envejeciente_id && <ChevronRight size={20} className="self-center text-muted" aria-hidden />}</>
+      return <li key={aviso.notificacion_id} className={'overflow-hidden rounded-card border ' + (aviso.estado === 'no_leida' ? 'border-primary bg-blue-100' : 'border-line-soft bg-white')}>
+        {aviso.alerta_envejeciente_id ? <button type="button" disabled={!enLinea || !!ocupada} aria-label={`Ver alerta: ${aviso.mensaje}`} onClick={() => void leer(aviso, true)} className="flex min-h-24 w-full items-start gap-3 p-4 text-left hover:bg-blue-100/60">{contenido}</button> : <div className="flex min-h-24 items-start gap-3 p-4">{contenido}</div>}
+        {aviso.estado === 'no_leida' && <div className="flex justify-end px-3"><button type="button" aria-label="Marcar como leída" title="Marcar como leída" disabled={!enLinea || !!ocupada} onClick={() => void leer(aviso)} className="flex min-h-12 items-center gap-2 rounded-sm px-3 text-sm font-semibold text-navy hover:bg-white/60"><Icon name="mark_email_read" size={20} />Marcar como leída</button></div>}
+      </li>
+    })}</ul></section>)}
+    {consulta.datos?.data.length ? <p className="text-sm text-muted">Al abrir un aviso se marca como leído y se muestra su alerta. Los avisos sin alerta asociada se pueden marcar como leídos aquí.</p> : null}
     {consulta.datos && <Paginador pagina={consulta.pagina} total={consulta.datos.meta.totalPages} cambiar={consulta.cambiar} />}
   </section>
 }
@@ -280,15 +295,15 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
   const listado = { base, token, abrir, revision }
   return <section className="grid gap-4">
     <div ref={bandejaRef} tabIndex={-1} hidden={!!id} className="space-y-4 outline-none">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Bandeja de alertas">
+      {bandeja !== 'avisos' && <div className="flex flex-wrap gap-2" role="group" aria-label="Bandeja de alertas">
         {bandejas.map((item) => <Chip key={item.value} active={bandeja === item.value}
           onClick={() => fijarParametros(item.value === 'casos' ? {} : { bandeja: item.value }, { replace: true })}>{item.label}</Chip>)}
-      </div>
+      </div>}
       {bandeja === 'casos' && <Casos {...listado} />}
       {bandeja === 'alertas' && <ListaAlertas {...listado} cuenta={cuenta} adultoInicial={parametros.get('adulto') ?? undefined} />}
       {bandeja === 'avisos' && <>
-        <NotificacionesPush token={token} />
         <Notificaciones {...listado} cambio={() => { cambio(); alLeerAviso() }} />
+        <NotificacionesPush token={token} />
       </>}
     </div>
     {id && <div ref={panel} tabIndex={-1} className="grid gap-3 outline-none">

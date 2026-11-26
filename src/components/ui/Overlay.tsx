@@ -5,7 +5,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Smile, X } from 'lucide-react'
+import { Smile, X } from '@/components/icons'
 import { cn } from '@/lib/cn'
 import { EVENTO_TOAST, type ToastTone } from '@/domain/avisos'
 

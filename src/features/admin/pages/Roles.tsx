@@ -7,7 +7,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Fragment, useMemo } from 'react'
-import { Check, Minus, ShieldCheck } from 'lucide-react'
+import { Check, Minus, ShieldCheck } from '@/components/icons'
 import { ROL_LABEL, useSession } from '@/domain/auth'
 import { DESCRIPCION_ROL, permisosDe } from '@/domain/permisos'
 import { tipoDeCuenta, TIPO_CUENTA_LABEL } from '@/domain/planes'

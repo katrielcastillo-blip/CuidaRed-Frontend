@@ -3,13 +3,25 @@
  * Módulo: styles.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-/* Design tokens de CuidaRed (extraídos del Figma). Añade tokens nuevos aquí; no cambies los existentes. */
-@import '@fontsource-variable/inter';
+/* Línea gráfica CuidaRed: fuentes autoalojadas y solo subconjuntos latinos. */
+@font-face {
+  font-family: 'Montserrat Variable'; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url('@fontsource-variable/montserrat/files/montserrat-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Open Sans Variable'; font-style: normal; font-weight: 300 800; font-display: swap;
+  src: url('@fontsource-variable/open-sans/files/open-sans-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Material Symbols Outlined'; font-style: normal; font-weight: 400; font-display: block;
+  src: url('../assets/fonts/material-symbols-cuidared.woff2') format('woff2');
+}
 
 :root {
   /* Marca */
   --c-navy: #0c3b6e;          /* primario: headers, bottom-nav, botones */
   --c-navy-700: #0a3160;
+  --c-primary: #003f9e;
   --c-blue: #378add;          /* acento / bordes de iconos */
   --c-blue-bright: #3b8de0;
   --c-blue-100: #e6f1fb;      /* fondos suaves azules, texto sobre navy */
@@ -22,9 +34,9 @@
   --c-surface: #ffffff;
   --c-surface-2: #e2e8f0;
   --c-border: #64748b;
-  --c-border-soft: #cbd5e1;
+  --c-border-soft: #e2e8f0;
   --c-text: #1a2b3c;
-  --c-text-2: #434652;
+  --c-text-2: #64748b;
   --c-muted: #64748b;
   --c-white: #ffffff;
 
@@ -49,8 +61,9 @@
   --grad-success: linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%);
 
   /* Tipografía */
-  --font: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --fs-xs: 0.75rem;   /* 12 */
+  --font: 'Open Sans Variable', 'Open Sans', system-ui, sans-serif;
+  --font-heading: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
+  --fs-xs: 0.875rem;  /* 14: mínimo para metadatos legibles */
   --fs-sm: 0.875rem;  /* 14 */
   --fs-md: 1rem;      /* 16 */
   --fs-lg: 1.125rem;  /* 18 */
@@ -59,12 +72,13 @@
   --fs-3xl: 2rem;     /* 32 */
 
   /* Forma */
-  --r-sm: 7px;   /* inputs, tarjetas */
+  --r-sm: 12px;
   --r-md: 12px;  /* botones */
-  --r-lg: 20px;
+  --r-lg: 24px;
+  --r-card: 16px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 4px rgba(100, 116, 139, 0.42);
-  --shadow-2: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-1: 0 1px 2px rgba(12, 59, 110, 0.06);
+  --shadow-2: 0 8px 24px rgba(12, 59, 110, 0.10);
 
   /* Espaciado */
   --sp-1: 4px;
@@ -77,11 +91,11 @@
   --sp-10: 40px;
 
   /* Layout */
-  --gutter: 20px;              /* margen lateral móvil (Figma: 36px a 428 de ancho incl. padding interno) */
+  --gutter: 16px;
   --appbar-h: 64px;
-  --bottomnav-h: 72px;
+  --bottomnav-h: 4.5rem;
   --sidebar-w: 248px;
-  --content-max: 1040px;
+  --content-max: 1200px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }

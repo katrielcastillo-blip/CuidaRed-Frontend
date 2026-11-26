@@ -19,7 +19,7 @@
  * Cada paso debe caber en un solo desplazamiento a 360×640 y tener como máximo 5 campos de texto libre (RF-06).
  */
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { History } from 'lucide-react'
+import { History } from '@/components/icons'
 import { avisar } from '@/domain/avisos'
 import { cn } from '@/lib/cn'
 import { Button } from './Button'

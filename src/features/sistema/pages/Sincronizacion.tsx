@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useState } from 'react'
-import { Cloud, CloudOff, HardDrive, RefreshCw, Trash2, TriangleAlert } from 'lucide-react'
+import { Cloud, CloudOff, HardDrive, RefreshCw, Trash2, TriangleAlert } from '@/components/icons'
 import { useSession } from '@/domain/auth'
 import { setSimularSinConexion, useEnLinea, useSimulacionSinConexion } from '@/domain/conectividad'
 import { fechaHora, hora12 } from '@/domain/dates'

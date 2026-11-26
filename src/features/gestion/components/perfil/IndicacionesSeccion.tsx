@@ -12,7 +12,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useId, useMemo, useState, type FormEvent } from 'react'
-import { CalendarRange, Clock, Paperclip, Pencil, Plus, X } from 'lucide-react'
+import { CalendarRange, Clock, Paperclip, Pencil, Plus, X } from '@/components/icons'
 import { AvisoBorrador, Badge, Button, ChoicePills, SelectField, Sheet, TextareaField, TextField, useToast } from '@/components/ui'
 import { DATOS_INDICACION_VACIOS, guardarIndicacion, type DatosIndicacion } from '@/domain/api'
 import { useUser } from '@/domain/auth'

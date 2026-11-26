@@ -7,7 +7,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState } from 'react'
-import { FileText, Upload, WifiOff, X } from 'lucide-react'
+import { FileText, Upload, WifiOff, X } from '@/components/icons'
 import { Button, TextareaField, useToast } from '@/components/ui'
 import { MAX_OBSERVACION_EVIDENCIA, registrarEvidencia } from '@/domain/api'
 import type { Tarea, Usuario } from '@/domain/types'

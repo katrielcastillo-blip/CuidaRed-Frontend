@@ -4,7 +4,7 @@
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Car, ClipboardList, Frown, HeartHandshake, Meh, Pill, Smile, Utensils, type LucideIcon } from 'lucide-react'
+import { Car, ClipboardList, Frown, HeartHandshake, Meh, Pill, Smile, Utensils, type LucideIcon } from '@/components/icons'
 import { addDays, fechaCorta, toISODate, todayISO } from '@/domain/dates'
 import type { Tone } from '@/components/ui'
 import type { EstadoAdultoVisita, EstadoNecesidad, EstadoVisita, Prioridad, TipoNecesidad } from '@/domain/types'

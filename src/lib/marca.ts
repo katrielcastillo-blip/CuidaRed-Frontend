@@ -11,9 +11,33 @@ const predeterminados: Record<Variante, string> = {
   completo_claro: '/brand/logo.png', completo_oscuro: '/brand/logo.png', isotipo: '/brand/logosimbolo.png',
 }
 const observers = new Set<() => void>()
-let marca: Marca = {}
+const cacheKey = 'cuidared:marca:' + (import.meta.env.VITE_SUPABASE_URL ?? 'local')
+let marca: Marca = marcaGuardada()
 let controller: AbortController | undefined
+let intento = 0
 const base = () => import.meta.env.VITE_API_URL?.replace(/\/$/, '')
+
+function validarMarca(data: unknown): Marca {
+  const nueva: Marca = {}
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return nueva
+  for (const variante of Object.keys(predeterminados) as Variante[]) {
+    const url = (data as Record<string, unknown>)[variante]
+    if (typeof url !== 'string' || url.length > 2048) continue
+    try {
+      const parsed = new URL(url)
+      const proyecto = new URL(import.meta.env.VITE_SUPABASE_URL ?? '')
+      if (parsed.origin === proyecto.origin && !parsed.username && !parsed.password
+        && (parsed.protocol === 'https:' || (import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(parsed.hostname)))
+        && parsed.pathname.startsWith('/storage/v1/object/public/cuidared-marca/')) nueva[variante] = parsed.href
+    } catch { /* una variante inválida no impide cargar las demás */ }
+  }
+  return nueva
+}
+
+function marcaGuardada(): Marca {
+  try { return validarMarca(JSON.parse(localStorage.getItem(cacheKey) ?? '{}')) }
+  catch { return {} }
+}
 
 function leerMarca(variante: Variante) {
   return marca[variante] ?? predeterminados[variante]
@@ -21,19 +45,18 @@ function leerMarca(variante: Variante) {
 
 export async function actualizarMarca() {
   if (!base() || (import.meta.env.DEV && import.meta.env.VITE_AUTH_MODE === 'demo')) return
+  const actual = ++intento
   try {
     const response = await fetch(base() + '/api/admin/marca', { cache: 'no-store', signal: AbortSignal.timeout(6000) })
     if (!response.ok) return
-    const { data } = await response.json() as { data: Marca }
-    const nueva: Marca = {}
-    for (const variante of Object.keys(predeterminados) as Variante[]) {
-      const url = data[variante]
-      if (!url) continue
-      const parsed = new URL(url)
-      if ((parsed.protocol === 'https:' || (import.meta.env.DEV && parsed.hostname === 'localhost'))
-        && parsed.pathname.startsWith('/storage/v1/object/public/cuidared-marca/')) nueva[variante] = parsed.href
-    }
+    const { data } = await response.json() as { data: unknown }
+    const nueva = validarMarca(data)
+    if (actual !== intento) return
     marca = nueva
+    try {
+      if (Object.keys(nueva).length) localStorage.setItem(cacheKey, JSON.stringify(nueva))
+      else localStorage.removeItem(cacheKey)
+    } catch { /* el logo sigue disponible aunque el navegador no permita guardar su referencia */ }
     observers.forEach((observer) => observer())
   } catch { /* conservar la última marca conocida durante una desconexión */ }
 }
@@ -51,9 +74,9 @@ async function escuchar(signal: AbortSignal) {
         const { value, done } = await reader.read()
         if (done) break
         pending += decoder.decode(value, { stream: true })
-        const events = pending.split('\n\n')
+        const events = pending.split(/\r?\n\r?\n/)
         pending = events.pop() ?? ''
-        if (events.some((event) => event.startsWith('data: '))) void actualizarMarca()
+        if (events.some((event) => event.split(/\r?\n/).some((line) => line.startsWith('data:')))) void actualizarMarca()
       }
     } catch { /* reintentar al recuperar la red */ }
     if (!signal.aborted) await new Promise((resolve) => setTimeout(resolve, 10000))

@@ -3,7 +3,7 @@
  * Módulo: access-real · ID08, RF-20.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Check, RefreshCw } from 'lucide-react'
+import { Check, RefreshCw } from '@/components/icons'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, ChoicePills, Sheet, type Tone } from '@/components/ui'

@@ -14,7 +14,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
-import { Check, CircleAlert, Eye, EyeOff, Search } from 'lucide-react'
+import { Check, CircleAlert, Eye, EyeOff, Search } from '@/components/icons'
 import { cn } from '@/lib/cn'
 import { useAyudaAbreviaturas } from './Abreviaturas'
 import { HelpTip } from './Display'
@@ -103,8 +103,8 @@ type PropsAbreviaturas = {
 
 /** Clase base de inputs: 52 px de alto, 16 px de letra (evita el zoom de iOS). */
 export const INPUT =
-  'w-full min-h-[52px] px-4 bg-bg border border-line rounded-sm text-base text-ink transition ' +
-  'focus:outline-none focus:border-blue focus:ring-[3px] focus:ring-blue/25 disabled:bg-surface-2 disabled:text-muted'
+  'w-full min-h-[52px] px-3 bg-surface border border-line rounded-sm text-base text-ink transition ' +
+  'focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/20 disabled:bg-surface-2 disabled:text-muted'
 const INVALIDO = 'border-danger'
 
 const describedBy = (fid: string, error?: string, hint?: string) => (error ? `${fid}-err` : hint ? `${fid}-hint` : undefined)

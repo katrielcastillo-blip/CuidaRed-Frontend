@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useRouteError } from 'react-router-dom'
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from '@/components/icons'
 
 export default function ErrorRuta() {
   const error = useRouteError()

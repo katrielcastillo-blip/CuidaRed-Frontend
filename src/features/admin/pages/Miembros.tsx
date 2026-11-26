@@ -7,7 +7,7 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronDown, KeyRound, SlidersHorizontal, UserPlus } from 'lucide-react'
+import { ChevronDown, KeyRound, SlidersHorizontal, UserPlus } from '@/components/icons'
 import { Button, ButtonLink, ChoicePills, EmptyState, LinkCard, SearchInput, SelectField, Sheet } from '@/components/ui'
 import { usoDeCuenta } from '@/domain/api'
 import { nombreCompleto, ROL_LABEL, useSession, useUser } from '@/domain/auth'

@@ -6,7 +6,7 @@
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { HeartHandshake, Repeat, Users } from 'lucide-react'
+import { HeartHandshake, Repeat, Users } from '@/components/icons'
 import { Badge, EmptyState } from '@/components/ui'
 import { fechaCorta, hhmmA12, hora12 } from '@/domain/dates'
 import { useIndicacionesFamiliar, useNecesidadesFamiliar, useVisitasFamiliar } from '../lib/datos'

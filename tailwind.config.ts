@@ -23,14 +23,15 @@ export default {
       colors: {
         // Marca
         navy: { DEFAULT: '#0c3b6e', 700: '#0a3160' },
+        primary: '#003f9e',
         blue: { DEFAULT: '#378add', bright: '#3b8de0', 100: '#e6f1fb' },
         teal: { DEFAULT: '#14a085', 100: '#e1f5ee' },
         green: { DEFAULT: '#1d9e75' },
         // Superficies y texto
         bg: '#f7f9fc',
         surface: { DEFAULT: '#ffffff', 2: '#e2e8f0' },
-        line: { DEFAULT: '#64748b', soft: '#cbd5e1' },
-        ink: { DEFAULT: '#1a2b3c', 2: '#434652' },
+        line: { DEFAULT: '#64748b', soft: '#e2e8f0' },
+        ink: { DEFAULT: '#1a2b3c', 2: '#64748b' },
         muted: '#64748b',
         // Semánticos (verde = normal · amarillo = advertencia · rojo = crítico), contraste WCAG AA
         danger: { DEFAULT: '#c0392b', 100: '#faece7' },
@@ -41,17 +42,20 @@ export default {
         riesgo: { alto: '#c0392b', medio: '#d4880a', bajo: '#1d9e75' },
       },
       fontFamily: {
-        sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        sans: ['"Open Sans Variable"', '"Open Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Montserrat Variable"', 'Montserrat', 'system-ui', 'sans-serif'],
       },
+      fontSize: { xs: ['0.875rem', { lineHeight: '1.25rem' }] },
       borderRadius: {
-        sm: '7px',
+        sm: '12px',
         md: '12px',
-        lg: '20px',
+        lg: '24px',
+        card: '16px',
         pill: '999px',
       },
       boxShadow: {
-        1: '0 1px 4px rgba(100, 116, 139, 0.42)',
-        2: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+        1: '0 1px 2px rgba(12,59,110,.06)',
+        2: '0 8px 24px rgba(12,59,110,.10)',
       },
       backgroundImage: {
         'grad-auth': 'linear-gradient(180deg, #1f6fd0 0%, #14a085 100%)',

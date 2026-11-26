@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, UserRoundCheck } from 'lucide-react'
+import { Eye, UserRoundCheck } from '@/components/icons'
 import { Button, RiesgoBadge, useToast } from '@/components/ui'
 import { asignarCuidadores, asignarVoluntarios, autorizarFamiliares } from '@/domain/api'
 import { nombreCompleto, useUser } from '@/domain/auth'

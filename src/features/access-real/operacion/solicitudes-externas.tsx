@@ -3,7 +3,7 @@
  * Módulo: access-real. © 2026 Equipo CuidaRed – INTEC.
  */
 import { useState } from 'react'
-import { ArrowLeft, Inbox } from 'lucide-react'
+import { ArrowLeft, Inbox } from '@/components/icons'
 import { Badge, Button, Card, SelectField } from '@/components/ui'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import { api } from '../client'
@@ -25,6 +25,7 @@ interface Solicitud {
   aporte_previsto?: string | null
   fecha_propuesta: string
   hora_propuesta: string
+  hora_fin_propuesta?:string|null
   motivo: string
   motivo_rechazo?: string | null
   observacion_visitante?: string | null
@@ -39,17 +40,19 @@ const estados = [
   { value: 'cancelada', label: 'Canceladas' },
 ]
 
-function Autorizar({ base, token, item, volver, listo }: {
-  base: string; token: string; item: Solicitud; volver: () => void; listo: (id: string) => void
+function Autorizar({ base, token,usuarioId, item, volver, listo }: {
+  base: string; token: string; usuarioId:string; item: Solicitud; volver: () => void; listo: (id: string) => void
 }) {
   const institucional = item.tipo_visita === 'institucional'
   const adultos = usePagina<AdultoNombre>(institucional ? null : base + '/envejecientes', token, 0, { filters: { estado: 'activo' } })
   const candidatos = usePagina<Candidato>(base + '/candidatos/visita', token)
   const { disponibles, faltanPerfiles } = responsablesVisita(candidatos.datos?.data)
   const [adulto, setAdulto] = useState<AdultoNombre>()
-  const [responsable, setResponsable] = useState<Candidato>()
+  const yo={usuario_id:usuarioId,nombre:'Yo coordino la visita'}
+  const opcionesResponsable=[yo,...disponibles.filter(p=>p.rol==='cuidador' && p.usuario_id!==usuarioId)]
+  const [responsable, setResponsable] = useState<Pick<Candidato,'usuario_id'|'nombre'>>(yo)
   const enLinea = useConexionReal()
-  return <Formulario titulo="Autorizar solicitud de visita" campos={[]}
+  return <Formulario titulo="Autorizar solicitud de visita" campos={[]} tamanoAccion="sm"
     disabled={!enLinea} submitDisabled={(!institucional && !adulto) || !responsable} accion="Autorizar y agendar" cancelar={volver}
     enviar={async (datos) => {
       if ((!institucional && !adulto) || !responsable) return
@@ -67,21 +70,22 @@ function Autorizar({ base, token, item, volver, listo }: {
       onChange={(e) => setAdulto(adultos.datos?.data.find((row) => row.envejeciente_id === e.target.value))} required />
     <Estado consulta={adultos} vacio={adultos.datos?.data.length === 0 ? 'No hay personas mayores activas en esta página.' : undefined} />
     {adultos.datos && <Paginador pagina={adultos.pagina} total={adultos.datos.meta.totalPages} cambiar={adultos.cambiar} />}</>}
-    <SelectField label="Cuidador o voluntario responsable" placeholder="Selecciona una persona" value={responsable?.usuario_id ?? ''}
-      options={[...new Map([...disponibles, ...(responsable ? [responsable] : [])].map((row) => [row.usuario_id, row])).values()]
+    <SelectField label="Responsable de la organización" placeholder="Selecciona una persona" value={responsable?.usuario_id ?? ''}
+      options={[...new Map([...opcionesResponsable, ...(responsable ? [responsable] : [])].map((row) => [row.usuario_id, row])).values()]
         .map((row) => ({ value: row.usuario_id, label: row.nombre }))}
-      onChange={(e) => setResponsable(disponibles.find((row) => row.usuario_id === e.target.value))} required />
-    <Estado consulta={candidatos} vacio={candidatos.datos && !disponibles.length ? 'No hay responsables disponibles en esta página.' : undefined} />
+      onChange={(e) => {const elegida=opcionesResponsable.find((row) => row.usuario_id === e.target.value);if(elegida)setResponsable(elegida)}} required />
+    <Estado consulta={candidatos} />
     {faltanPerfiles && <p className="text-sm text-ink-2">{avisoPerfilCuidador}</p>}
     {candidatos.datos && <Paginador pagina={candidatos.pagina} total={candidatos.datos.meta.totalPages} cambiar={candidatos.cambiar} />}
-    <VentanaVisita base={base} token={token} inicial={{ fecha: item.fecha_propuesta, inicio: item.hora_propuesta }} />
+    <VentanaVisita base={base} token={token} inicial={{ fecha: item.fecha_propuesta, inicio: item.hora_propuesta,fin:item.hora_fin_propuesta }} />
+    {!item.hora_fin_propuesta && <p className="text-sm text-muted">Esta solicitud anterior no incluía hora de fin. Confirma ese dato con el visitante.</p>}
   </Formulario>
 }
 
-export function SolicitudesExternas({ base, token, volver, abrirVisita }: {
-  base: string; token: string; volver: () => void; abrirVisita: (id: string) => void
+export function SolicitudesExternas({ base, token,usuarioId, inicial='pendiente', volver, abrirVisita }: {
+  base: string; token: string; usuarioId:string;inicial?:string; volver: () => void; abrirVisita: (id: string) => void
 }) {
-  const [filtro, setFiltro] = useState('pendiente')
+  const [filtro, setFiltro] = useState(inicial)
   const [revision, setRevision] = useState(0)
   const [seleccion, setSeleccion] = useState<{ item: Solicitud; accion: 'autorizar' | 'rechazar' }>()
   const [aviso, setAviso] = useState('')
@@ -94,13 +98,13 @@ export function SolicitudesExternas({ base, token, volver, abrirVisita }: {
     {aviso && <p role="status" className="rounded-sm bg-success-100 p-3 text-success-700">{aviso}</p>}
     {seleccion ? (
       seleccion.accion === 'autorizar'
-        ? <Autorizar base={base} token={token} item={seleccion.item} volver={() => setSeleccion(undefined)} listo={abrirVisita} />
-        : <Formulario titulo="Rechazar solicitud" campos={[{ name: 'motivo', label: 'Motivo que verá el visitante', type: 'textarea', min: 3, max: 300 }]}
+        ? <Autorizar base={base} token={token} usuarioId={usuarioId} item={seleccion.item} volver={() => setSeleccion(undefined)} listo={abrirVisita} />
+        : <Formulario titulo="Rechazar solicitud" tamanoAccion="sm" campos={[{ name: 'motivo', label: 'Motivo que verá el visitante', type: 'textarea', min: 3, max: 300 }]}
           disabled={!enLinea} accion="Rechazar solicitud" cancelar={() => setSeleccion(undefined)} enviar={async (datos) => {
             await api(ruta + '/' + idRuta(seleccion.item.solicitud_visita_id) + '/rechazar', token, 'POST', { motivo: campo(datos, 'motivo') })
             setSeleccion(undefined)
             setRevision((actual) => actual + 1)
-            setAviso('Solicitud rechazada. El visitante puede consultar el motivo con su código.')
+            setAviso('Solicitud rechazada. El motivo se conserva en el historial y el aviso al visitante quedó preparado para su envío.')
           }} />
     ) : <>
       <div className="max-w-xs">
@@ -109,7 +113,7 @@ export function SolicitudesExternas({ base, token, volver, abrirVisita }: {
       <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'No hay solicitudes en este estado.' : undefined} />
       {listado.datos?.data.map((item) => <Card key={item.solicitud_visita_id} className="grid gap-3">
         <h3 className="text-lg font-semibold">{item.visitante.nombres} {item.visitante.apellidos}</h3>
-        <p className="text-sm text-ink-2">{item.tipo_visita === 'institucional' ? `Visita de ${item.entidad_visitante}` : `Quiere visitar a ${item.persona_a_visitar}`} · {fechaCorta(item.fecha_propuesta)} · {hhmmA12(item.hora_propuesta)}</p>
+        <p className="text-sm text-ink-2">{item.tipo_visita === 'institucional' ? `Visita de ${item.entidad_visitante}` : `Quiere visitar a ${item.persona_a_visitar}`} · {fechaCorta(item.fecha_propuesta)} · {hhmmA12(item.hora_propuesta)}{item.hora_fin_propuesta && ` – ${hhmmA12(item.hora_fin_propuesta)}`}</p>
         <p className="text-sm text-ink-2">{item.cantidad_visitantes ?? 1} visitante(s)</p>
         {item.aporte_previsto && <p className="text-sm text-ink-2"><strong>Aporte previsto</strong> · {item.aporte_previsto}</p>}
         {(item.visitante.telefono || item.visitante.correo) && <p className="text-sm text-ink-2">Contacto · {item.visitante.telefono}{item.visitante.correo && ` · ${item.visitante.correo}`}</p>}

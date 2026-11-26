@@ -24,10 +24,19 @@ const FONDOS = {
   ],
 } as const
 
-export function Circulos({ variante = 'acceso' }: { variante?: keyof typeof FONDOS }) {
+/** Mantiene las decoraciones en los bordes, fuera del logo y los campos del acceso móvil. */
+const ACCESO_MOVIL = [
+  'max-md:size-72 max-md:-right-32 max-md:-bottom-32',
+  'max-md:size-52 max-md:-left-24 max-md:-top-36',
+  'max-md:size-5 max-md:left-auto max-md:right-6 max-md:top-6',
+  'max-md:size-6 max-md:left-2 max-md:bottom-16',
+  'max-md:size-4 max-md:-right-2 max-md:bottom-64',
+]
+
+export function Circulos({ variante = 'acceso', compacto = false }: { variante?: keyof typeof FONDOS; compacto?: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden [--u:calc(min(100vw,100vh)/428)]" aria-hidden="true">
-      {FONDOS[variante].map((clases) => <span key={clases} className={`${CIRCULO} ${clases}`} />)}
+      {FONDOS[variante].map((clases, indice) => <span key={clases} className={`${CIRCULO} ${clases} ${compacto && variante === 'acceso' ? ACCESO_MOVIL[indice] : ''}`} />)}
     </div>
   )
 }

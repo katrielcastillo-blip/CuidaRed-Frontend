@@ -9,7 +9,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Check, ChevronDown, House } from 'lucide-react'
+import { Building2, Check, ChevronDown, House } from '@/components/icons'
 import { cambiarCuenta, nombreCompleto, ROL_LABEL, useMisCuentas, useSession } from '@/domain/auth'
 import { TIPO_CUENTA_LABEL, tipoDeCuenta } from '@/domain/planes'
 import { Badge, Sheet, useToast } from '@/components/ui'

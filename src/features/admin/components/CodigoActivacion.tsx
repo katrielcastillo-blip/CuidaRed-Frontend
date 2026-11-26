@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState } from 'react'
-import { Copy, KeyRound, Share2 } from 'lucide-react'
+import { Copy, KeyRound, Share2 } from '@/components/icons'
 import { Button, Sheet, useToast } from '@/components/ui'
 import { DIAS_CODIGO_ACTIVACION, reenviarInvitacion } from '@/domain/api'
 import { ROL_LABEL, useSession, useUser } from '@/domain/auth'

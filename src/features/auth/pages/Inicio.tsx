@@ -6,7 +6,7 @@
  */
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { ChevronDown, Gift, KeyRound, Lock, Siren, UserPlus, UserRound } from 'lucide-react'
+import { ChevronDown, Gift, KeyRound, Lock, Siren, UserPlus, UserRound } from '@/components/icons'
 import { Button, ButtonLink, PasswordField, TextField } from '@/components/ui'
 import { HOME_BY_ROL, login, ROL_LABEL, useSession } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

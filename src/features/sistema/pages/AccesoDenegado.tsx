@@ -3,7 +3,7 @@
  * Módulo: sistema.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { ShieldX } from 'lucide-react'
+import { ShieldX } from '@/components/icons'
 import { ButtonLink } from '@/components/ui'
 import { Page } from '@/layouts/AppShell'
 

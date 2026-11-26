@@ -9,7 +9,7 @@
  */
 import { useCallback, useId, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Landmark, ShieldPlus, UsersRound } from 'lucide-react'
+import { Landmark, ShieldPlus, UsersRound } from '@/components/icons'
 import { Badge, Button, RiesgoBadge, SelectField, Sheet, Switch, useToast } from '@/components/ui'
 import { guardarEvaluacionRiesgo } from '@/domain/api'
 import { useUser } from '@/domain/auth'

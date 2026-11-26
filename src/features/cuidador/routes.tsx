@@ -12,7 +12,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { RouteObject } from 'react-router-dom'
-import { BriefcaseMedical, CalendarCheck, House, PersonStanding } from 'lucide-react'
+import { BriefcaseMedical, CalendarCheck, House, PersonStanding } from '@/components/icons'
 import { RequireRole } from '@/app/guards'
 import { AppShell, type NavItem } from '@/layouts/AppShell'
 import { agendaRoutes } from '@/features/agenda/routes'

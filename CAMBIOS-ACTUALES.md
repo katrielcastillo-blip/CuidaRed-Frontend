@@ -1,5 +1,28 @@
 # Cambios actuales
 
+## 25/11/2026 — Activación, calendario, tareas y navegación integrada
+
+- Activación con correo/código y contraseñas alineados, conservando la verificación y los datos de la invitación.
+- Calendario de visitas por día/semana, con carriles para citas simultáneas; agenda con listado y tablero sobre los registros y filtros existentes.
+- Miembros dentro del marco operativo, sin perder el menú. Solicitudes se agrupa bajo Visitas y Resumen bajo Reportes, respetando los permisos de cada módulo.
+- Perfil de consulta con edición explícita y accesos reales de seguridad; avisos de alertas agrupados por fecha con filtros, contadores y lectura.
+- Alcance de la API y validación documentados en `docs/MEJORAS-VISTAS-PWA.md`. No se crean notificaciones ficticias de otros módulos.
+- Validación final: 383 pruebas de navegador y 168 de componentes aprobadas; 1 omisión de teclado móvil en escritorio. Compilación, comprobación de tipos y arranque sin conexión correctos. Precache PWA: 2,63 MB.
+
+## 25/11/2026 — Rediseño visual de la PWA
+
+- Inicio operativo con identidad de la cuenta, datos reales, indicadores por permiso, pendientes y casos prioritarios; se conservan los módulos y acciones existentes. Familias no recibe funciones de visitas.
+- Sistema visual compartido con Montserrat/Open Sans autoalojadas, Material Symbols optimizados, superficies blancas, contrastes y tipografía legible. Se adaptan perfil y expedientes a móvil y escritorio.
+- Ayuda flotante con seis opciones de diseño deshabilitadas: aprendizaje, preguntas frecuentes, idioma, soporte, modo claro/oscuro y accesibilidad. Únicamente abrir y cerrar el panel tiene comportamiento.
+- Decisiones, límites de consulta de Figma y validación documentados en `docs/REDISENO-PWA.md`. Sin cambios de contratos HTTP, base de datos ni variables privadas.
+- Verificación: 371 pruebas de navegador correctas y 1 omitida; 168 de componentes correctas. Los retoques finales pasan además 42 pruebas de operación/rediseño y 10 comprobaciones del diseño final. Compilación, arranque sin conexión y caché PWA (2,61 MB) correctos.
+
+## 25/11/2026 — Integración reciente y preparación del PR de visitas
+
+- Actualizada la base desde `origin/Integracion` hasta `bbe2ff4`, con suscripciones y pagos de prueba. El formulario compartido conserva los nuevos controles y el tamaño de acciones de visitas; la ayuda de pruebas conserva la lectura de origen de la versión remota.
+- Se restauraron visitas, acceso móvil, identidad visual, soporte e imágenes desde el respaldo local. El PR de visitas selecciona solo sus pantallas, validaciones, pruebas y documentación; los demás cambios siguen conservados localmente. El entorno privado no se modifica.
+- Verificación: 168 pruebas de componentes, 88 pruebas de navegador de visitas/operación/suscripciones en móvil y escritorio, compilación y caché de PWA correctas (2,62 MB). La copia exacta del PR también se comprueba por tipos. No se envían correos ni se procesan pagos reales.
+
 ## 25/11/2026 — Revisión de suscripciones y pagos
 
 - En `src/features/access-real/operacion/suscripcion.tsx`, las tarjetas muestran los términos de un pago iniciado, distinguen la oferta nueva del contrato vigente y permiten actualizar los planes. Los mensajes de cotización y pago aparecen junto a su oferta y las acciones esperan a que termine la actualización de los datos.
@@ -32,6 +55,42 @@
 - Familia puede consultar Básico Familiar y Cuidado Integral antes de la publicación de tarifas. La pantalla distingue los precios iniciales de referencia de los importes publicados. Solo una oferta del servidor habilita un pago.
 - La consulta manual se ofrece mientras hay un pago o cambio inmediato por confirmar. La pantalla informa cuándo terminó la consulta y conserva la actualización automática temporal.
 - Validación del rediseño en `suscripcion.tsx` y `suscripcion-planes.ts`. Pasaron las 26 pruebas de suscripción en móvil y escritorio, la revisión de tipos y la compilación.
+
+## 23/11/2026 — Seguimiento de visitas por rol y aportes públicos
+
+- La programación organizativa identifica persona o grupo y contacto externo, con correo obligatorio, sin crear un usuario visitante. Se separan contacto y horario en dos pasos y se conserva la selección al editar. La revisión de solicitudes precarga inicio y fin; Historial ofrece solicitudes rechazadas.
+- `src/features/access-real/operacion/confirmar-visita.tsx` permite a Administrador/Coordinador confirmar el resultado después del horario que valida el servidor. Las actividades grupales identifican los adultos que realmente asistieron; una cancelación no se muestra como realización verificada. El registro de campo queda pendiente de esa confirmación.
+- `visitas-publicas.tsx` habilita observación y hasta tres fotografías desde el inicio de la visita autorizada, mediante código. Se conserva la selección ante errores de carga, se consulta el estado periódicamente y se respeta movimiento reducido. Los aportes se muestran al equipo separados del informe interno en `visitas-aportes.tsx`.
+- Formulario público con correo e inicio/fin obligatorios; portada, guías y manual explican el nuevo recorrido. Una cuenta Familia no recibe acceso a Visitas. Iconos Lucide, fuente y tokens existentes, áreas táctiles de 48 px; selector de archivos acotado al ancho móvil para no cubrir el botón de adjuntar.
+- Los botones de programación, revisión y confirmación usan tamaño de texto de 16 px y objetivo táctil de 48 px. `controles.tsx` admite ese tamaño sin alterar el predeterminado de otras pantallas. Coordinar personalmente no muestra el aviso contradictorio de ausencia de responsables.
+- Validación: 168 pruebas de componentes, 52 pruebas de navegador móvil/escritorio con API y Auth interceptados, compilación y tipos correctos. Caché de la PWA comprobada (2,60 MB); oxlint de las pantallas sin nuevos avisos, con los avisos históricos de exportaciones de Fast Refresh en `controles.tsx`. La prueba SQL del backend verifica la migración real aplicada. El envío real de correos sigue pendiente de la [contraseña de aplicación del propietario](../CuidaRed-Backend/docs/ACTIVAR-CORREO-PROYECTO.md); no se enviaron correos ni se usaron identidades reales durante las pruebas.
+
+## 23/11/2026 — Actualización local desde Integracion
+
+- Se dejó activa `Integracion` y se actualizó por avance directo hasta `bce7395`. Incluye el trabajo de `Katriel-Cuidared-Desarrollo` y las correcciones más recientes de filtros, visitas y exportaciones de reportes.
+- Se restauraron los cambios locales de acceso, marca y soporte, las imágenes y las pruebas nuevas. El historial conserva las entradas de ambas versiones, y el respaldo previo permanece en el stash local `respaldo-local-antes-pull-integracion-2026-11-23`.
+- Verificación: 168 pruebas de componentes aprobadas, compilación de producción correcta y verificación de caché de la PWA correcta. No se modificó el `.env`, no se crearon commits de desarrollo ni se hizo push.
+
+## 22/11/2026 — Contactar a soporte desde Miembros
+
+- Administrador de Organización dispone de **Contactar soporte** y de **Solicitar eliminación a soporte** en la ficha de un miembro inactivo. El formulario selecciona miembros reales, recoge tipo, asunto y descripción, y conserva un código de seguimiento.
+- `src/features/access-real/soporte.tsx` muestra los estados, la conversación y la respuesta del equipo con señales SSE y reconexión. Enviar la solicitud no elimina al usuario. Familia y otros roles no reciben este acceso de Organización.
+- `api/soporte.ts` comparte el transporte HTTP existente, exportado sin modificar su política de errores. Las pruebas interceptan Auth, API y eventos: no envían mensajes ni eliminan usuarios reales. [Guía de seguimiento y eliminación](../CuidaRed-Backoffice/docs/SOPORTE-Y-USUARIOS.md).
+
+## 21/11/2026 — Marca publicada desde el backoffice
+
+- `src/features/auth/components/BienvenidaPresentacion.tsx` utiliza la marca vigente en la cabecera y el pie de la portada. El acceso conserva su consumidor dinámico existente, sin modificar el diseño móvil aprobado.
+- `src/lib/marca.ts` conserva la última referencia válida por proyecto, limita las imágenes al bucket público de marca del Supabase configurado, ignora respuestas antiguas y admite eventos SSE con ambos finales de línea. Restaurar el logo predeterminado elimina la referencia guardada.
+- `tests/access/marca.spec.ts` verifica publicación/restauración en portada y login, desconexión y rechazo de URLs externas. Validación junto con las regresiones de acceso, registro y visitas: 69 pruebas aprobadas y una comprobación móvil omitida en escritorio; build, verificación de caché y oxlint de los archivos de esta entrega correctos. Auth, API y eventos se simulan; no se envían correos reales.
+
+## 21/11/2026 — Ajuste de las pantallas de acceso y registro
+
+- El login conserva el panel informativo original, el logo y el fondo de círculos, sin fotografías. La navegación a la portada muestra solo la flecha, con nombre accesible.
+- «Activar cuenta» y «Crear cuenta» comparten una fila como enlaces con iconos Lucide, sin los dos recuadros delineados. Cada acción conserva un área táctil de 48 px y un divisor la separa del acceso principal.
+- Acceso, autorregistro, activación y recuperación conservan el mismo ancho máximo de 460 px en escritorio. Las cabeceras de los formularios son más compactas; los pasos con varios campos aprovechan dos columnas en escritorio y una en móvil. Se mantienen los controles táctiles de al menos 48 px y los campos con letra de 16 px.
+- El login móvil sube el logo y el formulario y se ve completo desde 320×640. Los círculos decorativos se ajustan a las esquinas para dejar libre el logo. Se respetan las áreas seguras de la PWA y se permite el desplazamiento al abrir el teclado o mostrar contenido adicional.
+- Crear cuenta tiene una sola flecha en la cabecera: vuelve al paso anterior o al punto de la portada desde el que se entró. El consentimiento separa la casilla de los enlaces legales para evitar saltos y espacios excesivos en móvil.
+- Validación: 63 pruebas Playwright de acceso, registro, visitas públicas y regreso a la portada superadas con Auth y API simulados. La revisión de diseño cubre los cinco pasos de Familia y Organización, la invitación y la recuperación: escritorio de 768 a 1920 px de ancho y móvil de 320 a 428 px. Se comprueban el teclado con la ventana reducida y las áreas seguras; esa comprobación se omite en el proyecto de escritorio. Compilación de producción y comprobación de tipos correctas; sin avisos de oxlint en los archivos revisados.
 
 ## 21/11/2026 — Ajustes de la fase 7
 

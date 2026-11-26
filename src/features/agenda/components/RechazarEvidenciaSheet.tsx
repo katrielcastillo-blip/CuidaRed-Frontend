@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState } from 'react'
-import { WifiOff } from 'lucide-react'
+import { WifiOff } from '@/components/icons'
 import { Button, Sheet, TextareaField } from '@/components/ui'
 import { MAX_MOTIVO_RECHAZO, type Resultado } from '@/domain/api'
 

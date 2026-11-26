@@ -6,20 +6,20 @@
  */
 import { useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleCheck, CircleHelp, Diamond, TriangleAlert, UserRound } from 'lucide-react'
+import { ArrowRight, CircleAlert, CircleCheck, CircleHelp, TriangleAlert, UserRound } from '@/components/icons'
 import type { Riesgo } from '@/domain/types'
 import { cn } from '@/lib/cn'
 
 /* ───────────── Badge ───────────── */
 export type Tone = 'danger' | 'warning' | 'success' | 'info' | 'neutral' | 'navy'
 
-// Combinaciones con contraste WCAG AA (≥ 4.5:1) para texto de 10–12 px.
+// Estados con fondos suaves y texto con contraste WCAG AA (≥ 4.5:1).
 const TONOS: Record<Tone, string> = {
-  danger: 'bg-danger text-white',
-  warning: 'bg-warning-700 text-white',
-  success: 'bg-success-700 text-white',
+  danger: 'bg-danger-100 text-danger',
+  warning: 'bg-warning-100 text-warning-700',
+  success: 'bg-success-100 text-success-700',
   info: 'bg-info-100 text-navy border border-blue',
-  neutral: 'bg-surface-2 text-ink-2',
+  neutral: 'bg-surface-2 text-ink',
   navy: 'bg-navy text-blue-100',
 }
 
@@ -27,7 +27,7 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
   return (
     <span
       className={cn(
-        'relative inline-flex items-center gap-1 px-2 py-0.5 rounded-xl text-[10px] font-bold tracking-[0.02em] uppercase leading-[15px] whitespace-nowrap',
+        'relative inline-flex min-h-7 items-center gap-1 px-2.5 py-1 rounded-pill text-sm font-semibold leading-tight whitespace-nowrap',
         TONOS[tone],
         className,
       )}
@@ -39,11 +39,11 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
 
 /**
  * Nivel de riesgo con color Y forma (SRS §18.4): se reconoce sin leer el texto.
- *   ALTO = triángulo rojo · MEDIO = rombo ámbar · BAJO = círculo verde.
+ *   ALTO = error rojo · MEDIO = advertencia ámbar · BAJO = confirmación verde.
  */
 export const RIESGO_VISUAL: Record<Riesgo, { tone: Tone; label: string; Icono: typeof TriangleAlert; color: string }> = {
-  alto: { tone: 'danger', label: 'ALTO', Icono: TriangleAlert, color: 'text-riesgo-alto' },
-  medio: { tone: 'warning', label: 'MEDIO', Icono: Diamond, color: 'text-riesgo-medio' },
+  alto: { tone: 'danger', label: 'ALTO', Icono: CircleAlert, color: 'text-riesgo-alto' },
+  medio: { tone: 'warning', label: 'MEDIO', Icono: TriangleAlert, color: 'text-riesgo-medio' },
   bajo: { tone: 'success', label: 'BAJO', Icono: CircleCheck, color: 'text-riesgo-bajo' },
 }
 
@@ -84,7 +84,7 @@ export function Avatar({ nombre, src, size = 44, ring }: { nombre: string; src?:
 
 /* ───────────── Card ───────────── */
 const CARD_TONO = {
-  default: 'bg-bg',
+  default: 'bg-surface',
   muted: 'bg-surface-2',
   info: 'bg-blue-100 border-navy',
 }
@@ -102,7 +102,7 @@ export function Card({
   className?: string
 } & HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('rounded-sm border border-line', CARD_TONO[tone], padded && 'p-4', className)} {...rest}>
+    <div className={cn('rounded-card border border-line-soft shadow-1', CARD_TONO[tone], padded && 'p-4', className)} {...rest}>
       {children}
     </div>
   )
@@ -192,7 +192,7 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           className={cn(
             'flex-1 min-h-12 px-3 rounded-sm border text-sm font-semibold',
-            value === o.value ? 'bg-navy text-white border-navy' : 'bg-surface-2 text-ink-2 border-line-soft',
+            value === o.value ? 'bg-navy text-white border-navy' : 'bg-white text-ink border-line',
           )}
           onClick={() => onChange(o.value)}
         >

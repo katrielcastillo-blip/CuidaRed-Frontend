@@ -7,8 +7,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowDown, ArrowRight, BookOpen, CalendarDays, ChevronDown, LifeBuoy,
   Mail, Menu, ScanSearch, X,
-} from 'lucide-react'
+} from '@/components/icons'
 import { PRODUCTO } from '@/lib/proyecto'
+import { useLogo } from '@/lib/marca'
 import { Circulos } from './Circulos'
 import { PlanesPortada } from './PlanesPortada'
 
@@ -38,7 +39,7 @@ const ayuda = [
   ['¿Cómo sé si mi visita fue autorizada?',
     'Entra a «Consultar mi solicitud» con tu código de seguimiento. Allí podrás ver el estado y, si fue autorizada, la fecha y la hora confirmadas.'],
   ['¿Cuándo puedo enviar una observación?',
-    'Después de la visita, vuelve a consultar tu código. El formulario de observaciones se habilita cuando el equipo registra la visita como realizada.'],
+    'Desde el inicio del horario autorizado puedes consultar tu código, compartir observaciones y adjuntar fotografías. La organización confirma por separado si la visita se realizó.'],
   ['¿Qué puedo hacer sin internet?',
     'Los equipos con acceso a la aplicación pueden guardar capturas de visitas en el dispositivo y sincronizarlas cuando vuelva la conexión. Para enviar o consultar una solicitud pública necesitas internet.'],
   ['¿Quién puede ver la información de cuidado?',
@@ -49,6 +50,7 @@ const contacto = String(import.meta.env.VITE_CONTACTO_EMAIL ?? '').trim()
 const correoValido = /^[^\s@?&#]+@[^\s@?&#]+\.[^\s@?&#]+$/.test(contacto)
 
 export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solicitud-visita' }: Props) {
+  const logo = useLogo()
   const navigate = useNavigate()
   const location = useLocation()
   const retornoPortada = '/' + location.hash
@@ -101,7 +103,7 @@ export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solic
         }}>
         <div className={marco + ' flex min-h-[70px] items-center justify-between gap-2 sm:gap-4'}>
           <Link to="/" aria-label="CuidaRed, inicio" className="inline-flex min-h-12 shrink-0 items-center">
-            <img src="/brand/logo.png" width={517} height={192} alt="" className="h-auto w-[110px] min-[380px]:w-[132px] sm:w-[144px]" />
+            <img src={logo} width={517} height={192} alt="" className="h-auto w-[110px] min-[380px]:w-[132px] sm:w-[144px]" />
           </Link>
           <nav aria-label="Menú principal" className="hidden min-w-0 items-center gap-5 lg:flex xl:gap-7">
             {navegacion.map(({ id, texto }) => <a key={id} href={'#' + id} onClick={(e) => desplazar(e, id)}
@@ -160,7 +162,7 @@ export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solic
               <ol className="mt-5 max-w-[42ch] divide-y divide-navy/15 text-sm text-ink-2 sm:text-base">
                 <li className="flex gap-3 py-3"><span className="font-bold text-navy" aria-hidden>01</span><div><strong className="block text-navy">Envía tu solicitud</strong> Visita a una persona mayor o coordina una actividad con tu institución o grupo.</div></li>
                 <li className="flex gap-3 py-3"><span className="font-bold text-navy" aria-hidden>02</span><div><strong className="block text-navy">Guarda tu código</strong> Úsalo para saber si la organización confirmó la visita.</div></li>
-                <li className="flex gap-3 py-3"><span className="font-bold text-navy" aria-hidden>03</span><div><strong className="block text-navy">Comparte una observación</strong> Vuelve a consultar cuando el equipo registre la visita como realizada.</div></li>
+                <li className="flex gap-3 py-3"><span className="font-bold text-navy" aria-hidden>03</span><div><strong className="block text-navy">Comparte tus observaciones</strong> Desde el inicio del horario, consulta tu código para agregar observaciones y fotografías.</div></li>
               </ol>
               <Link to={rutaConsulta} className={enlace + ' mt-2'}>Consultar mi solicitud <ArrowRight size={17} aria-hidden /></Link>
             </div>
@@ -255,7 +257,7 @@ export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solic
         <div className={marco + ' grid grid-cols-2 gap-x-4 gap-y-6 pt-10 pb-6 sm:grid-cols-3 sm:gap-x-8 lg:grid-cols-[1.3fr_repeat(3,minmax(0,1fr))] lg:pt-12'}>
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Link to="/" className="inline-flex min-h-12 items-center rounded-sm bg-white px-2 py-1" aria-label="CuidaRed, inicio">
-              <img src="/brand/logo.png" width={517} height={192} alt="" loading="lazy" className="h-auto w-[138px]" />
+              <img src={logo} width={517} height={192} alt="" loading="lazy" className="h-auto w-[138px]" />
             </Link>
             <p className="mt-4 max-w-[30ch] text-sm leading-relaxed text-blue-100">Proyecto académico del Instituto Tecnológico de Santo Domingo.</p>
           </div>

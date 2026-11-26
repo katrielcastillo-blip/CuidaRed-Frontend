@@ -11,7 +11,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Check, Paperclip, UserRound, Users } from 'lucide-react'
+import { Check, Paperclip, UserRound, Users } from '@/components/icons'
 import { Page, useShell } from '@/layouts/AppShell'
 import { ASPECTOS_VISITA } from '@/domain/catalogos'
 import { fechaCorta, hhmmA12, hora12 } from '@/domain/dates'

@@ -5,7 +5,7 @@
  * Módulo: gestión · reportes (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Lock } from 'lucide-react'
+import { Lock } from '@/components/icons'
 import type { Funcionalidad } from '@/domain/types'
 import { cn } from '@/lib/cn'
 import { useAvisoPlan } from './useAvisoPlan'

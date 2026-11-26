@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BriefcaseMedical, ChartLine, FileDown, FileSpreadsheet, FileText, HandHelping, Lock, PersonStanding, RefreshCw, SearchX, TriangleAlert } from 'lucide-react'
+import { BriefcaseMedical, ChartLine, FileDown, FileSpreadsheet, FileText, HandHelping, Lock, PersonStanding, RefreshCw, SearchX, TriangleAlert } from '@/components/icons'
 import { Button, RiesgoBadge, SelectField, TextField } from '@/components/ui'
 import { fechaHora } from '@/domain/dates'
 import { PanelGrafico } from '@/features/gestion/components/reportes/PanelGrafico'

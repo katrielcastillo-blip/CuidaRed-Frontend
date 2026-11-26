@@ -3,9 +3,9 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useState } from 'react'
-import { ArrowLeft, CalendarDays, CalendarPlus, ClipboardCheck, Repeat, UserRound, WifiOff } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CalendarPlus, ClipboardCheck, Repeat, UserRound, WifiOff } from '@/components/icons'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Badge, Button, Card, Checkbox, CheckboxGroup, ChoicePills, IconTile, SelectField, TextField, type Tone } from '@/components/ui'
+import { Badge, Button, Card, Checkbox, CheckboxGroup, ChoicePills, IconTile, Segmented, SelectField, TextField, type Tone } from '@/components/ui'
 import { MAX_OCURRENCIAS, fechasDeSerie, type Repeticion } from '@/domain/recurrencia'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import { VistaPreviaSerie } from '@/features/agenda/components/RepeticionCampos'
@@ -226,8 +226,8 @@ function EstadoTarea({ tarea }: { tarea: Tarea }) {
   </div>
 }
 
-function TarjetaTarea({ tarea, abrir }: { tarea: Tarea; abrir: () => void }) {
-  return <Card className="grid gap-3 bg-bg">
+function TarjetaTarea({ tarea, abrir, tablero = false }: { tarea: Tarea; abrir: () => void; tablero?: boolean }) {
+  return <Card className={'grid min-w-0 gap-3 bg-white ' + (tablero ? '' : 'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center')}>
     <div className="flex items-start gap-3">
       <IconTile><ClipboardCheck size={24} aria-hidden /></IconTile>
       <div className="min-w-0 flex-1">
@@ -236,8 +236,8 @@ function TarjetaTarea({ tarea, abrir }: { tarea: Tarea; abrir: () => void }) {
         {tarea.envejeciente_nombre && <p className="text-sm text-muted">{tarea.envejeciente_nombre}</p>}
       </div>
     </div>
-    <EstadoTarea tarea={tarea} />
-    <Button variant="light" size="sm" fullWidth aria-label={`Ver detalle: ${tarea.titulo}`} onClick={abrir}>Ver detalle</Button>
+    <div className={tablero ? '' : 'sm:col-start-1'}><EstadoTarea tarea={tarea} /></div>
+    <Button variant="outline" size="sm" className={tablero ? 'w-full' : 'sm:col-start-2 sm:row-span-2 sm:row-start-1'} aria-label={`Ver detalle: ${tarea.titulo}`} onClick={abrir}>Ver detalle</Button>
   </Card>
 }
 
@@ -250,6 +250,7 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
   const [cuidadorFiltro, setCuidadorFiltro] = useState<Opcion>()
   const [alcanceCancelacion, setAlcanceCancelacion] = useState<Alcance>('esta')
   const [aviso, setAviso] = useState('')
+  const [vistaTareas, setVistaTareas] = useState<'lista' | 'tablero'>('lista')
   const enLinea = useConexionReal()
   const gestionar = cuenta.permisos.includes('agenda:gestionar')
   const ejecutar = cuenta.permisos.includes('agenda:ejecutar')
@@ -289,6 +290,9 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
         <h2 className="text-xl font-bold">Agenda de cuidado</h2>
         {gestionar && <Button size="sm" disabled={!enLinea} icon={<CalendarPlus size={20} aria-hidden />} onClick={() => setParams({ accion: 'nueva' })}>Nueva tarea</Button>}
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted">Organiza el cuidado y abre cada tarea para registrar su avance.</p><div className="max-w-full shrink-0 [&_[role=tablist]]:flex-wrap [&_[role=tab]]:flex-none [&_[role=tab]]:whitespace-nowrap"><Segmented label="Vista de tareas" options={[{ value: 'lista', label: 'Listado' }, { value: 'tablero', label: 'Tablero' }]} value={vistaTareas} onChange={setVistaTareas} /></div></div>
+      <details open={vistaTareas === 'lista'} className="rounded-card border border-line-soft bg-white p-4 [&>div]:border-0 [&>div]:p-0 [&>div]:shadow-none">
+      <summary className="flex min-h-12 cursor-pointer items-center font-semibold text-navy">Filtros de la agenda</summary>
       <Card className="grid gap-3 bg-bg">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold">Filtrar tareas</h3>
@@ -310,11 +314,16 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
           </>}
         </div>
       </Card>
+      </details>
       <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'No hay tareas para estos filtros.' : undefined} />
       {listado.datos && listado.datos.meta.total > 0 && <p className="text-sm font-semibold text-muted" role="status">{listado.datos.meta.total} {listado.datos.meta.total === 1 ? 'tarea' : 'tareas'}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {listado.datos?.data.map((item) => <TarjetaTarea key={item.tarea_id} tarea={item} abrir={() => abrir(item.tarea_id)} />)}
-      </div>
+      {vistaTareas === 'lista' ? <div className="grid gap-3">{listado.datos?.data.map(item => <TarjetaTarea key={item.tarea_id} tarea={item} abrir={() => abrir(item.tarea_id)} />)}</div>
+        : listado.datos && <><p className="text-sm text-muted">El tablero agrupa las tareas de esta página y respeta los filtros seleccionados.</p><div className="grid min-w-0 items-start gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label="Tablero de tareas">
+          {Object.entries(ESTADOS).map(([codigo, dato]) => {
+            const tareas = listado.datos?.data.filter(item => item.estado === codigo) ?? []
+            return <section key={codigo} aria-label={dato.texto} className="grid min-w-0 gap-3 rounded-card border border-line-soft bg-surface-2/40 p-3"><header className="flex items-center justify-between gap-2 border-b border-line-soft pb-3"><h3 className="text-base font-semibold">{dato.texto}</h3><Badge tone={dato.tono}>{tareas.length}</Badge></header><ul className="grid gap-3">{tareas.map(item => <li key={item.tarea_id} className="min-w-0"><TarjetaTarea tarea={item} tablero abrir={() => abrir(item.tarea_id)} /></li>)}</ul>{!tareas.length && <p className="py-4 text-sm text-muted">Sin tareas en esta página.</p>}</section>
+          })}
+        </div></>}
       {listado.datos && <Paginador pagina={listado.pagina} total={listado.datos.meta.totalPages} cambiar={listado.cambiar} />}
     </>}
     {nueva && <FormularioTarea base={base} token={token} cuenta={cuenta} volver={volver} listo={(creadas) => {

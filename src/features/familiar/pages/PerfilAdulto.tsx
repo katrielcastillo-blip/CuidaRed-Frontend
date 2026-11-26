@@ -12,7 +12,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useParams, useSearchParams } from 'react-router-dom'
-import { CalendarDays, Cake, CircleUserRound, HeartHandshake, IdCard, Lock, MapPin, Phone, UserCheck, VenusAndMars } from 'lucide-react'
+import { CalendarDays, Cake, CircleUserRound, HeartHandshake, IdCard, Lock, MapPin, Phone, UserCheck, VenusAndMars } from '@/components/icons'
 import { Badge, InfoRow, Segmented } from '@/components/ui'
 import { hhmmA12, fechaCorta } from '@/domain/dates'
 import { Page, useShell } from '@/layouts/AppShell'

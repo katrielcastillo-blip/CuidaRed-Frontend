@@ -353,11 +353,12 @@ for (const caso of CASOS_CAMPANA) {
     // La bandeja de notificaciones solo existe para quien las recibe; el resto cae en Casos prioritarios.
     await page.goto(`${ruta}/alertas?bandeja=avisos`)
     const bandejas = page.getByRole('group', { name: 'Bandeja de alertas' })
-    await expect(bandejas.getByRole('button', { name: 'Alertas', exact: true })).toBeVisible()
     if (caso.campana) {
-      await expect(bandejas.getByRole('button', { name: 'Notificaciones', exact: true })).toBeVisible()
+      await expect(bandejas).toHaveCount(0)
       await expect(page.getByRole('region', { name: 'Notificaciones de alertas' })).toBeVisible()
+      await expect(page.getByRole('button', { name: /^Todas \(/ })).toBeVisible()
     } else {
+      await expect(bandejas.getByRole('button', { name: 'Alertas', exact: true })).toBeVisible()
       await expect(bandejas.getByRole('button', { name: 'Notificaciones', exact: true })).toHaveCount(0)
       await expect(page.getByRole('region', { name: 'Casos prioritarios' })).toBeVisible()
       await expect(page.getByRole('region', { name: 'Notificaciones de alertas' })).toHaveCount(0)

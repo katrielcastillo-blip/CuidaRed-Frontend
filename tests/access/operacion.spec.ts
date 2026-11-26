@@ -50,7 +50,7 @@ test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee c
   const configurar = page.getByRole('link', { name: 'Configurar organización', exact: true })
   await expect.poll(async () => {
     const texto = await configurar.getByText('Configurar organización', { exact: true }).boundingBox()
-    const flecha = await configurar.locator('svg').boundingBox()
+    const flecha = await configurar.locator('[data-icon="chevron_right"]').boundingBox()
     return !!texto && !!flecha && flecha.x >= texto.x + texto.width && Math.abs(flecha.y + flecha.height / 2 - texto.y - texto.height / 2) < 2
   }).toBe(true)
 
@@ -319,18 +319,18 @@ test('el gestor consulta auditoría y gestiona una solicitud de visita existente
   await expect(page.getByText(/Persona Revisora/).first()).toBeVisible()
   await page.goto(`${ruta}/solicitudes-visita`)
   await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click()
-  await page.getByLabel(/^Motivo del rechazo/).fill('La fecha debe confirmarse con el equipo.')
-  await page.getByRole('button', { name: 'Confirmar rechazo' }).click()
-  await expect(page.getByText('Solicitud rechazada.')).toBeVisible()
+  await page.getByLabel(/^Motivo que verá el visitante/).fill('La fecha debe confirmarse con el equipo.')
+  await page.getByRole('button', { name: 'Rechazar solicitud' }).click()
+  await expect(page.getByText(/Solicitud rechazada. El motivo se conserva/)).toBeVisible()
   expect(rechazo).toEqual({ motivo: 'La fecha debe confirmarse con el equipo.' })
-  const autorizar = page.getByRole('button', { name: 'Autorizar', exact: true })
+  const autorizar = page.getByRole('button', { name: 'Revisar y autorizar', exact: true })
   await expect(autorizar).toHaveCount(1)
   await autorizar.click()
-  await page.getByLabel(/Expediente del adulto/).selectOption(adultoId)
-  await page.getByLabel(/Responsable de la visita/).selectOption(sim.usuarioId)
-  await page.getByRole('button', { name: 'Autorizar y programar' }).click()
-  await expect(page.getByText('Solicitud autorizada y visita programada.')).toBeVisible()
-  expect(autorizacion).toEqual({ envejeciente_id: adultoId, participante_id: sim.usuarioId, fecha, hora: '09:00' })
+  await page.getByLabel(/Persona mayor de la organización/).selectOption(adultoId)
+  await page.getByLabel(/^Hora de fin/).fill('10:00')
+  await page.getByRole('button', { name: 'Autorizar y agendar' }).click()
+  await expect(page).toHaveURL(new RegExp('/visitas\\?visita='+visitaId))
+  expect(autorizacion).toEqual({ envejeciente_id: adultoId, participante_id: sim.usuarioId, fecha, hora: '09:00',hora_fin_programada:'10:00' })
 })
 
 test('ID04: programa y autoriza una visita con adultos y visitantes seleccionados', async ({ page }) => {
@@ -339,7 +339,7 @@ test('ID04: programa y autoriza una visita con adultos y visitantes seleccionado
   const visitante = { usuario_id: sim.usuarioId, nombre: 'Patricia Prueba', rol: 'cuidador', cuidador_id: '1' }
   const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const visita = { visita_id: visitaId, razon: 'Seguimiento acordado', fecha, hora_programada: '09:00', estado: 'programada',
-    pendiente_autorizacion: true, autorizada_por: null as { usuario_id: string } | null, participantes: [visitante], adultos: [adulto] }
+    pendiente_autorizacion: false, autorizada_por: {usuario_id:sim.usuarioId}, participantes: [visitante], adultos: [adulto] }
   let alta: unknown
   await page.route(`${backend}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname
@@ -362,26 +362,26 @@ test('ID04: programa y autoriza una visita con adultos y visitantes seleccionado
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/visitas`)
   await page.getByRole('button', { name: 'Programar visita', exact: true }).click()
+  await page.getByLabel(/^Nombre de quien realizará la visita/).fill('Visitante de prueba')
+  await page.getByLabel(/^Correo del visitante/).fill('visitante@example.test')
+  await page.getByRole('button',{name:'Continuar con el horario'}).click()
   await page.getByLabel(/^Fecha de la visita/).fill(fecha)
   await page.getByLabel(/^Hora de inicio/).fill('09:00')
   await page.getByLabel(/^Hora de fin/).fill('10:00')
   await page.getByLabel(/^Motivo de la visita/).fill(visita.razon)
-  const programar = page.getByRole('button', { name: 'Guardar visita pendiente', exact: true })
+  const programar = page.getByRole('button', { name: 'Programar y autorizar visita', exact: true })
   const adultoSeleccion = page.getByRole('checkbox', { name: 'Juana Prueba' })
   await expect(programar).toBeDisabled()
   await adultoSeleccion.check()
-  await page.getByRole('checkbox', { name: visitante.nombre }).check()
+  await page.getByRole('checkbox', { name: 'Yo coordino la visita' }).check()
   await expect(programar).toBeEnabled()
   await page.getByRole('button', { name: 'Quitar Juana Prueba' }).click()
   await expect(programar).toBeDisabled()
   await adultoSeleccion.check()
   await programar.click()
   await expect(page.getByRole('heading', { name: 'Detalle de visita' })).toBeVisible()
-  expect(alta).toEqual({ fecha, hora_programada: '09:00', hora_fin_programada: '10:00', autorizar: false,
-    razon: visita.razon, envejeciente_ids: [adultoId], participante_ids: [visitante.usuario_id] })
-  await expect(page.getByText('Pendiente de autorización', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Autorizar visita', exact: true }).click()
-  await expect(page.getByText('Visita autorizada. El equipo responsable ya puede verla.')).toBeVisible()
+  expect(alta).toEqual({ fecha, hora_programada: '09:00', hora_fin_programada: '10:00', autorizar: true,
+    razon: visita.razon, envejeciente_ids: [adultoId], participante_ids: [visitante.usuario_id],visitante_externo:{tipo:'personal',nombre:'Visitante de prueba',correo:'visitante@example.test',cantidad:1} })
   await expect(page.getByText('Pendiente de autorización', { exact: true })).toHaveCount(0)
 })
 
@@ -448,7 +448,7 @@ test(`ID04: administración agenda una solicitud ${institucional ? 'instituciona
   } else {
     await page.getByRole('combobox', { name: /Persona mayor de la organización/ }).selectOption(adultoId)
   }
-  await page.getByRole('combobox', { name: /Cuidador o voluntario responsable/ }).selectOption(cuidador.usuario_id)
+  await page.getByRole('combobox', { name: /Responsable de la organización/ }).selectOption(cuidador.usuario_id)
   await expect(page.getByRole('region', { name: 'Calendario de disponibilidad' })).toBeVisible()
   await page.getByLabel(/^Hora de fin/).fill('10:00')
   await page.getByRole('button', { name: 'Autorizar y agendar' }).click()

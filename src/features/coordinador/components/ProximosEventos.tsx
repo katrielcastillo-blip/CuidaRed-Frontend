@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Camera, CalendarCheck, ListChecks, Repeat } from 'lucide-react'
+import { Camera, CalendarCheck, ListChecks, Repeat } from '@/components/icons'
 import { Badge } from '@/components/ui'
 import { fechaCorta, todayISO } from '@/domain/dates'
 import { ESTADO_TAREA, etiquetaDia, horaTarea } from '@/features/agenda/lib/agenda'

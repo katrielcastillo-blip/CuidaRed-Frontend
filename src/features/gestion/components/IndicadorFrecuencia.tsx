@@ -7,7 +7,7 @@
  * Módulo: gestión (reutilizable por cualquier área).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { CalendarCheck, CalendarClock, CalendarPlus, CalendarX } from 'lucide-react'
+import { CalendarCheck, CalendarClock, CalendarPlus, CalendarX } from '@/components/icons'
 import { fechaCorta } from '@/domain/dates'
 import { configOrg } from '@/domain/relaciones'
 import { useDB } from '@/domain/store'

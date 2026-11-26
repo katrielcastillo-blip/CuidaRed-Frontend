@@ -7,7 +7,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState, type ReactNode } from 'react'
-import { ChevronDown, Database } from 'lucide-react'
+import { ChevronDown, Database } from '@/components/icons'
 import { SearchInput } from '@/components/ui'
 import { useDB } from '@/domain/store'
 import type { Catalogos as TCatalogos } from '@/domain/types'

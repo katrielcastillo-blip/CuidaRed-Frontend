@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Bell, Clock } from 'lucide-react'
+import { Bell, Clock } from '@/components/icons'
 import type { Riesgo } from '@/domain/types'
 import { Button, Chip, EmptyState, SearchInput, Segmented } from '@/components/ui'
 import { Page } from '@/layouts/AppShell'

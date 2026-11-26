@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, FileText, GraduationCap, ShieldCheck, Siren, Users } from 'lucide-react'
+import { ChevronRight, FileText, GraduationCap, ShieldCheck, Siren, Users } from '@/components/icons'
 import { Badge } from '@/components/ui'
 import { Page } from '@/layouts/AppShell'
 import { PRODUCTO } from '@/lib/proyecto'

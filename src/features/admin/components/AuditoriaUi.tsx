@@ -4,7 +4,7 @@
  * Módulo: admin · auditabilidad (SRS §8.2.2.1.3 · §8.2.2.3.4 e · §8.2.2.3.5 j).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Ban, CircleCheck, CircleX, GitMerge } from 'lucide-react'
+import { Ban, CircleCheck, CircleX, GitMerge } from '@/components/icons'
 import { ACCIONES_AUDITORIA } from '@/domain/auditoria'
 import { nombreCompleto, ROL_LABEL } from '@/domain/auth'
 import type { DB, EntidadAuditada, RegistroAuditoria, ResultadoAuditoria } from '@/domain/types'

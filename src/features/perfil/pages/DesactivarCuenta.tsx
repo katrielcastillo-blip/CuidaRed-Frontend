@@ -7,7 +7,7 @@
  */
 import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Archive, Building2, LogOut, RefreshCcw, RotateCcw, ShieldAlert, UserRoundX } from 'lucide-react'
+import { Archive, Building2, LogOut, RefreshCcw, RotateCcw, ShieldAlert, UserRoundX } from '@/components/icons'
 import { Button, ButtonLink, Checkbox, PasswordField, requerido, useFormulario, useToast } from '@/components/ui'
 import { bloqueosDesactivacion, desactivarMiCuenta } from '@/domain/api/perfil'
 import { ROL_LABEL, useMisCuentas, useSession } from '@/domain/auth'

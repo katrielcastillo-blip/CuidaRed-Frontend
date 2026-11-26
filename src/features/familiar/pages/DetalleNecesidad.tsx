@@ -10,7 +10,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Pill } from 'lucide-react'
+import { Pill } from '@/components/icons'
 import { Page, useShell } from '@/layouts/AppShell'
 import { fechaCorta, fechaHora, hora12 } from '@/domain/dates'
 import { Badge } from '@/components/ui'

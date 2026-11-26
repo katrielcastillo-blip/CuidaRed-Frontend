@@ -8,7 +8,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
-import { CircleCheck, History, Plus, RotateCcw, ShieldCheck } from 'lucide-react'
+import { CircleCheck, History, Plus, RotateCcw, ShieldCheck } from '@/components/icons'
 import { Badge, Button, ButtonLink, RiesgoBadge, SelectField, Sheet, TextareaField, TextField, useToast } from '@/components/ui'
 import { cambiarEstadoRiesgo, registrarRiesgo, type DatosRiesgo } from '@/domain/api'
 import { useUser } from '@/domain/auth'

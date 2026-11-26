@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { CircleCheck, ClipboardPlus, HandHeart } from 'lucide-react'
+import { CircleCheck, ClipboardPlus, HandHeart } from '@/components/icons'
 import { useSession, useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaLarga } from '@/domain/dates'

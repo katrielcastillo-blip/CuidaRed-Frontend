@@ -4,7 +4,7 @@
  * Módulo: agenda.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { SearchX } from 'lucide-react'
+import { SearchX } from '@/components/icons'
 import { ButtonLink, EmptyState } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
 

@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useId, useRef, useState, type ChangeEvent } from 'react'
-import { Camera, CircleAlert, Paperclip } from 'lucide-react'
+import { Camera, CircleAlert, Paperclip } from '@/components/icons'
 import { Button } from '@/components/ui'
 import { ACCEPT_EVIDENCIA, AYUDA_LIMITES_EVIDENCIA, prepararEvidencias, type EvidenciaProcesada } from '../lib/evidencias'
 

@@ -15,7 +15,7 @@
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { CircleCheckBig, CircleUserRound } from 'lucide-react'
+import { CircleCheckBig, CircleUserRound } from '@/components/icons'
 import { registrarVisita } from '@/domain/api'
 import { useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

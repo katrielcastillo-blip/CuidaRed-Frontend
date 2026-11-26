@@ -10,7 +10,7 @@
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, CalendarPlus, WifiOff } from 'lucide-react'
+import { ArrowRight, CalendarPlus, WifiOff } from '@/components/icons'
 import { Button, ButtonLink, IconTile, RiesgoBadge, SelectField, SuccessOverlay, TextareaField, TextField, useToast } from '@/components/ui'
 import { programarVisita } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'

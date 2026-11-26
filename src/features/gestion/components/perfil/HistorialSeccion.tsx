@@ -13,7 +13,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BellRing, CalendarClock, ClipboardCheck, HandHelping, ShieldAlert, type LucideIcon } from 'lucide-react'
+import { ArrowRight, BellRing, CalendarClock, ClipboardCheck, HandHelping, ShieldAlert, type LucideIcon } from '@/components/icons'
 import { Badge, Button, EmptyState, RiesgoBadge, TextField } from '@/components/ui'
 import { useUser } from '@/domain/auth'
 import { todayISO } from '@/domain/dates'

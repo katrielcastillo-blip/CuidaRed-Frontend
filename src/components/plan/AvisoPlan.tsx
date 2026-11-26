@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { Lock } from 'lucide-react'
+import { Lock } from '@/components/icons'
 import { useSession } from '@/domain/auth'
 import { puede } from '@/domain/permisos'
 import { ETIQUETA_FUNCIONALIDAD } from '@/domain/planes'

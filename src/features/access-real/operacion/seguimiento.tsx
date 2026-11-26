@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Evidencias } from './visitas-evidencias'
-import { Bell, CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, CalendarClock, ClipboardList, Plus, ShieldCheck, UserRound } from '@/components/icons'
 import { Badge, Button, ButtonLink, Card, Chip, EmptyState, RiesgoBadge, SelectField } from '@/components/ui'
 import { fechaCorta, fechaHora } from '@/domain/dates'
 import { SECCIONES } from '@/features/gestion/lib/riesgo'

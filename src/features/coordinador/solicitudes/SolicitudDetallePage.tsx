@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Ban, CalendarDays, CircleCheck, Mail, Phone, Send } from 'lucide-react'
+import { ArrowRight, Ban, CalendarDays, CircleCheck, Mail, Phone, Send } from '@/components/icons'
 import { Avatar, Badge, Button, ButtonLink, Card, Datum, EmptyState, SuccessOverlay } from '@/components/ui'
 import { ESTADO_SOLICITUD } from '@/domain/api/solicitudes'
 import { nombreCompleto } from '@/domain/auth'

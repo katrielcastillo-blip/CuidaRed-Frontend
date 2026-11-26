@@ -8,7 +8,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState } from 'react'
-import { FileDown } from 'lucide-react'
+import { FileDown } from '@/components/icons'
 import { Button, useToast } from '@/components/ui'
 import { auditarExportacion, verificar } from '@/domain/api'
 import { useUser } from '@/domain/auth'

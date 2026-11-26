@@ -5,7 +5,7 @@
  * Módulo: coordinador · solicitudes de visita.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Ban, WifiOff } from 'lucide-react'
+import { Ban, WifiOff } from '@/components/icons'
 import { AvisoBorrador, Button, TextareaField, useFormulario, useToast } from '@/components/ui'
 import { rechazarSolicitud } from '@/domain/api/solicitudes'
 import { useEnLinea } from '@/domain/conectividad'
