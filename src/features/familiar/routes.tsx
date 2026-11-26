@@ -11,7 +11,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Navigate, type RouteObject } from 'react-router-dom'
-import { CircleHelp, House } from 'lucide-react'
+import { CircleHelp, House } from '@/components/icons'
 import { RequireRole } from '@/app/guards'
 import { AppShell, type NavItem } from '@/layouts/AppShell'
 import { perfilRoutes } from '@/features/perfil/routes'

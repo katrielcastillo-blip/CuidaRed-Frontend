@@ -11,7 +11,7 @@
  * la opción directamente.
  */
 import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import { WandSparkles } from 'lucide-react'
+import { WandSparkles } from '@/components/icons'
 import { ajustarMayusculas, expandirAbreviatura, expandirAbreviaturasConConteo, sugerencias, useAbreviaturas, type Abreviatura } from '@/domain/abreviaturas'
 import { avisar } from '@/domain/avisos'
 import { cn } from '@/lib/cn'

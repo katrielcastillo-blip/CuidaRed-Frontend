@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useId } from 'react'
-import { Check } from 'lucide-react'
+import { Check } from '@/components/icons'
 import { HelpTip } from '@/components/ui'
 import { ROL_LABEL } from '@/domain/auth'
 import type { Rol } from '@/domain/types'

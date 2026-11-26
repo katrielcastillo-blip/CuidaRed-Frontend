@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarCheck, CalendarPlus, ChevronLeft, ChevronRight, FilterX, WifiOff } from 'lucide-react'
+import { CalendarCheck, CalendarPlus, ChevronLeft, ChevronRight, FilterX, WifiOff } from '@/components/icons'
 import { Button, ButtonLink, EmptyState, Segmented, SelectField, TextField } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

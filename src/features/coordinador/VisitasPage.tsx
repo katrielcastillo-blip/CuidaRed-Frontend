@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarDays, CalendarPlus } from 'lucide-react'
+import { CalendarDays, CalendarPlus } from '@/components/icons'
 import { ButtonLink, EmptyState, SearchInput, Segmented, SelectField } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import { todayISO } from '@/domain/dates'

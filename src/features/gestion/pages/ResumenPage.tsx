@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowDownUp, ArrowRight, Bell, CalendarX, CircleAlert, HandHelping, Info, ListFilter, MapPin, OctagonAlert, ShieldAlert, TriangleAlert, UserCheck, Users, UserX } from 'lucide-react'
+import { ArrowDownUp, ArrowRight, Bell, CalendarX, CircleAlert, HandHelping, Info, ListFilter, MapPin, OctagonAlert, ShieldAlert, TriangleAlert, UserCheck, Users, UserX } from '@/components/icons'
 import { Button, EmptyState, HelpTip, RiesgoBadge, SearchInput, SelectField, Switch } from '@/components/ui'
 import { useUser } from '@/domain/auth'
 import { fechaCorta, hora12 } from '@/domain/dates'

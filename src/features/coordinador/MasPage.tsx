@@ -26,8 +26,8 @@ import {
   UserRound,
   UserRoundPlus,
   Users,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/components/icons'
+import type { LucideIcon } from '@/components/icons'
 import { useToast } from '@/components/ui'
 import { logout } from '@/domain/auth'
 import { puede } from '@/domain/permisos'

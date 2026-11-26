@@ -5,7 +5,7 @@
  */
 import { Fragment, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUp, ChevronDown, Info, ListOrdered, TriangleAlert } from 'lucide-react'
+import { ArrowUp, ChevronDown, Info, ListOrdered, TriangleAlert } from '@/components/icons'
 import { cn } from '@/lib/cn'
 import { PRODUCTO } from '@/lib/proyecto'
 import { AuthScreen } from '../components/AuthScreen'

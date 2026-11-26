@@ -9,7 +9,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye } from '@/components/icons'
 import { Page } from '@/layouts/AppShell'
 import { useUser } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

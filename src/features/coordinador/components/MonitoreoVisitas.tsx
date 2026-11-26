@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { CalendarPlus, CircleCheck, UserRoundCog } from 'lucide-react'
+import { CalendarPlus, CircleCheck, UserRoundCog } from '@/components/icons'
 import { ButtonLink, EmptyState, RiesgoBadge } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import type { Adulto } from '@/domain/types'

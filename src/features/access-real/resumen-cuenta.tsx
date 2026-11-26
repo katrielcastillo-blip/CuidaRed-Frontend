@@ -9,6 +9,8 @@
  * qué se puede hacer en cada petición.
  */
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Icon } from '@/components/icons'
 import { Badge, Button, ButtonLink, Datum } from '@/components/ui'
 import { Aviso } from '../auth/components/Piezas'
 import { obtenerSuscripcion, type Suscripcion } from './api/cuentas'
@@ -97,7 +99,7 @@ function textoPrueba(prueba: Suscripcion['prueba']) {
 
 type EstadoCarga = { tipo: 'cargando' } | { tipo: 'lista'; datos: Suscripcion } | { tipo: 'error' }
 
-export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuenta: CuentaMe; token: string; mostrarAcciones?: boolean }) {
+export function ResumenCuenta({ cuenta, token, mostrarAcciones = true, compacto = false }: { cuenta: CuentaMe; token: string; mostrarAcciones?: boolean; compacto?: boolean }) {
   const [estado, setEstado] = useState<EstadoCarga>({ tipo: 'cargando' })
   const [intento, setIntento] = useState(0)
 
@@ -118,7 +120,7 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
   const sinAcceso = accesoOperativo === false || estadoSuscripcion === 'vencida'
   const prueba = suscripcion ? textoPrueba(suscripcion.prueba) : null
 
-  return (
+  const contenido = (
     <section aria-labelledby="titulo-resumen" className="mt-6 flex flex-col gap-3" data-testid="resumen-cuenta">
       <h2 id="titulo-resumen" className="text-base font-semibold text-ink">
         Resumen de {cuenta.nombre}
@@ -168,4 +170,21 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
       )}
     </section>
   )
+  if (!compacto) return contenido
+  const dias = suscripcion?.prueba.dias_restantes
+  const enPrueba = suscripcion?.prueba.vigente === true
+  return <section aria-label="Estado de la suscripción" className="grid min-w-0 w-full grid-cols-1 gap-3 [&>*]:min-w-0">
+    <div className="flex min-h-24 flex-wrap items-center gap-3 rounded-card border border-line-soft bg-white px-4 py-3 shadow-1 sm:px-5">
+      <Icon name="info" className="shrink-0 text-primary" />
+      <div className="min-w-0 flex-1 basis-36 wrap-anywhere">
+        <p className="font-semibold text-ink">{estado.tipo === 'cargando' ? 'Consultando tu suscripción…' : estado.tipo === 'error' ? 'Revisa el estado de tu cuenta' : sinAcceso ? 'Tu cuenta necesita renovar el acceso' : enPrueba && typeof dias === 'number' ? `${dias === 1 ? 'Te queda' : 'Te quedan'} ${dias} ${dias === 1 ? 'día' : 'días'} de prueba` : suscripcion?.plan?.nombre || suscripcionTexto(estadoSuscripcion)}</p>
+        <p className="mt-0.5 text-sm text-muted">{enPrueba && suscripcion?.prueba.fecha_fin ? `Termina el ${new Date(suscripcion.prueba.fecha_fin).toLocaleDateString('es-DO', { timeZone: 'America/Santo_Domingo', day: 'numeric', month: 'long' })}` : sinAcceso ? 'Puedes consultar tu cuenta y gestionar la suscripción.' : estado.tipo === 'error' ? 'Puedes volver a consultar el detalle.' : 'Cuenta de ' + TIPO_TEXTO[cuenta.tipo].toLocaleLowerCase('es')}</p>
+      </div>
+      {puedeConsultarSuscripcion(cuenta) && <Link to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/suscripcion`} className="inline-flex min-h-12 shrink-0 items-center text-sm font-semibold text-navy underline underline-offset-4">Ver planes</Link>}
+    </div>
+    <details className="group min-w-0 rounded-sm border border-line-soft bg-white px-4">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 py-2 text-sm font-semibold text-navy"><span className="min-w-0 wrap-anywhere">Información de la cuenta y suscripción</span><Icon name="keyboard_arrow_down" className="group-open:rotate-180" /></summary>
+      <div className="pb-4 [&>section]:mt-0">{contenido}</div>
+    </details>
+  </section>
 }

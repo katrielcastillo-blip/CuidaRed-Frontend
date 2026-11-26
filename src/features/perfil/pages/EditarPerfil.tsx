@@ -7,7 +7,7 @@
  */
 import { useCallback, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, Pencil } from 'lucide-react'
+import { KeyRound, Pencil } from '@/components/icons'
 import { Button, InfoRow, TextField, useFormulario, useToast, AvisoBorrador } from '@/components/ui'
 import { actualizarMiPerfil, validarMiPerfil } from '@/domain/api/perfil'
 import { nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'

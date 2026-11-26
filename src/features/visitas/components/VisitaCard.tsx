@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarDays } from 'lucide-react'
+import { ArrowRight, CalendarDays } from '@/components/icons'
 import { nombreCompleto } from '@/domain/auth'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import type { Adulto, Visita } from '@/domain/types'

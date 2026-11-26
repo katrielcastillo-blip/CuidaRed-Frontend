@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ReactNode } from 'react'
-import { CircleAlert, CircleCheck, Clock, Info, OctagonAlert, SearchX, TriangleAlert } from 'lucide-react'
+import { CircleAlert, CircleCheck, Clock, Info, OctagonAlert, SearchX, TriangleAlert } from '@/components/icons'
 import { ButtonLink } from '@/components/ui'
 import { useDB } from '@/domain/store'
 import type { EstadoAlerta, SeveridadAlerta } from '@/domain/types'

@@ -4,7 +4,7 @@
  * Módulo: admin (modelo de datos V3.0).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from '@/components/icons'
 import { cn } from '@/lib/cn'
 
 /** `limite` null = ilimitado (plan sin tope). */

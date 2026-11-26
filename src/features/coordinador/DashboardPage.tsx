@@ -27,7 +27,7 @@ import {
   PersonStanding,
   UserPlus,
   UserRoundPlus,
-} from 'lucide-react'
+} from '@/components/icons'
 import { EmptyState } from '@/components/ui'
 import { nombreCompleto } from '@/domain/auth'
 import { fechaLarga } from '@/domain/dates'

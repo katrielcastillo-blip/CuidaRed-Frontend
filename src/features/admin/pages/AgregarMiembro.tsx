@@ -11,7 +11,7 @@
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Check, X } from 'lucide-react'
+import { Check, X } from '@/components/icons'
 import { Button, ChoicePills, PasswordField, SuccessOverlay, useToast } from '@/components/ui'
 import { crearUsuario, errorDeCupo } from '@/domain/api'
 import { useSession, useUser } from '@/domain/auth'

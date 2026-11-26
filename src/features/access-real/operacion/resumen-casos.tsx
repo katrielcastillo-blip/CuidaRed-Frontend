@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowDownUp, RefreshCw } from 'lucide-react'
+import { ArrowDownUp, RefreshCw } from '@/components/icons'
 import { Badge, Button, Card, EmptyState, HelpTip, RiesgoBadge, SearchInput, SelectField } from '@/components/ui'
 import { fechaCorta } from '@/domain/dates'
 import type { CasoResumen, IndicadoresResumen, OpcionesReporte } from '../api/reportes'

@@ -14,7 +14,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { WifiOff } from 'lucide-react'
+import { WifiOff } from '@/components/icons'
 import { AvisoBorrador, Button, Checkbox, CheckboxGroup, ChoicePills, HelpTip, SelectField, StepBar, TextField, useToast } from '@/components/ui'
 import { DATOS_ADULTO_VACIOS, PARENTESCOS, validarAdulto, type DatosAdulto, type Resultado } from '@/domain/api'
 import { useUser } from '@/domain/auth'

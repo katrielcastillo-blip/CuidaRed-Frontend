@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react'
 import type { RouteObject } from 'react-router-dom'
-import { BellRing, BriefcaseMedical, Ellipsis, House, PersonStanding } from 'lucide-react'
+import { BellRing, BriefcaseMedical, Ellipsis, House, PersonStanding } from '@/components/icons'
 import { alertasVisibles } from '@/domain/api'
 import { useSession } from '@/domain/auth'
 import { puede } from '@/domain/permisos'

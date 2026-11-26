@@ -1,5 +1,5 @@
 /* GuiasPublicas.tsx — Manual breve del portal conectado. Módulo auth. © 2026 Equipo CuidaRed – INTEC. */
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, WifiOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, WifiOff } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import { Circulos } from '../components/Circulos'
 

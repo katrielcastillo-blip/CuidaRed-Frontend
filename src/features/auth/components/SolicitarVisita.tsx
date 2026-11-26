@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, ScanSearch, Send, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleCheck, Copy, ScanSearch, Send, ShieldCheck } from '@/components/icons'
 import { Button, ButtonLink, Checkbox, SelectField, StepBar, TextareaField, TextField } from '@/components/ui'
 import { useEnLinea } from '@/domain/conectividad'
 import { todayISO } from '@/domain/dates'

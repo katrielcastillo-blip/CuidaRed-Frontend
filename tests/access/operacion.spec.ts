@@ -50,7 +50,7 @@ test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee c
   const configurar = page.getByRole('link', { name: 'Configurar organización', exact: true })
   await expect.poll(async () => {
     const texto = await configurar.getByText('Configurar organización', { exact: true }).boundingBox()
-    const flecha = await configurar.locator('svg').boundingBox()
+    const flecha = await configurar.locator('[data-icon="chevron_right"]').boundingBox()
     return !!texto && !!flecha && flecha.x >= texto.x + texto.width && Math.abs(flecha.y + flecha.height / 2 - texto.y - texto.height / 2) < 2
   }).toBe(true)
 

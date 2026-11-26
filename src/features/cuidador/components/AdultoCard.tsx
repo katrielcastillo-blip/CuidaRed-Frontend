@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, Bell, CircleUserRound } from 'lucide-react'
+import { ArrowRight, Bell, CircleUserRound } from '@/components/icons'
 import { nombreCompleto } from '@/domain/auth'
 import { Badge, IconTile, RiesgoBadge } from '@/components/ui'
 import { useShell } from '@/layouts/AppShell'

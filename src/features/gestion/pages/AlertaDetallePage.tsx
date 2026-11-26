@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CalendarCheck2, CalendarPlus, Check, CircleCheck, Clock, Cpu, HandHelping, ListChecks, MapPin, MessageSquareText, RotateCcw, Tag, UserCheck, UserRound, UsersRound } from 'lucide-react'
+import { CalendarCheck2, CalendarPlus, Check, CircleCheck, Clock, Cpu, HandHelping, ListChecks, MapPin, MessageSquareText, RotateCcw, Tag, UserCheck, UserRound, UsersRound } from '@/components/icons'
 import { Badge, Button, ButtonLink, ChoicePills, IconTile, RiesgoBadge, TextareaField, useToast } from '@/components/ui'
 import { alertasVisibles, gestionarAlerta, marcarLeidas } from '@/domain/api'
 import { useUser } from '@/domain/auth'

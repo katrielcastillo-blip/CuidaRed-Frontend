@@ -11,7 +11,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useMemo, useState } from 'react'
-import { UserPlus, X } from 'lucide-react'
+import { UserPlus, X } from '@/components/icons'
 import { Avatar, Button, Checkbox, EmptyState, HelpTip, Sheet, useToast } from '@/components/ui'
 import { asignarCuidadores, asignarVoluntarios, autorizarFamiliares, type Resultado } from '@/domain/api'
 import { nombreCompleto, useUser } from '@/domain/auth'

@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ReactNode } from 'react'
-import { CloudUpload } from 'lucide-react'
+import { CloudUpload } from '@/components/icons'
 import { Badge, ButtonLink, EmptyState } from '@/components/ui'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'

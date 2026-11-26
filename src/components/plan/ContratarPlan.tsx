@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useMemo, useState } from 'react'
-import { Check, CircleCheck, Lock } from 'lucide-react'
+import { Check, CircleCheck, Lock } from '@/components/icons'
 import { Badge, Button } from '@/components/ui'
 import { useSession } from '@/domain/auth'
 import { ETIQUETA_FUNCIONALIDAD, excedeLimite, planesCompatibles, tipoDeCuenta, type TipoCuenta } from '@/domain/planes'

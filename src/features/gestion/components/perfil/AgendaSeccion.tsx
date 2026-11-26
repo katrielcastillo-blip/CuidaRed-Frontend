@@ -8,7 +8,7 @@
  */
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Camera, CalendarPlus, Repeat } from 'lucide-react'
+import { ArrowRight, Camera, CalendarPlus, Repeat } from '@/components/icons'
 import { Badge, ButtonLink } from '@/components/ui'
 import { fechaCorta, hhmmA12, todayISO } from '@/domain/dates'
 import { useDB } from '@/domain/store'

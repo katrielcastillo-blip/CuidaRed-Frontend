@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useNavigate } from 'react-router-dom'
-import { Building2, Users } from 'lucide-react'
+import { Building2, Users } from '@/components/icons'
 import { Badge, Button, IconTile, useToast } from '@/components/ui'
 import { cambiarCuenta, ROL_LABEL, useMisCuentas } from '@/domain/auth'
 import { TIPO_CUENTA_LABEL, tipoDeCuenta } from '@/domain/planes'

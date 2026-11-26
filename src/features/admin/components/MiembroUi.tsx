@@ -3,7 +3,7 @@
  * Módulo: admin (RF-09 · CU-13).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { CircleUserRound, UserRound } from 'lucide-react'
+import { CircleUserRound, UserRound } from '@/components/icons'
 import { ROL_LABEL } from '@/domain/auth'
 import type { EstadoMiembro, Rol } from '@/domain/types'
 import { cn } from '@/lib/cn'

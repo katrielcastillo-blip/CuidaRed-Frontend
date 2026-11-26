@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BellDot, Clock, Cpu, HandHelping } from 'lucide-react'
+import { ArrowRight, BellDot, Clock, Cpu, HandHelping } from '@/components/icons'
 import { EmptyState, SearchInput } from '@/components/ui'
 import { alertasVisibles } from '@/domain/api'
 import { useUser } from '@/domain/auth'

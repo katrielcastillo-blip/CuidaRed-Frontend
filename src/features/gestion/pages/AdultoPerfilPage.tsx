@@ -16,7 +16,7 @@
  */
 import { useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Cake, CalendarPlus, CircleUserRound, ClipboardList, FileCheck2, HandHelping, History, Home, MapPin, Pencil, Phone, ShieldCheck, UserRoundPen, VenusAndMars } from 'lucide-react'
+import { ArrowRight, Cake, CalendarPlus, CircleUserRound, ClipboardList, FileCheck2, HandHelping, History, Home, MapPin, Pencil, Phone, ShieldCheck, UserRoundPen, VenusAndMars } from '@/components/icons'
 import { Badge, ButtonLink, InfoRow, RiesgoBadge } from '@/components/ui'
 import { useUser } from '@/domain/auth'
 import { AUTONOMIAS, CONDICIONES } from '@/domain/catalogos'

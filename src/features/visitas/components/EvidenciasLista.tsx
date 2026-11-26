@@ -3,7 +3,7 @@
  * Módulo: visitas.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { FileText, X } from 'lucide-react'
+import { FileText, X } from '@/components/icons'
 import { cn } from '@/lib/cn'
 import { esMiniatura } from '../lib/evidencias'
 

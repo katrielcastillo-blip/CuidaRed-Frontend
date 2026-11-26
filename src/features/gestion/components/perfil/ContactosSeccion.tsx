@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
-import { Pencil, Phone, Plus, Star, Trash2 } from 'lucide-react'
+import { Pencil, Phone, Plus, Star, Trash2 } from '@/components/icons'
 import { Badge, Button, Checkbox, SelectField, Sheet, TextField, useToast } from '@/components/ui'
 import { eliminarContacto, guardarContacto, PARENTESCOS, type DatosContacto } from '@/domain/api'
 import { useUser } from '@/domain/auth'

@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Download, Lock, SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Lock, SlidersHorizontal } from '@/components/icons'
 import { Button, EmptyState, SearchInput, SelectField, TextField, useToast } from '@/components/ui'
 import { auditarExportacion } from '@/domain/api'
 import { useUser } from '@/domain/auth'

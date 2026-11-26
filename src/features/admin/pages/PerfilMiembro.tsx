@@ -9,7 +9,7 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { CalendarDays, Check, ChevronRight, HandHeart, IdCard, Mail, Pencil, Phone, Trash2, UserCheck, UserCog, UserRound, UserX } from 'lucide-react'
+import { CalendarDays, Check, ChevronRight, HandHeart, IdCard, Mail, Pencil, Phone, Trash2, UserCheck, UserCog, UserRound, UserX } from '@/components/icons'
 import { Badge, Button, ButtonLink, EmptyState, InfoRow, Sheet, SuccessOverlay, useToast } from '@/components/ui'
 import { actualizarUsuario, cambiarEstadoUsuario, cambiarRolMiembro, eliminarUsuario, estadoEnCuenta, membresiaEnCuenta } from '@/domain/api'
 import { nombreCompleto, useSession, useUser } from '@/domain/auth'

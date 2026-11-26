@@ -1,6 +1,6 @@
 /* Contacto externo al programar una visita; no crea una cuenta. © 2026 Equipo CuidaRed – INTEC. */
 import { useState } from 'react'
-import { Building2, UserRound, ArrowRight } from 'lucide-react'
+import { Building2, UserRound, ArrowRight } from '@/components/icons'
 import { Button, ChoicePills, SelectField, TextField, TextareaField } from '@/components/ui'
 import { TIPOS_ENTIDAD_VISITANTE } from '@/features/auth/lib/solicitudVisita'
 

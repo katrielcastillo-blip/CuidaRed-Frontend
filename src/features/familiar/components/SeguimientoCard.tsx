@@ -6,7 +6,7 @@
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { CalendarCheck, CalendarClock, CircleAlert, CircleCheck } from 'lucide-react'
+import { CalendarCheck, CalendarClock, CircleAlert, CircleCheck } from '@/components/icons'
 import { Badge, IconTile, LinkCard } from '@/components/ui'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import { useShell } from '@/layouts/AppShell'

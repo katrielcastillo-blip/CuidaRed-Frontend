@@ -11,7 +11,7 @@
  */
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Gift } from 'lucide-react'
+import { Gift } from '@/components/icons'
 import { Button, SelectField, StepBar, TextField } from '@/components/ui'
 import { HOME_BY_ROL } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'

@@ -131,7 +131,7 @@ async function preparar(page: Page, opciones: {
 test('el titular de una cuenta vencida consulta su suscripción y elige una oferta en Stripe Sandbox', async ({ page }) => {
   const sim = await preparar(page)
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await expect(page.getByRole('heading', { name: 'Suscripción y pagos' })).toBeVisible()
   await expect(page.getByText('Limitado a la cuenta')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Adultos', exact: true })).toHaveCount(0)
@@ -174,7 +174,7 @@ test('un gestor que no es titular puede consultar el historial y no iniciar un p
   const sim = await preparar(page, { titular: false })
   sim.pagos.push({ ...pago, estado: 'reembolsado', importe_reembolsado_centavos: pago.importe_centavos })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await expect(page.getByText(/Solo la persona titular/)).toBeVisible()
   await expect(page.getByText('Reembolsado', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /Elegir Operación/ })).toHaveCount(0)
@@ -184,7 +184,7 @@ test('un gestor que no es titular puede consultar el historial y no iniciar un p
 test('un usuario sin permiso no accede a la administración ni al historial de suscripción', async ({ page }) => {
   const sim = await preparar(page, { permiso: false })
   await iniciarSesion(page, sim.correo)
-  await expect(page.getByRole('link', { name: 'Ver suscripción y pagos' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Ver planes' })).toHaveCount(0)
   await page.goto(`${operacion}/suscripcion`)
   await expect(page.getByText('No tienes acceso a este módulo de la cuenta.')).toBeVisible()
   expect(sim.solicitudes.gestion).toBe(0)
@@ -194,7 +194,7 @@ test('un usuario sin permiso no accede a la administración ni al historial de s
 test('rechaza destinos externos distintos de Stripe Checkout', async ({ page }) => {
   const sim = await preparar(page, { checkout: 'https://checkout.stripe.com.example.test/redirect' })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await page.getByRole('button', { name: 'Elegir Operación Base (mensual)' }).click()
   await expect(page.getByText('No se pudo abrir Stripe. Intenta de nuevo.')).toBeVisible()
   await expect(page).toHaveURL(`${operacion}/suscripcion`)
@@ -208,7 +208,7 @@ test('lee las unidades propias de cada moneda y mantiene la consulta con Checkou
     periodicidad: 'anual', moneda: 'JPY', importe_centavos: 7500,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await expect(page.getByText(/JPY\s+7[,.\s]500 por año/)).toBeVisible()
   await expect(page.getByText('Los pagos de prueba no están disponibles ahora.')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Historial de pagos' })).toBeVisible()
@@ -223,7 +223,7 @@ test('solo Avanzada se cotiza y Operación Base conserva funciones y cupos sin t
     periodicidad, estado: 'sin_cotizar', importe_centavos: null, moneda: 'USD', cuidadores: 2, envejecientes: 5, limites: null,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const cotizaciones = page.getByRole('region', { name: 'Planes para tu organización' })
   const base = cotizaciones.getByRole('article', { name: oferta.nombre })
   const avanzada = cotizaciones.getByRole('article', { name: 'Gestión Comunitaria Avanzada' })
@@ -255,7 +255,7 @@ test('contratar Avanzada muestra los cupos pactados y envía la versión de la c
     limites: cuposAvanzada, version: versionAvanzada,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const tarjeta = page.getByRole('article', { name: avanzada.nombre })
   const cupos = tarjeta.getByRole('list', { name: 'Cupos de la cotización' })
   await expect(cupos).toContainText('Hasta 42 adultos mayores')
@@ -292,7 +292,7 @@ test('una oferta actualizada muestra el conflicto en la tarjeta y bloquea intent
     return ruta.fulfill({ json: { data: { url: stripe } } })
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const contratar = tarjeta.getByRole('button', { name: 'Elegir Operación Base (mensual)' })
   await contratar.click()
   try {
@@ -324,7 +324,7 @@ test('al retomar Avanzada se muestran el precio y los cupos de la versión que i
     moneda: 'USD', cuidadores: 2, envejecientes: 5, limites: nueva.limites, version: versionNueva,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const tarjeta = page.getByRole('article', { name: nueva.nombre })
   await expect(tarjeta.getByText('Pago iniciado', { exact: true })).toBeVisible()
   await expect(tarjeta.getByText('Cotización disponible')).toHaveCount(0)
@@ -349,7 +349,7 @@ test('si el pago de prueba venció, el titular puede reiniciar el pago desde la 
     return ruta.fulfill({ json: { data: { url: stripe } } })
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const tarjeta = page.getByRole('article', { name: 'Operación Base' })
   await tarjeta.getByRole('button', { name: 'Retomar pago de prueba de Operación Base (mensual)' }).click()
   await expect(tarjeta.getByRole('alert')).toContainText('La sesión de pago de prueba venció')
@@ -362,7 +362,7 @@ test('Familia ve los límites y precios iniciales cuando faltan tarifas publicad
   const sim = await preparar(page, { tipo: 'familia', disponible: false })
   sim.gestion.ofertas = []
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const planes = page.getByRole('region', { name: 'Planes para tu familia' })
   const basico = planes.getByRole('article', { name: 'Básico Familiar' })
   const integral = planes.getByRole('article', { name: 'Cuidado Integral' })
@@ -390,7 +390,7 @@ test('la tarjeta abierta refleja los cambios del catálogo aunque no haya oferta
   const sim = await preparar(page, { tipo: 'familia', disponible: false })
   sim.gestion.ofertas = []
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const basico = page.getByRole('article', { name: 'Básico Familiar' })
   await expect(basico.getByText('Hasta 5 cuidadores')).toBeVisible()
   await basico.getByRole('radio', { name: 'Anual' }).click()
@@ -415,7 +415,7 @@ test('Familia contrata el importe publicado de su ciclo y solo consulta la refer
     importe_centavos: 1100, limites: { envejecientes: 2, usuarios: null, familiares: 3 },
   }]
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const basico = page.getByRole('article', { name: 'Básico Familiar' })
   await expect(basico.getByText(/USD\s+11[.,]00 por mes/)).toBeVisible()
   await basico.getByRole('radio', { name: 'Anual' }).click()
@@ -432,7 +432,7 @@ test('un Checkout existente se puede retomar para la misma oferta', async ({ pag
   sim.gestion.suscripcion_stripe = true
   sim.gestion.checkout_en_curso = oferta.codigo
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await page.getByRole('button', { name: 'Retomar pago de prueba de Operación Base (mensual)' }).click()
   await expect(page.getByRole('heading', { name: 'Pago de prueba simulado' })).toBeVisible()
   expect(sim.solicitudes.checkout[0]?.cuerpo).toEqual({ oferta: oferta.codigo })
@@ -449,7 +449,7 @@ test('muestra el próximo corte antes de solicitar el cambio de periodicidad y d
     ...sim.gestion.ofertas[0]!, codigo: 'operacion_base_anual', periodicidad: 'anual', importe_centavos: 12000, actual: false,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   const planBase = page.getByRole('article', { name: 'Operación Base' })
   await planBase.getByRole('radio', { name: 'Anual' }).click()
   await planBase.getByRole('button', { name: 'Cambiar a Operación Base (anual)' }).click()
@@ -469,7 +469,7 @@ test('confirma la cancelación al fin del período y conserva el acceso operativ
   sim.gestion.estado = 'activa'
   sim.gestion.acceso_operativo = true
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await page.getByRole('button', { name: 'Cancelar renovación' }).click()
   const dialogo = page.getByRole('dialog', { name: 'Cancelar renovación' })
   await expect(dialogo).toContainText('hasta el final del período pagado')
@@ -490,7 +490,7 @@ test('explica el cargo proporcional de un plan más caro y abre la factura de pr
     ...sim.gestion.ofertas[0]!, codigo: 'gestion_comunitaria_avanzada_mensual', nombre: 'Gestión Comunitaria Avanzada', importe_centavos: 12000, actual: false,
   })
   await iniciarSesion(page, sim.correo)
-  await page.getByRole('link', { name: 'Ver suscripción y pagos' }).click()
+  await page.getByRole('link', { name: 'Ver planes' }).click()
   await page.getByRole('button', { name: 'Cambiar a Gestión Comunitaria Avanzada (mensual)' }).click()
   const dialogo = page.getByRole('dialog', { name: 'Cambiar plan de prueba' })
   await expect(dialogo).toContainText('Stripe calcula el cargo proporcional')

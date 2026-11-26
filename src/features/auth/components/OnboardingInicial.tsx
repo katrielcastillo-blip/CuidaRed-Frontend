@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, BellRing, ClipboardList, Gift, HeartHandshake, Lock, PartyPopper, Pill, Siren, Users, WifiOff, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BellRing, ClipboardList, Gift, HeartHandshake, Lock, PartyPopper, Pill, Siren, Users, WifiOff, type LucideIcon } from '@/components/icons'
 import { Button, StepBar } from '@/components/ui'
 import { useSession } from '@/domain/auth'
 import { diasRestantesPrueba, enPruebaVigente, tipoDeCuenta } from '@/domain/planes'

@@ -4,9 +4,9 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Cake, MapPin, Phone, Plus, ShieldCheck, VenusAndMars } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Cake, MapPin, Phone, Plus, ShieldCheck, VenusAndMars } from '@/components/icons'
 import {
-  Badge, Button, Card, Checkbox, CheckboxGroup, EmptyState, IconTile, InfoRow, RiesgoBadge,
+  Avatar, Badge, Button, Card, Checkbox, CheckboxGroup, EmptyState, InfoRow, RiesgoBadge,
   SearchInput, SelectField, StepBar, TextField, TextareaField,
 } from '@/components/ui'
 import { AUTONOMIAS, CONDICIONES, PARENTESCOS } from '@/domain/catalogos'
@@ -283,8 +283,8 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
     <Button variant="ghost" size="sm" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />} onClick={volver}>Volver a Envejecientes</Button>
     <Estado consulta={consulta} />
     {perfil && <>
-      <section className="flex flex-col items-center gap-2 text-center" aria-label="Resumen del adulto mayor">
-        <img src="/figma-miembros/perfil.svg" alt="" width={80} height={80} />
+      <section className="flex flex-col items-center gap-3 rounded-card border border-line-soft bg-white px-4 py-6 text-center shadow-1" aria-label="Resumen del adulto mayor">
+        <Avatar nombre={nombre(perfil)} size={88} />
         <h2 className="break-words text-2xl font-bold text-navy">{nombre(perfil)}</h2>
         {perfil.cedula && <p className="text-sm text-muted">{cedulaVisible(perfil.cedula)}</p>}
         <div className="flex flex-wrap justify-center gap-2">
@@ -294,7 +294,7 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <section className="grid gap-4" aria-label="Información personal">
+        <section className="grid gap-4 rounded-card border border-line-soft bg-white p-4 shadow-1 sm:p-5" aria-label="Información personal">
           <h3 className="font-semibold">Información personal</h3>
           {perfil.fecha_nacimiento && <InfoRow label="Fecha de nacimiento" icon={<Cake size={18} aria-hidden />} value={fechaCorta(perfil.fecha_nacimiento)} />}
           {perfil.telefono && <InfoRow label="Teléfono" icon={<Phone size={18} aria-hidden />} value={perfil.telefono} />}
@@ -313,7 +313,7 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
         </section>
 
         <div className="grid gap-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {visitasDisponibles && <Card tone="info" className="grid gap-1 text-center">
               <span className="text-xs text-ink-2">Última visita</span>
               <strong className="text-sm text-ink">{ultimaFecha ? fechaCorta(ultimaFecha) : ultima.error ? 'Sin datos' : ultima.datos ? 'Sin visitas' : 'Consultando…'}</strong>
@@ -323,7 +323,7 @@ function Expediente({ id, volver, revision, refrescar, ...props }: OperacionProp
               <strong className="text-sm text-ink">{perfil.contactos.length}</strong>
             </Card>}
           </div>
-          {(editar || gestionarEstado || puedeAsignar || cuenta.permisos.includes('adultos:evaluar')) && <section className="grid gap-2" aria-label="Acciones rápidas">
+          {(editar || gestionarEstado || puedeAsignar || cuenta.permisos.includes('adultos:evaluar')) && <section className="grid gap-3 rounded-card border border-line-soft bg-white p-4 shadow-1" aria-label="Acciones rápidas">
             <h3 className="font-semibold">Acciones rápidas</h3>
             {puedeAsignar && <Button variant="light" size="sm" icon={<Plus size={18} aria-hidden />}
               onClick={() => abrirSeguimiento('asignacion')}>Asignar cuidador</Button>}
@@ -421,7 +421,7 @@ export function Envejecientes(props: OperacionProps & { cola: ColaOperaciones })
         </Card>)}
         {retiros.datos && <Paginador pagina={retiros.pagina} total={retiros.datos.meta.totalPages} cambiar={retiros.cambiar} />}
       </section> : <>
-      <div className="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(13rem,1fr)]">
+      <div className="grid items-end gap-3 rounded-card border border-line-soft bg-white p-4 shadow-1 md:grid-cols-[minmax(0,2fr)_minmax(13rem,1fr)]">
         <label className="grid gap-1.5 text-sm font-semibold text-ink">
           Buscar en esta página
           <SearchInput value={busqueda} onChange={(event) => setBusqueda(event.currentTarget.value)} placeholder="Nombre o sector" />
@@ -437,16 +437,16 @@ export function Envejecientes(props: OperacionProps & { cola: ColaOperaciones })
       {adultos.length > 0 && <ul className="grid gap-3 md:grid-cols-2" aria-label="Adultos mayores">
         {adultos.map((adulto) => <li key={adulto.envejeciente_id}>
           <button type="button" onClick={() => setVista({ tipo: 'perfil', id: adulto.envejeciente_id })}
-            className="flex h-full w-full flex-col overflow-hidden rounded-sm border border-line bg-bg text-left transition-shadow hover:shadow-1">
+            className="flex h-full w-full flex-col overflow-hidden rounded-card border border-line-soft bg-white text-left shadow-1 transition-colors hover:border-primary">
             <div className="flex min-w-0 flex-1 items-start gap-3 p-4">
-              <IconTile />
+              <Avatar nombre={nombre(adulto)} size={48} />
               <div className="min-w-0 space-y-1">
                 <h3 className="break-words text-lg font-semibold text-ink">{nombre(adulto)}</h3>
                 {adulto.zona && <p className="text-sm text-muted">{adulto.zona}</p>}
                 <Badge tone={adulto.estado === 'activo' ? 'success' : 'neutral'}>{ESTADO[adulto.estado]}</Badge>
               </div>
             </div>
-            <span className="flex min-h-12 items-center justify-end gap-2 border-t border-navy bg-blue-100 px-4 text-sm font-semibold text-navy">
+            <span className="flex min-h-12 items-center gap-2 border-t border-line-soft px-4 text-sm font-semibold text-primary">
               Ver perfil <ArrowRight size={18} aria-hidden />
             </span>
           </button>

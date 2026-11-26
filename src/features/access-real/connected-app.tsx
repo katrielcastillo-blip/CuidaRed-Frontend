@@ -12,7 +12,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { Privacidad, Terminos } from '../auth/pages/Legal'
 import { GuiasPublicas } from '../auth/pages/GuiasPublicas'
 import { ApiError, api, configuration as validarConfiguracion, logout, obtenerSuscripcionPush, recuperarSesionDelNavegador, type BrowserSession, type CuentaMe, type CurrentUser } from './client'
-import { AccessForm, InvitationForm, RecoveryForm, ResetForm, ProfileForm } from './forms'
+import { AccessForm, InvitationForm, RecoveryForm, ResetForm } from './forms'
 import { guardarCuentaActiva, leerCuentaActiva, PanelCuentas } from './cuentas'
 import { listarCuentas, listarInvitaciones } from './api/cuentas'
 import { PantallaMiembros } from './miembros'
@@ -23,6 +23,10 @@ import { PortadaConectada, SeguimientoVisita, SolicitudVisitaPublica } from './v
 import { Button, ButtonLink } from '@/components/ui'
 import { Portal } from './operacion/portal'
 import { useColaOperaciones } from './operacion/cola-operaciones'
+import { AyudaFlotante } from '@/components/pwa/AyudaFlotante'
+import { MarcoPerfil } from './marco-perfil'
+import { InformacionPerfil, SeguridadPerfil } from './perfil-personal'
+import { puedeGestionarMiembros } from './cuentas-datos'
 
 function AccessRoutes() {
   const { pathname, search } = useLocation()
@@ -273,27 +277,29 @@ function AccessRoutes() {
   ) : <AccessForm notice={error} onSession={abrirSesion} />
 
   const account = session ? (
-    <AuthScreen title="Mi cuenta" back="/inicio">
+    <MarcoPerfil perfil={perfilListo ? user.profile : null} cuenta={cuentaActiva}>
       {error && <p role="alert">{error}</p>}
       {!user && !error && <p role="status">Comprobando perfil…</p>}
       {perfilListo && (
         <>
           {panelInvitaciones}
-          <ProfileForm
+          <InformacionPerfil
             key={user.identity.id}
             token={session.access_token}
             profile={user.profile}
             onSaved={() => setRevision((value) => value + 1)}
           />
           {listaCuentas}
-          {cuentaActiva && <ResumenCuenta key={cuentaActiva.cuenta_id} cuenta={cuentaActiva} token={session.access_token} />}
+          {cuentaActiva && <div className="flex flex-wrap gap-3"><ButtonLink to={`/operacion/${encodeURIComponent(cuentaActiva.cuenta_id)}/cuenta`} variant="outline" size="sm">Abrir cuenta</ButtonLink>{puedeGestionarMiembros(cuentaActiva) && <ButtonLink to="/cuenta/miembros" variant="outline" size="sm">Miembros de la cuenta</ButtonLink>}</div>}
+          {cuentaActiva && <details className="min-w-0 rounded-card border border-line-soft bg-white p-4"><summary className="flex min-h-12 cursor-pointer items-center font-semibold text-navy">Suscripción y acceso</summary><ResumenCuenta key={cuentaActiva.cuenta_id} cuenta={cuentaActiva} token={session.access_token} mostrarAcciones={false} /></details>}
+          <SeguridadPerfil />
         </>
       )}
       {error && <Button onClick={refrescar}>Reintentar</Button>}
-      <Button variant="outline" className="mt-5" onClick={() => void logout(session)}>
+      <Button variant="danger-soft" className="mt-1" onClick={() => void logout(session)}>
         Cerrar sesión
       </Button>
-    </AuthScreen>
+    </MarcoPerfil>
   ) : (
     <Navigate to="/inicio" replace />
   )
@@ -311,7 +317,7 @@ function AccessRoutes() {
   )
 
   return (
-    <Routes>
+    <><Routes>
       <Route path="/inicio" element={inicio} />
       <Route path="/registro" element={session ? <Navigate to="/cuenta" replace /> : <InvitationForm onSession={abrirSesion} />} />
       <Route path="/recuperar" element={<RecoveryForm />} />
@@ -319,7 +325,7 @@ function AccessRoutes() {
       <Route path="/cuenta" element={account} />
       <Route path="/cuenta/miembros" element={miembros} />
       <Route path="/operacion/:cuentaId/:seccion" element={perfilListo && session ? (
-        <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} cola={cola} />
+        <Portal key={session.user.id} token={session.access_token} usuarioId={session.user.id} perfil={user.profile} cola={cola} />
       ) : (enlaceAvisos || retornoStripe) && !session ? <AccessForm notice={error} onSession={abrirSesion} /> : account} />
       <Route path="/" element={session ? <Navigate to="/inicio" replace /> : <PortadaConectada />} />
       <Route path="/crear-cuenta" element={<RegistroCuenta key="crear" titulo="Crear una cuenta" session={session} onSession={abrirSesion} onCreada={alCrearCuenta} />} />
@@ -337,7 +343,7 @@ function AccessRoutes() {
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="*" element={<Navigate to="/inicio" replace />} />
-    </Routes>
+    </Routes>{perfilListo && session && <AyudaFlotante key={pathname} />}</>
   )
 }
 

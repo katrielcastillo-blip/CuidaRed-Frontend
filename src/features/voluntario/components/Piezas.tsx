@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleUserRound, ClipboardCheck, CloudOff, CloudUpload, MapPin, Phone, RefreshCw } from 'lucide-react'
+import { ArrowRight, CircleUserRound, ClipboardCheck, CloudOff, CloudUpload, MapPin, Phone, RefreshCw } from '@/components/icons'
 import { hhmmA12, todayISO } from '@/domain/dates'
 import type { Visita } from '@/domain/types'
 import { Badge, ButtonLink, Card, EmptyState, IconTile } from '@/components/ui'

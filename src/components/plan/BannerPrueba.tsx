@@ -4,7 +4,7 @@
  * Módulo: plan y suscripción (Reglas de Negocio V2 §Ciclo de vida de una suscripción).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { Gift, Hourglass } from 'lucide-react'
+import { Gift, Hourglass } from '@/components/icons'
 import { usePlanCuenta } from '@/domain/usePlan'
 import { ButtonLink } from '@/components/ui'
 import { useShell } from '@/layouts/AppShell'

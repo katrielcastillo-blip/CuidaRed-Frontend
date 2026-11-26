@@ -26,7 +26,7 @@ import {
   TrendingUp,
   Users,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/components/icons'
 import { Avatar, Badge, RIESGO_VISUAL } from '@/components/ui'
 import { nombreCompleto, ROL_LABEL, useSession, useUser } from '@/domain/auth'
 import { fechaCorta, fechaLarga, hhmmA12, todayISO } from '@/domain/dates'

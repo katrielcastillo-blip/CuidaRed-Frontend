@@ -4,7 +4,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useNavigate } from 'react-router-dom'
-import { LogOut, RefreshCcw } from 'lucide-react'
+import { LogOut, RefreshCcw } from '@/components/icons'
 import { Button, ButtonLink, Sheet } from '@/components/ui'
 import { logout } from '@/domain/auth'
 import { usePendientes } from '@/domain/sync'

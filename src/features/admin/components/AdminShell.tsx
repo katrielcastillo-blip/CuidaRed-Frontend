@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo } from 'react'
-import { BellRing, Ellipsis, House, PersonStanding, Users } from 'lucide-react'
+import { BellRing, Ellipsis, House, PersonStanding, Users } from '@/components/icons'
 import { alertasVisibles } from '@/domain/api'
 import { useSession } from '@/domain/auth'
 import { useDB } from '@/domain/store'

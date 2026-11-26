@@ -9,7 +9,7 @@
  * La cuenta elegida se recuerda en sessionStorage (dura lo que la sesión del navegador) y nunca se envía como
  * parámetro de autorización: el servidor vuelve a validar membresía y permisos en cada petición (CR-162).
  */
-import { Building2, Check, House } from 'lucide-react'
+import { ArrowDownUp, Building2, Check, House } from '@/components/icons'
 import { Badge, Button, ButtonLink } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import type { CuentaMe } from './client'
@@ -57,8 +57,8 @@ export function PanelCuentas({ cuentas, activa, onCambiar, pagina, totalPaginas,
       <h2 id="titulo-cuentas" className="text-base font-semibold text-ink">
         Mis cuentas
       </h2>
-      {cuentas.length > 1 && <p className="text-sm text-muted">Elige en qué cuenta quieres trabajar. Tus permisos dependen del rol que tienes en cada una.</p>}
-      <ul className="flex flex-col gap-2" data-testid="cuentas-conectadas">
+      {cuentas.length > 1 && <p className="text-sm text-muted">Perteneces a {cuentas.length} cuentas en esta página. En cada una puedes tener un rol distinto.</p>}
+      <ul className="divide-y divide-line-soft overflow-hidden rounded-card border border-line-soft bg-white" data-testid="cuentas-conectadas">
         {cuentas.map((c) => {
           const actual = c.cuenta_id === activa?.cuenta_id
           const Icono = c.tipo === 'familia' ? House : Building2
@@ -68,17 +68,17 @@ export function PanelCuentas({ cuentas, activa, onCambiar, pagina, totalPaginas,
                 type="button"
                 onClick={() => onCambiar(c.cuenta_id)}
                 aria-current={actual ? 'true' : undefined}
-                className={cn('w-full flex items-center gap-3 p-3 min-h-14 rounded-md border text-left', actual ? 'border-navy bg-blue-100' : 'border-line-soft bg-surface hover:bg-blue-100/50')}
+                className={cn('flex min-h-24 w-full items-center gap-3 p-4 text-left', actual ? 'bg-teal-100 ring-1 ring-inset ring-teal' : 'bg-white hover:bg-blue-100/50')}
               >
                 <Icono size={22} aria-hidden className="text-navy flex-none" />
                 <span className="flex-1 min-w-0 flex flex-col">
-                  <strong className="text-ink truncate">{c.nombre}</strong>
+                  <strong className="text-ink wrap-anywhere">{c.nombre}</strong>
                   <span className="text-sm text-muted">
-                    {ROL_TEXTO[c.rol]} · {suscripcionTexto(c.estado_suscripcion)}
+                    {TIPO_TEXTO[c.tipo]} · {ROL_TEXTO[c.rol]}
                   </span>
+                  <span className="text-sm text-muted">{suscripcionTexto(c.estado_suscripcion)}</span>
                 </span>
-                <Badge tone={c.tipo === 'familia' ? 'info' : 'neutral'}>{TIPO_TEXTO[c.tipo]}</Badge>
-                {actual && <Check size={20} className="text-navy flex-none" aria-label="Cuenta actual" />}
+                {actual ? <span className="flex shrink-0 flex-col items-center gap-1"><Badge tone="success">Actual</Badge><Check size={20} className="text-navy" aria-label="Cuenta actual" /></span> : <ArrowDownUp size={24} aria-hidden className="text-navy" />}
               </button>
             </li>
           )

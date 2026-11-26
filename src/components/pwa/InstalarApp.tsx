@@ -15,7 +15,7 @@
  *   const { estado, instalar } = useInstalarApp()   // estado: 'instalable' | 'ios' | 'instalada' | 'no-disponible'
  */
 import { useCallback, useId, useState, useSyncExternalStore } from 'react'
-import { Download, Share, Smartphone, SquarePlus } from 'lucide-react'
+import { Download, Share, Smartphone, SquarePlus } from '@/components/icons'
 import { avisar } from '@/domain/avisos'
 import { Button, Card } from '@/components/ui'
 import { cn } from '@/lib/cn'

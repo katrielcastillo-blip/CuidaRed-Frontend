@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Camera, ClipboardCheck, Pill, Repeat, UserRound } from 'lucide-react'
+import { ArrowRight, Camera, ClipboardCheck, Pill, Repeat, UserRound } from '@/components/icons'
 import { Badge } from '@/components/ui'
 import type { EvidenciaDetallada } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'

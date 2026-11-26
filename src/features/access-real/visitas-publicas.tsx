@@ -3,7 +3,7 @@
  * Módulo: access-real. © 2026 Equipo CuidaRed – INTEC.
  */
 import { useEffect, useState, type FormEvent } from 'react'
-import { ArrowLeft, ScanSearch, ImagePlus, FileImage } from 'lucide-react'
+import { ArrowLeft, ScanSearch, ImagePlus, FileImage } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import { Button, TextareaField, TextField, Badge } from '@/components/ui'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'

@@ -7,7 +7,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useState, type ReactNode } from 'react'
-import { CircleCheck, CircleX, FileText, Maximize2, MessageSquareWarning } from 'lucide-react'
+import { CircleCheck, CircleX, FileText, Maximize2, MessageSquareWarning } from '@/components/icons'
 import { Badge, Button, Sheet } from '@/components/ui'
 import type { EvidenciaDetallada, Resultado } from '@/domain/api'
 import { esMiniatura, tamanoLegible } from '@/features/visitas/lib/evidencias'

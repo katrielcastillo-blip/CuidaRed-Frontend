@@ -1,6 +1,6 @@
 /* calendario-visitas.tsx — Agenda diaria y selector de ventana de visita. © 2026 Equipo CuidaRed – INTEC. */
 import { useState } from 'react'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays } from '@/components/icons'
 import { TextField } from '@/components/ui'
 import { fechaCorta, hhmmA12 } from '@/domain/dates'
 import { Estado, Paginador, usePagina } from './controles'

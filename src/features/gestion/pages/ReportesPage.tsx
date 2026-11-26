@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { BriefcaseMedical, CalendarDays, FileDown, FileSpreadsheet, FileText, HandHelping, Map as MapaIcono, MapPin, PersonStanding, Printer, SearchX, ShieldAlert, Tags, TriangleAlert } from 'lucide-react'
+import { BriefcaseMedical, CalendarDays, FileDown, FileSpreadsheet, FileText, HandHelping, Map as MapaIcono, MapPin, PersonStanding, Printer, SearchX, ShieldAlert, Tags, TriangleAlert } from '@/components/icons'
 import { Button, RiesgoBadge, TextField, useToast } from '@/components/ui'
 import { auditarExportacion } from '@/domain/api'
 import { nombreCompleto, ROL_LABEL, useUser } from '@/domain/auth'

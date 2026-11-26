@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, HandHelping, Plus, UserX } from 'lucide-react'
+import { Bell, HandHelping, Plus, UserX } from '@/components/icons'
 import { Badge, ButtonLink, Datum, EmptyState, IconTile, LinkCard, RiesgoBadge, SearchInput } from '@/components/ui'
 import { useUser } from '@/domain/auth'
 import { adultosVisibles, puede } from '@/domain/permisos'

@@ -6,8 +6,8 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ChevronRight } from '@/components/icons'
+import type { LucideIcon } from '@/components/icons'
 import { cn } from '@/lib/cn'
 
 export function Seccion({

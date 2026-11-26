@@ -3,6 +3,8 @@
  * Módulo: auth.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-export function LogoBadge() {
-  return <img className="block self-center flex-none w-[70px] h-[83px] mb-2" src="/brand/logo-badge.png" width={70} height={83} alt="" />
+import { cn } from '@/lib/cn'
+
+export function LogoBadge({ className }: { className?: string }) {
+  return <img className={cn('block self-center flex-none w-[70px] h-[83px] mb-2', className)} src="/brand/logo-badge.png" width={70} height={83} alt="" />
 }

@@ -6,7 +6,7 @@
  */
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FlaskConical, MailCheck } from 'lucide-react'
+import { FlaskConical, MailCheck } from '@/components/icons'
 import { Button, ButtonLink, TextField } from '@/components/ui'
 import { useEnLinea } from '@/domain/conectividad'
 import { AuthScreen } from '../components/AuthScreen'

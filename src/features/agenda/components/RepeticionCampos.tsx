@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import type { ChangeEventHandler } from 'react'
-import { Check } from 'lucide-react'
+import { Check } from '@/components/icons'
 import { ChoicePills, TextField } from '@/components/ui'
 import { fechasDeSerie, MAX_OCURRENCIAS, type Repeticion } from '@/domain/recurrencia'
 import type { DatosTarea } from '@/domain/api/agenda'

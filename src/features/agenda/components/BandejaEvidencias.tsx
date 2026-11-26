@@ -6,7 +6,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { Link } from 'react-router-dom'
-import { CircleCheck } from 'lucide-react'
+import { CircleCheck } from '@/components/icons'
 import { EmptyState } from '@/components/ui'
 import type { EvidenciaDetallada, Resultado } from '@/domain/api'
 import { nombreCompleto } from '@/domain/auth'

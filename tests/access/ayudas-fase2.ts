@@ -434,4 +434,5 @@ export async function iniciarSesionEnMiCuenta(page: Page, correo: string) {
   await iniciarSesion(page, correo)
   await page.getByRole('link', { name: 'Mi cuenta', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Mis cuentas' })).toBeVisible()
+  await page.getByText('Suscripción y acceso', { exact: true }).click()
 }

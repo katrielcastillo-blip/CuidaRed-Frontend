@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowRight, Building2, Gift, House, KeyRound } from 'lucide-react'
+import { ArrowRight, Building2, Gift, House, KeyRound } from '@/components/icons'
 import { DIAS_PRUEBA_GRATUITA, ROLES_POR_TIPO_CUENTA, TIPO_CUENTA_LABEL, type TipoCuenta } from '@/domain/planes'
 import { ROL_LABEL } from '@/domain/nombres'
 import { AuthScreen } from '../components/AuthScreen'

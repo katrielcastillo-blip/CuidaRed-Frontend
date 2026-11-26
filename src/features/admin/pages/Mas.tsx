@@ -29,7 +29,7 @@ import {
   UserRound,
   Users,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/components/icons'
 import { useToast } from '@/components/ui'
 import { logout, useSession, useUser } from '@/domain/auth'
 import { puede, type Accion } from '@/domain/permisos'

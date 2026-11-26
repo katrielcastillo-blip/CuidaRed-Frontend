@@ -3,7 +3,7 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useEffect,useState } from 'react'
-import { ArrowLeft, CalendarDays, CalendarPlus, CircleUserRound, Frown, Meh, Smile, WifiOff, X } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CalendarPlus, CircleUserRound, Frown, Meh, Smile, WifiOff, X } from '@/components/icons'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Card, Checkbox, CheckboxGroup, IconTile, Segmented, SelectField, TextareaField, TextField, type Tone } from '@/components/ui'
 import { ASPECTOS_VISITA } from '@/domain/catalogos'
@@ -15,7 +15,8 @@ import { api, type CuentaMe, type RolCuenta } from '../client'
 import { campo, Estado, Formulario, idRuta, Paginador, useConexionReal, useDatos, usePagina, type Campo } from './controles'
 import type { ColaOperaciones } from './cola-operaciones'
 import { Evidencias } from './visitas-evidencias'
-import { CalendarioVisitas, VentanaVisita } from './calendario-visitas'
+import { VentanaVisita } from './calendario-visitas'
+import { CalendarioEquipo } from './calendario-equipo'
 import { SolicitudesExternas } from './solicitudes-externas'
 import { fechaDominicana, leerVentana } from './visitas-fechas'
 import { avisoPerfilCuidador, responsablesVisita } from './visitas-responsables'
@@ -377,10 +378,7 @@ export function Visitas({ base, token, cuenta, usuarioId, cola }: OperacionProps
       volver={volver} abrirVisita={(visitaId) => { actualizar(); abrir(visitaId) }} />}
     {viendoCalendario && <>
       <Button variant="ghost" className="justify-self-start" onClick={volver}>Volver a visitas</Button>
-      <label className="grid max-w-xs gap-1 text-sm font-semibold">Fecha del calendario
-        <input type="date" value={diaCalendario} onChange={(e) => setDiaCalendario(e.target.value)} className="min-h-12 rounded-sm border border-line bg-surface px-3 text-base" />
-      </label>
-      <CalendarioVisitas base={base} token={token} fecha={diaCalendario} abrir={abrir} />
+      <CalendarioEquipo base={base} token={token} fecha={diaCalendario} cambiarFecha={setDiaCalendario} abrir={abrir} />
     </>}
     {(id || programando) && <Button size="sm" variant="ghost" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />}
       onClick={() => id && (registrando || reprogramando || confirmando || accion === 'cancelar') ? abrir(id) : volver()}>{registrando || reprogramando || confirmando || accion === 'cancelar' ? 'Volver al detalle' : 'Volver a visitas'}</Button>}

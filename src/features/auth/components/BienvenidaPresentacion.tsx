@@ -7,8 +7,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowDown, ArrowRight, BookOpen, CalendarDays, ChevronDown, LifeBuoy,
   Mail, Menu, ScanSearch, X,
-} from 'lucide-react'
+} from '@/components/icons'
 import { PRODUCTO } from '@/lib/proyecto'
+import { useLogo } from '@/lib/marca'
 import { Circulos } from './Circulos'
 import { PlanesPortada } from './PlanesPortada'
 
@@ -49,6 +50,7 @@ const contacto = String(import.meta.env.VITE_CONTACTO_EMAIL ?? '').trim()
 const correoValido = /^[^\s@?&#]+@[^\s@?&#]+\.[^\s@?&#]+$/.test(contacto)
 
 export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solicitud-visita' }: Props) {
+  const logo = useLogo()
   const navigate = useNavigate()
   const location = useLocation()
   const retornoPortada = '/' + location.hash
@@ -101,7 +103,7 @@ export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solic
         }}>
         <div className={marco + ' flex min-h-[70px] items-center justify-between gap-2 sm:gap-4'}>
           <Link to="/" aria-label="CuidaRed, inicio" className="inline-flex min-h-12 shrink-0 items-center">
-            <img src="/brand/logo.png" width={517} height={192} alt="" className="h-auto w-[110px] min-[380px]:w-[132px] sm:w-[144px]" />
+            <img src={logo} width={517} height={192} alt="" className="h-auto w-[110px] min-[380px]:w-[132px] sm:w-[144px]" />
           </Link>
           <nav aria-label="Menú principal" className="hidden min-w-0 items-center gap-5 lg:flex xl:gap-7">
             {navegacion.map(({ id, texto }) => <a key={id} href={'#' + id} onClick={(e) => desplazar(e, id)}
@@ -255,7 +257,7 @@ export function BienvenidaPresentacion({ solicitudVisita, rutaConsulta = '/solic
         <div className={marco + ' grid grid-cols-2 gap-x-4 gap-y-6 pt-10 pb-6 sm:grid-cols-3 sm:gap-x-8 lg:grid-cols-[1.3fr_repeat(3,minmax(0,1fr))] lg:pt-12'}>
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Link to="/" className="inline-flex min-h-12 items-center rounded-sm bg-white px-2 py-1" aria-label="CuidaRed, inicio">
-              <img src="/brand/logo.png" width={517} height={192} alt="" loading="lazy" className="h-auto w-[138px]" />
+              <img src={logo} width={517} height={192} alt="" loading="lazy" className="h-auto w-[138px]" />
             </Link>
             <p className="mt-4 max-w-[30ch] text-sm leading-relaxed text-blue-100">Proyecto académico del Instituto Tecnológico de Santo Domingo.</p>
           </div>

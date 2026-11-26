@@ -3,7 +3,7 @@
  * Módulo: gestión (administrador y coordinador).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown } from '@/components/icons'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 

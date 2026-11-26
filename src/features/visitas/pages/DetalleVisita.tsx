@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Ban, Check, CircleUserRound, Minus, Play, UserRoundPen } from 'lucide-react'
+import { Ban, Check, CircleUserRound, Minus, Play, UserRoundPen } from '@/components/icons'
 import { nombreCompleto, useSession } from '@/domain/auth'
 import { cancelarVisita, iniciarVisita } from '@/domain/api'
 import { ASPECTOS_VISITA } from '@/domain/catalogos'

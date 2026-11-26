@@ -5,7 +5,7 @@
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
-import { CalendarDays, ClipboardPlus } from 'lucide-react'
+import { CalendarDays, ClipboardPlus } from '@/components/icons'
 import { useUser } from '@/domain/auth'
 import { todayISO } from '@/domain/dates'
 import { puede } from '@/domain/permisos'

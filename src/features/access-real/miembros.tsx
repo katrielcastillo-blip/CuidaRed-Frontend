@@ -2,10 +2,12 @@
  * miembros.tsx — Lista, invitación y perfil de miembros de la cuenta activa (RF-09, RF-11, CR-162).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge, Button, ButtonLink, ChoicePills, EmptyState, INPUT, SelectField, Sheet, Spinner, TextField, type Tone } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { Headset, Icon } from '@/components/icons'
+import { PantallaSoporte } from './soporte'
 import type { PaginatedResponse } from '../../lib/api-contract'
 import { Aviso } from '../auth/components/Piezas'
 import {
@@ -43,7 +45,7 @@ const ORDENES = {
 
 type Filtros = { rol: RolCuenta | 'todos'; estado: EstadoMembresia | 'todos'; orden: keyof typeof ORDENES }
 type Accion = 'rol' | 'desactivar' | 'reactivar' | 'reenviar'
-type VistaMiembros = 'lista' | 'invitar' | 'detalle'
+type VistaMiembros = 'lista' | 'invitar' | 'detalle' | 'soporte'
 type Errores = Record<string, string | undefined>
 type Icono = 'avanzar' | 'buscar' | 'correo' | 'desplegar' | 'fecha' | 'filtros' | 'info' | 'perfil' | 'persona' | 'persona-inactiva' | 'telefono' | 'volver'
 
@@ -57,15 +59,31 @@ const fechaCorta = (valor: string | null) => valor
   : 'Sin fecha registrada'
 
 function Imagen({ icono, ancho, alto = ancho }: { icono: Icono; ancho: number; alto?: number }) {
-  return <img src={'/figma-miembros/' + icono + '.svg'} alt="" width={ancho} height={alto} className="shrink-0" />
+  const nombres: Record<Icono, string> = { avanzar: 'chevron_right', buscar: 'search', correo: 'mail', desplegar: 'keyboard_arrow_down', fecha: 'calendar_month', filtros: 'tune', info: 'info', perfil: 'account_circle', persona: 'person', 'persona-inactiva': 'person_remove', telefono: 'call', volver: 'arrow_back' }
+  return <Icon name={nombres[icono]} size={Math.min(ancho, alto)} className="shrink-0" />
+}
+
+const MarcoIntegrado = createContext(false)
+
+/** Reutiliza todas las acciones de miembros dentro del marco operativo de la cuenta. */
+export function MiembrosEnPanel(props: Parameters<typeof PantallaMiembros>[0]) {
+  return <MarcoIntegrado.Provider value><PantallaMiembros {...props} /></MarcoIntegrado.Provider>
 }
 
 function MarcoMiembros({ titulo, volver, children }: { titulo: string; volver: () => void; children: ReactNode }) {
   const encabezado = useRef<HTMLHeadingElement>(null)
+  const integrado = useContext(MarcoIntegrado)
 
   useEffect(() => {
     encabezado.current?.focus()
   }, [titulo])
+
+  if (integrado) return <section className="grid min-w-0 gap-5" aria-label={titulo}>
+    <header className="flex items-center gap-3">
+      {titulo !== 'Miembros' && <button type="button" onClick={volver} aria-label="Volver a miembros" className="grid size-12 shrink-0 place-items-center rounded-sm text-navy hover:bg-blue-100"><Imagen icono="volver" ancho={24} /></button>}
+      <h2 ref={encabezado} tabIndex={-1} className="text-xl font-bold text-ink outline-none">{titulo}</h2>
+    </header>{children}
+  </section>
 
   return (
     <div className="min-h-dvh bg-bg text-ink">
@@ -146,7 +164,8 @@ function GestionMiembros({ token, cuenta, usuarioId, rutaVolver }: { token: stri
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const membresiaId = params.get('miembro')
-  const vista: VistaMiembros = params.get('vista') === 'invitar' ? 'invitar' : membresiaId ? 'detalle' : 'lista'
+  const soporte = params.get('vista') === 'soporte' && cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador'
+  const vista: VistaMiembros = params.get('vista') === 'invitar' ? 'invitar' : soporte ? 'soporte' : membresiaId ? 'detalle' : 'lista'
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES)
   const [borrador, setBorrador] = useState<Filtros>(FILTROS_INICIALES)
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
@@ -209,11 +228,13 @@ function GestionMiembros({ token, cuenta, usuarioId, rutaVolver }: { token: stri
   }
 
   if (vista === 'invitar') return <InvitarMiembro token={token} cuenta={cuenta} volver={volver} alGuardar={alGuardar} />
-  if (vista === 'detalle' && membresiaId) return <PerfilMiembro key={membresiaId} token={token} cuenta={cuenta} usuarioId={usuarioId} membresiaId={membresiaId} volver={volver} alGuardar={alGuardar} />
+  if (vista === 'soporte') return <MarcoMiembros titulo="Contactar soporte" volver={volver}><PantallaSoporte token={token} cuenta={cuenta} /></MarcoMiembros>
+  if (vista === 'detalle' && membresiaId) return <PerfilMiembro key={membresiaId} token={token} cuenta={cuenta} usuarioId={usuarioId} membresiaId={membresiaId} volver={volver} alGuardar={alGuardar} solicitarEliminacion={cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador' ? () => setParams({ vista: 'soporte', miembro: membresiaId }) : undefined} />
 
   return (
     <MarcoMiembros titulo="Miembros" volver={() => navigate(rutaVolver)}>
       <div data-testid="pantalla-miembros" className="flex flex-col gap-5">
+        {cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador' && <Button variant="outline" className="justify-self-start self-start" icon={<Headset size={20} aria-hidden />} onClick={() => setParams({ vista: 'soporte' })}>Contactar soporte</Button>}
         <p className="text-sm font-semibold text-muted">{TIPO_TEXTO[cuenta.tipo]} · {cuenta.nombre}</p>
         {aviso && <Aviso tono="info">{aviso}</Aviso>}
         <form role="search" className="relative" onSubmit={(evento) => {
@@ -373,8 +394,8 @@ function InvitarMiembro({ token, cuenta, volver, alGuardar }: { token: string; c
   )
 }
 
-function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuardar }: {
-  token: string; cuenta: CuentaMe; usuarioId: string; membresiaId: string; volver: () => void; alGuardar: (mensaje: string) => void
+function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuardar, solicitarEliminacion }: {
+  token: string; cuenta: CuentaMe; usuarioId: string; membresiaId: string; volver: () => void; alGuardar: (mensaje: string) => void; solicitarEliminacion?: () => void
 }) {
   const [resultado, setResultado] = useState<{ intento: number; miembro?: Miembro; error?: string }>()
   const [intento, setIntento] = useState(0)
@@ -480,6 +501,7 @@ function PerfilMiembro({ token, cuenta, usuarioId, membresiaId, volver, alGuarda
               {pendiente && <Button variant="outline" onClick={() => abrirAccion('reenviar')}>Reenviar invitación</Button>}
               {miembro.estado !== 'inactiva' && <Button variant="danger-soft" onClick={() => abrirAccion('desactivar')}>{pendiente ? 'Cancelar invitación' : 'Desactivar miembro'}</Button>}
               {miembro.estado === 'inactiva' && <Button onClick={() => abrirAccion('reactivar')}>Reactivar miembro</Button>}
+              {miembro.estado === 'inactiva' && solicitarEliminacion && <Button variant="outline" icon={<Headset size={20} aria-hidden />} onClick={solicitarEliminacion}>Solicitar eliminación a soporte</Button>}
             </section>
           )}
           {miembro.es_titular && <Aviso tono="info">Para cambiar el acceso de la persona titular, primero transfiere la titularidad de la cuenta.</Aviso>}

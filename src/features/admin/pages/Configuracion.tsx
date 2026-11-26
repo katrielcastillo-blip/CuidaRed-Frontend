@@ -11,7 +11,7 @@
  */
 import { useId, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, ChevronRight, Minus, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react'
+import { Building2, ChevronRight, Minus, Plus, RotateCcw, SlidersHorizontal } from '@/components/icons'
 import { Button, HelpTip, IconTile, SelectField, Switch, TextField, useToast } from '@/components/ui'
 import { actualizarCuenta, guardarParametros, type DatosCuenta } from '@/domain/api'
 import { useSession, useUser } from '@/domain/auth'

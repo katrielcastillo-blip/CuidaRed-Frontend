@@ -26,7 +26,7 @@ import {
   UserRound,
   WandSparkles,
   WifiOff,
-} from 'lucide-react'
+} from '@/components/icons'
 import { RiesgoBadge } from '@/components/ui'
 import { useEstadoAbreviaturas } from '@/domain/abreviaturas'
 import { ROL_LABEL, useSession } from '@/domain/auth'

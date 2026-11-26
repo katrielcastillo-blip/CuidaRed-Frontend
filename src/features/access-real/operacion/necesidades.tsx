@@ -1,6 +1,6 @@
 /* Registro y consulta de necesidades conectadas · ID05, RF-03/RF-10. © 2026 Equipo CuidaRed – INTEC. */
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, HandHelping, Plus } from 'lucide-react'
+import { ChevronRight, HandHelping, Plus } from '@/components/icons'
 import { Badge, Button, Card, Checkbox, Datum, IconTile, SelectField, TextField, TextareaField, type Tone } from '@/components/ui'
 import { UNIDADES } from '@/domain/catalogos'
 import { fechaHora } from '@/domain/dates'

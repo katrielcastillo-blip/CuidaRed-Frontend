@@ -1,5 +1,5 @@
 /* Observaciones y fotografías del visitante, separadas del informe del equipo. © 2026 Equipo CuidaRed – INTEC. */
-import { FileImage, MessageSquareText } from 'lucide-react'
+import { FileImage, MessageSquareText } from '@/components/icons'
 import { Estado, useDatos } from './controles'
 type Foto = { evidencia_id: string; nombre_archivo: string; url_descarga: string; fecha: string }
 export function AportesVisitante({

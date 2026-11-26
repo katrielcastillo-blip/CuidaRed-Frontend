@@ -22,7 +22,7 @@ import {
   UserRoundX,
   Wifi,
   WifiOff,
-} from 'lucide-react'
+} from '@/components/icons'
 import { Badge, Button, InfoRow, Sheet, useToast } from '@/components/ui'
 import { logout, nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
