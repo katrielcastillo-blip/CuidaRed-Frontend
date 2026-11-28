@@ -6,34 +6,20 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CircleAlert, Info, TriangleAlert, WifiOff, X } from 'lucide-react'
-import { Checkbox } from '@/components/ui'
+import { Aviso as AvisoKit, ButtonLink, Checkbox, RequisitosContrasena, type RequisitoContrasenaDatos, type TipoAviso } from '@/components/ui'
 import { REGLAS_PASSWORD } from '@/domain/seguridad'
-import { cn } from '@/lib/cn'
 
 /* ───────────── Avisos ───────────── */
-type TonoAviso = 'error' | 'info' | 'warning' | 'offline'
+type TonoAviso = 'error' | 'info' | 'warning' | 'offline' | 'exito'
 
-const TONO_AVISO: Record<TonoAviso, { clase: string; Icono: typeof Info }> = {
-  error: { clase: 'border-danger bg-danger-100 text-danger font-semibold', Icono: CircleAlert },
-  info: { clase: 'border-blue bg-blue-100 text-navy', Icono: Info },
-  warning: { clase: 'border-warning bg-warning-100 text-warning-700', Icono: TriangleAlert },
-  offline: { clase: 'border-warning bg-warning-100 text-warning-700 font-semibold', Icono: WifiOff },
-}
+const TIPO_AVISO: Record<TonoAviso, TipoAviso> = { error: 'error', info: 'info', warning: 'advertencia', offline: 'advertencia', exito: 'exito' }
 
-/** Recuadro de aviso con icono (error, información, advertencia o sin conexión). */
+/** Recuadro de aviso con icono (error, información, éxito, advertencia o sin conexión). Usa el `Aviso` del kit (Figma). */
 export function Aviso({ tono = 'info', icono, children, className }: { tono?: TonoAviso; icono?: ReactNode; children: ReactNode; className?: string }) {
-  const { clase, Icono } = TONO_AVISO[tono]
   return (
-    <div
-      className={cn('flex items-start gap-2.5 rounded-sm border px-3.5 py-3 text-sm leading-snug', clase, className)}
-      role={tono === 'error' ? 'alert' : 'status'}
-    >
-      <span className="mt-px flex-none" aria-hidden>
-        {icono ?? <Icono size={18} />}
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
+    <AvisoKit tipo={TIPO_AVISO[tono]} icono={icono ?? (tono === 'offline' ? 'wifi_off' : undefined)} className={className}>
+      {children}
+    </AvisoKit>
   )
 }
 
@@ -50,15 +36,18 @@ export function Lead({ children }: { children: ReactNode }) {
 /** Enlace de texto subrayado con área táctil de 48 px. */
 export const ENLACE = 'inline-flex min-h-12 items-center font-semibold text-[#002a70] underline underline-offset-[3px] hover:text-navy'
 
-/** "¿Ya tienes una cuenta? Iniciar sesión". */
+/** Título de cada paso de un formulario público (Figma: 20/28 semibold). Recibe el foco al cambiar de paso si se le pasa `ref`. */
+export const TITULO_PASO = 'text-seccion font-semibold text-ink outline-none'
+
+/** "¿Ya tienes una cuenta? Iniciar sesión" (Figma: pregunta gris y enlace de texto debajo). */
 export function YaTienesCuenta() {
   return (
-    <p className="text-center text-ink-2">
-      ¿Ya tienes una cuenta?{' '}
-      <Link to="/inicio" className={ENLACE}>
+    <div className="flex flex-col items-center text-center">
+      <p className="text-cuerpo text-muted">¿Ya tienes una cuenta?</p>
+      <ButtonLink to="/inicio" variant="ghost">
         Iniciar sesión
-      </Link>
-    </p>
+      </ButtonLink>
+    </div>
   )
 }
 
@@ -83,37 +72,11 @@ export function CasillaLegal({ checked, onChange, error }: { checked: boolean; o
 }
 
 /**
- * Requisitos de la contraseña con ✓/✗ en vivo (política de contraseñas robustas). Incluye, si se pasa
+ * Requisitos de la contraseña con en vivo (círculo gris pendiente, check verde cumplido) (política de contraseñas robustas). Incluye, si se pasa
  * `confirmar`, la comprobación de que ambas contraseñas coinciden.
  */
 export function RequisitosPassword({ password, confirmar, id }: { password: string; confirmar?: string; id?: string }) {
-  const reglas: Array<{ id: string; texto: string; ok: boolean }> = REGLAS_PASSWORD.map((r) => ({ id: r.id, texto: r.texto, ok: r.ok(password) }))
-  if (confirmar !== undefined) reglas.push({ id: 'coinciden', texto: 'Ambas contraseñas coinciden', ok: !!confirmar && confirmar === password })
-  const cumplidas = reglas.filter((r) => r.ok).length
-  return (
-    <div id={id} className="rounded-sm border border-line-soft bg-surface px-3.5 py-3">
-      <p className="mb-1.5 text-sm font-semibold text-ink">
-        Tu contraseña debe tener:
-        <span className="sr-only" aria-live="polite">
-          {` ${cumplidas} de ${reglas.length} requisitos cumplidos.`}
-        </span>
-      </p>
-      <ul className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-        {reglas.map((r) => (
-          <li key={r.id} className={cn('flex items-center gap-2 text-sm', r.ok ? 'text-success-700' : 'text-ink-2')}>
-            <span
-              className={cn('grid size-5 flex-none place-items-center rounded-full', r.ok ? 'bg-success-700 text-white' : 'bg-surface-2 text-muted')}
-              aria-hidden
-            >
-              {r.ok ? <Check size={13} strokeWidth={3} /> : <X size={13} strokeWidth={3} />}
-            </span>
-            <span>
-              {r.texto}
-              <span className="sr-only">{r.ok ? ' (cumplido)' : ' (pendiente)'}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+  const reglas: RequisitoContrasenaDatos[] = REGLAS_PASSWORD.map((r) => ({ id: r.id, texto: r.texto, cumplido: r.ok(password) }))
+  if (confirmar !== undefined) reglas.push({ id: 'coinciden', texto: 'Ambas contraseñas coinciden', cumplido: !!confirmar && confirmar === password })
+  return <RequisitosContrasena id={id} requisitos={reglas} />
 }

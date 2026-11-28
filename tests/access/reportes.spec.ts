@@ -45,10 +45,24 @@ for (const caso of ROLES) {
   test(`permisos: el ${caso.nombre} ${caso.resumen ? 've' : 'no ve'} Resumen y Reportes`, async ({ page }) => {
     const cuenta = cuentaDe({ tipo: caso.tipo, rol: caso.rol, permisos: caso.permisos, funcionalidades: caso.reportes ? PLAN_METRICAS : [] })
     const { de } = await abrir(page, cuenta, 'cuenta')
-    const accesos = page.getByRole('region', { name: 'Accesos rápidos' })
+    // Administrador y Coordinador (Figma «Inicio v3») no tienen accesos rápidos: sus módulos están en «Más» (móvil) o en el
+    // menú lateral (pantallas anchas). Los demás roles los conservan en el Inicio.
+    const gestion = caso.rol === 'administrador' || caso.rol === 'coordinador'
+    const navegacion = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+    let accesos = page.getByRole('region', { name: 'Accesos rápidos' })
+    if (gestion) {
+      await expect(accesos).toHaveCount(0)
+      await expect(navegacion.first()).toBeVisible()
+      const mas = navegacion.getByRole('button', { name: 'Más' })
+      const enMovil = await mas.isVisible()
+      if (enMovil) await mas.click()
+      accesos = enMovil ? page.getByRole('dialog', { name: 'Más opciones' }) : navegacion
+    }
     await expect(accesos).toBeVisible()
-    await expect(accesos.getByRole('link', { name: /Resumen de casos/ })).toHaveCount(caso.resumen ? 1 : 0)
-    await expect(accesos.getByRole('link', { name: /Reportes y estadísticas/ })).toHaveCount(caso.reportes ? 1 : 0)
+    const resumen = gestion ? { name: 'Resumen', exact: true } : { name: /Resumen de casos/ }
+    const reportes = gestion ? { name: 'Reportes', exact: true } : { name: /Reportes y estadísticas/ }
+    await expect(accesos.getByRole('link', resumen)).toHaveCount(caso.resumen ? 1 : 0)
+    await expect(accesos.getByRole('link', reportes)).toHaveCount(caso.reportes ? 1 : 0)
 
     // Quien no tiene el permiso no llega ni por la dirección: no se consulta nada.
     for (const seccion of ['resumen', 'reportes'] as const) {
@@ -505,7 +519,8 @@ test('los filtros incluyen las opciones de un caso fuera de los primeros 100', a
   await expect(page.getByTestId('total-casos')).toContainText('101 casos activos')
   await page.getByLabel('Sector', { exact: true }).selectOption('Sector 101')
   await expect(page.getByTestId('total-casos')).toContainText('1 caso coincide')
-  expect(de(/^\/resumen-casos$/).every((l) => l.consulta.get('limit') === '20')).toBe(true)
+  // El Inicio del coordinador consulta aparte los 3 adultos con más días sin visita (sort=ultima_visita, limit=3): no es el listado.
+  expect(de(/^\/resumen-casos$/).filter((l) => l.consulta.get('sort') !== 'ultima_visita').every((l) => l.consulta.get('limit') === '20')).toBe(true)
   await page.goto(`${ruta}/reportes`)
   await page.getByLabel('Sector', { exact: true }).selectOption('Sector 101')
   await expect.poll(() => de(/^\/reportes\/adultos$/).at(-1)?.consulta.get('filter[zona]')).toBe('Sector 101')
@@ -547,9 +562,9 @@ test('resumen: el nombre del caso abre su expediente y volver limpia el enlace',
   await page.getByRole('link', { name: 'Juana Pérez Díaz' }).click()
   await expect(page).toHaveURL(`${ruta}/envejecientes?adulto=${juanaId}`)
   await expect(page.getByRole('heading', { level: 2, name: 'Juana Pérez Díaz' })).toBeVisible()
-  await page.getByRole('button', { name: 'Volver a Envejecientes' }).click()
+  await page.getByRole('link', { name: 'Volver', exact: true }).click()
   await expect(page).toHaveURL(`${ruta}/envejecientes`)
-  await expect(page.getByRole('heading', { level: 2, name: 'Envejecientes' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Adultos mayores' })).toBeVisible()
 })
 
 test('resumen: un identificador de adulto que no es UUID en el enlace se ignora', async ({ page }) => {
@@ -557,5 +572,5 @@ test('resumen: un identificador de adulto que no es UUID en el enlace se ignora'
   await montarReportes(page, cuentaDe())
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/envejecientes?adulto=no-es-un-uuid`)
-  await expect(page.getByRole('heading', { level: 2, name: 'Envejecientes' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Adultos mayores' })).toBeVisible()
 })

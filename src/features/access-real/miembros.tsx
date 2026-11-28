@@ -104,7 +104,7 @@ function SelectorRapido<T extends string>({ label, prefijo, opciones, value, onC
 }) {
   return (
     <span className="relative inline-flex min-w-0 items-center">
-      <select aria-label={label} className="min-h-12 max-w-full appearance-none rounded-pill border border-line bg-surface px-3 pe-8 text-sm font-semibold text-ink" value={value} onChange={(e) => onChange(e.target.value as T)}>
+      <select aria-label={label} className="min-h-12 max-w-full appearance-none rounded-pill border border-line bg-surface px-3 pe-8 text-base font-semibold lg:text-sm text-ink" value={value} onChange={(e) => onChange(e.target.value as T)}>
         {opciones.map((opcion) => <option key={opcion.value} value={opcion.value}>{opcion.value === 'todos' ? prefijo + ': Todos' : opcion.label}</option>)}
       </select>
       <span className="pointer-events-none absolute right-2"><Imagen icono="desplegar" ancho={20} alto={21} /></span>

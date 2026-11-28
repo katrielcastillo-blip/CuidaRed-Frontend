@@ -29,6 +29,7 @@ test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee c
     const path = new URL(r.request().url()).pathname
     if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
     if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([]) })
     return r.fallback()
   })
   const tarjetasUniformes = async (enlaces: Locator, cantidad: number) => {
@@ -46,18 +47,23 @@ test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee c
   const cabecera = page.getByRole('banner')
   const navegacion = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
   await expect(cabecera.getByRole('link', { name: 'Volver' })).toHaveCount(0)
-  await tarjetasUniformes(page.getByRole('region', { name: 'Accesos rápidos' }).getByRole('link'), 5)
-  const configurar = page.getByRole('link', { name: 'Configurar organización', exact: true })
-  await expect.poll(async () => {
-    const texto = await configurar.getByText('Configurar organización', { exact: true }).boundingBox()
-    const flecha = await configurar.locator('svg').boundingBox()
-    return !!texto && !!flecha && flecha.x >= texto.x + texto.width && Math.abs(flecha.y + flecha.height / 2 - texto.y - texto.height / 2) < 2
-  }).toBe(true)
+  // Figma «Inicio v3»: el Inicio del Administrador termina en el panel; las tarjetas del resumen miden lo mismo y ya no hay
+  // accesos rápidos, suscripción ni datos de la cuenta (esos viven en Más, en el menú lateral y en Configuración).
+  await tarjetasUniformes(page.getByRole('region', { name: 'Resumen de hoy' }).getByRole('link'), 2)
+  await expect(page.getByRole('region', { name: 'Accesos rápidos' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Configurar organización' })).toHaveCount(0)
 
   if (isMobile) {
-    await navegacion.getByRole('link', { name: 'Más' }).click()
-    await expect(page.getByRole('heading', { name: 'Más opciones' })).toBeVisible()
-    await tarjetasUniformes(page.getByRole('main').getByRole('link'), 6)
+    // Rediseño: «Más» es un botón que abre una hoja inferior con los módulos que no son pestañas.
+    const mas = navegacion.getByRole('button', { name: 'Más' })
+    await mas.click()
+    const hoja = page.getByRole('dialog', { name: 'Más opciones' })
+    await expect(hoja).toBeVisible()
+    await tarjetasUniformes(hoja.getByRole('link'), 4)
+    await page.keyboard.press('Escape')
+    await expect(hoja).toHaveCount(0)
+    await expect(mas).toBeFocused()
   } else {
     const marca = navegacion.getByRole('link', { name: 'CuidaRed, ir al inicio' })
     await expect.poll(() => marca.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0 && img.currentSrc.endsWith('/brand/logo.png'))).toBe(true)
@@ -66,26 +72,21 @@ test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee c
     await expect(page).toHaveURL(`${ruta}/cuenta`)
   }
   await navegacion.getByRole('link', { name: 'Adultos', exact: true }).click()
-  await expect(cabecera.getByRole('link', { name: 'Volver' })).toHaveAttribute('href', `${ruta}/cuenta`)
-  const estado = page.getByRole('combobox', { name: 'Estado del expediente' })
-  await expect(estado.locator('option:checked')).toHaveText('Todos los estados')
-  if (isMobile) {
-    await expect.poll(() => estado.evaluate((select: HTMLSelectElement) => {
-      const estilo = getComputedStyle(select)
-      const texto = document.createElement('canvas').getContext('2d')!
-      texto.font = `${estilo.fontSize} ${estilo.fontFamily}`
-      const disponible = select.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight)
-      return texto.measureText(select.selectedOptions[0].text).width < disponible
-    })).toBe(true)
-    await page.setViewportSize({ width: 360, height: 640 })
-  }
+  // Rediseño: Adultos es una pestaña (pantalla principal): barra superior con Mi cuenta y sin «Volver».
+  await expect(cabecera.getByRole('link', { name: 'Volver' })).toHaveCount(0)
+  // Rediseño: el estado del expediente se filtra con fichas (Todos · Activos · Inactivos · Fallecidos) y todas caben en pantalla.
+  const estado = page.getByRole('group', { name: 'Estado del expediente' })
+  await expect(estado.getByRole('button', { name: 'Todos', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => estado.evaluate((grupo) => [...grupo.querySelectorAll('button')]
+    .every((ficha) => ficha.getBoundingClientRect().left >= 0 && ficha.getBoundingClientRect().right <= document.documentElement.clientWidth))).toBe(true)
+  if (isMobile) await page.setViewportSize({ width: 360, height: 640 })
   await cabecera.getByRole('link', { name: 'Mi cuenta', exact: true }).click()
   await expect(page.getByText('Correo electrónico', { exact: true })).toBeVisible()
   await expect(page.getByText(sim.correo, { exact: true })).toBeVisible()
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
 
-test('ID03: registra un expediente con consentimiento y muestra el selector de asignaciones completo', async ({ page, isMobile }) => {
+test('ID03: registra un expediente con consentimiento y muestra el selector de asignaciones completo', async ({ page }) => {
   const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', permisos: ['adultos:ver', 'adultos:crear', 'adultos:asignar'] })
   const sim = await simular(page, { cuentas: [cuenta] })
   const candidata = { usuario_id: sim.usuarioId, nombre: 'Mariana Reyes', rol: 'cuidador' }
@@ -106,7 +107,7 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
   })
   await iniciarSesion(page, sim.correo)
   await expect(page).toHaveURL(`${ruta}/cuenta`)
-  await expect(page.getByRole('heading', { name: 'Accesos rápidos' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
   await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
   await page.getByRole('navigation', { name: 'Módulos de la cuenta' }).getByRole('link', { name: 'Adultos', exact: true }).click()
   await page.getByRole('button', { name: 'Registrar adulto mayor' }).click()
@@ -114,34 +115,32 @@ test('ID03: registra un expediente con consentimiento y muestra el selector de a
   await page.getByLabel(/^Apellidos/).fill('Prueba')
   await page.getByLabel(/^Cédula del adulto/).fill('00112345679')
   await page.getByLabel(/^Fecha de nacimiento/).fill('1945-05-06')
-  await page.getByLabel(/^Sexo/).selectOption('F')
+  await page.getByRole('radio', { name: 'Femenino' }).check()
   await page.getByRole('button', { name: 'Continuar' }).click()
   await page.getByLabel(/^Provincia/).selectOption('01')
   await page.getByLabel(/^Municipio/).selectOption('0101')
   await page.getByLabel(/^Sector o zona/).fill('Centro')
-  await page.getByLabel(/^Autonomía/).selectOption('parcial')
+  await page.getByRole('radio', { name: 'Necesita ayuda parcial' }).check()
   await page.getByRole('button', { name: 'Continuar' }).click()
   await page.getByLabel(/^Nombres del contacto/).fill('Elena')
   await page.getByLabel(/^Apellidos del contacto/).fill('Prueba')
   await page.getByRole('combobox', { name: /^Parentesco/ }).selectOption('Hermano/a')
   await page.getByLabel(/^Teléfono del contacto/).fill('8095550100')
-  await page.getByRole('combobox', { name: /^Quién otorgó el consentimiento/ }).selectOption('adulto')
+  await page.getByRole('radio', { name: 'El adulto mayor' }).check()
   await page.getByLabel(/Confirmo que se otorgó el consentimiento/).check()
   await page.getByRole('button', { name: 'Registrar adulto mayor', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Juana Prueba' })).toBeVisible()
   expect(alta).toMatchObject({ cedula: '00112345679', municipio_cod: '0101', consentimiento: { otorgado: true, otorgado_por: 'adulto' },
     contactos: [{ nombres: 'Elena', es_principal: true }] })
 
-  if (isMobile) await page.setViewportSize({ width: 508, height: 618 })
-  await page.getByRole('button', { name: 'Asignaciones', exact: true }).click()
-  await page.getByRole('button', { name: 'Asignar cuidador o voluntario', exact: true }).click()
-  const persona = page.getByRole('combobox', { name: /^Cuidador o voluntario/ })
-  await expect(persona).toHaveValue('')
-  await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
-  await expect.poll(() => persona.evaluate((select: HTMLSelectElement) => {
-    const campo = select.closest('fieldset')!
-    return Math.abs(campo.getBoundingClientRect().width - select.getBoundingClientRect().width) < 1
-  })).toBe(true)
+  // Rediseño: «Cuidador» vive en la hoja «Más acciones» y abre una pantalla con las personas elegibles como opciones (radio).
+  await page.getByRole('button', { name: 'Más acciones' }).click()
+  await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Cuidador', exact: true }).click()
+  const persona = page.getByRole('radio', { name: /Mariana Reyes/ })
+  await expect(persona).not.toBeChecked()
+  await persona.check()
+  await expect(persona).toBeChecked()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
 
 for (const { tipo, rol } of [
@@ -182,23 +181,26 @@ for (const { tipo, rol } of [
     await iniciarSesion(page, sim.correo)
     await page.goto(`${ruta}/envejecientes`)
     await page.getByRole('button', { name: /Juana Prueba/ }).click()
-    const acceso = page.getByRole('region', { name: 'Acciones rápidas' }).getByRole('button', { name: 'Asignar cuidador', exact: true })
-    await acceso.click()
-    const seguimiento = page.getByRole('region', { name: 'Seguimiento del expediente' })
-    await expect(seguimiento.getByRole('button', { name: 'Asignaciones', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    const abrirAsignacion = async () => {
+      await page.getByRole('button', { name: 'Más acciones' }).click()
+      await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Cuidador', exact: true }).click()
+    }
+    await abrirAsignacion()
+    const seguimiento = page.getByRole('region', { name: 'Asignaciones' })
     await expect(seguimiento.getByText(/tener un perfil vigente/)).toBeVisible()
     await expect(seguimiento.getByRole('link', { name: 'Ir a Miembros' }))
       .toHaveCount(cuenta.permisos.includes('usuarios:gestionar') ? 1 : 0)
+    // «Cancelar» vuelve al perfil.
     await seguimiento.getByRole('button', { name: 'Cancelar' }).click()
     disponible = true
 
-    await acceso.click()
-    const persona = seguimiento.getByRole('combobox', { name: /^Cuidador/ })
-    await expect(persona.getByRole('option', { name: /Voluntario/ })).toHaveCount(tipo === 'organizacion' ? 1 : 0)
-    await persona.selectOption({ label: 'Mariana Reyes · Cuidador' })
-    await seguimiento.getByRole('button', { name: 'Asignar persona' }).click()
+    await abrirAsignacion()
+    await expect(page.getByRole('radio', { name: /Voluntario/ })).toHaveCount(tipo === 'organizacion' ? 1 : 0)
+    await page.getByRole('radio', { name: /Mariana Reyes/ }).check()
+    await page.getByRole('button', { name: 'Asignar persona' }).click()
     await expect.poll(() => asignacion).toEqual({ usuario_id: candidata.usuario_id, tipo: 'cuidador_asignado' })
-    await expect(seguimiento.getByText('Mariana Reyes', { exact: true })).toBeVisible()
+    // Al asignar se vuelve al perfil, que muestra al cuidador en «Cuidado».
+    await expect(page.getByText('Mariana Reyes', { exact: true })).toBeVisible()
   })
 }
 
@@ -208,6 +210,7 @@ test('Visitas y Solicitudes están reservadas a Organización, incluso con permi
   const sim = await simular(page, { cuentas: [cuenta] })
   await page.route(`${backend}/contexto`, (r) => r.fulfill({ json: { data: cuenta } }))
   await iniciarSesion(page, sim.correo)
+  // Sin módulos de panel (Visitas y Solicitudes son de Organización) el Inicio conserva los accesos rápidos.
   const inicio = page.getByRole('region', { name: 'Accesos rápidos' })
   await expect(inicio.getByRole('link', { name: /Agenda/ })).toBeVisible()
   await expect(inicio.getByRole('link', { name: /visitas|solicitudes/i })).toHaveCount(0)
@@ -441,7 +444,7 @@ test(`ID04: administración agenda una solicitud ${institucional ? 'instituciona
   await page.goto(`${ruta}/visitas`)
   await page.getByRole('button', { name: 'Solicitudes externas' }).click()
   await page.getByRole('button', { name: 'Revisar y autorizar' }).click()
-  await expect(page.getByText(/complétalo en Cuenta → Perfiles globales de cuidadores/)).toBeVisible()
+  await expect(page.getByText(/complétalo en Organización \(Configuración en una cuenta familiar\) → Perfiles globales de cuidadores/)).toBeVisible()
   await expect(page.getByRole('option', { name: sinPerfil.nombre, exact: true })).toHaveCount(0)
   if (institucional) {
     await expect(page.getByRole('combobox', { name: /Persona mayor de la organización/ })).toHaveCount(0)
@@ -518,6 +521,10 @@ test('RF-19: configura la organización con catálogos dependientes e interrupto
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/configuracion`)
   await expect(page.getByRole('heading', { level: 1, name: 'Configurar organización' })).toBeVisible()
+  // Figma «Configurar organización»: datos en lista y «Editar datos» abre el formulario de contacto.
+  await expect(page.getByRole('heading', { name: 'Datos de la organización' })).toBeVisible()
+  await expect(page.getByRole('form', { name: 'Datos de contacto institucional' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Editar datos' }).click()
 
   const contacto = page.getByRole('form', { name: 'Datos de contacto institucional' })
   await contacto.getByRole('combobox', { name: /^Categoría/ }).selectOption('4')
@@ -557,6 +564,7 @@ test('la transferencia de titularidad solo está en Configuración y desaparece 
     const { pathname } = new URL(req.request().url())
     if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: { ...cuenta, es_titular: esTitular } } })
     if (pathname.endsWith('/configuracion')) return req.fulfill({ json: { data: [] } })
+    if (pathname.endsWith('/envejecientes')) return req.fulfill({ json: pagina([adulto]) })
     if (pathname.endsWith('/candidatos/titularidad')) return req.fulfill({ json: pagina([{ membresia_id: '24', nombre: 'Gestora sintética' }]) })
     if (pathname.endsWith('/titularidad') && req.request().method() === 'POST') {
       transferida = req.request().postDataJSON()
@@ -568,9 +576,16 @@ test('la transferencia de titularidad solo está en Configuración y desaparece 
 
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/cuenta`)
-  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toBeVisible()
+  // Inicio del Coordinador de una Familia: solo el panel; ni datos de la cuenta ni titularidad.
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Titularidad' })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Configurar cuenta', exact: true }).click()
+  // La transferencia solo está en Configuración (Más → Configuración, o el menú lateral en pantallas anchas).
+  const navegacionTitular = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+  const masTitular = navegacionTitular.getByRole('button', { name: 'Más' })
+  if (await masTitular.count()) await masTitular.click()
+  await page.getByRole('link', { name: 'Configuración', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toBeVisible()
   const titularidad = page.getByRole('region', { name: 'Titularidad' })
   await titularidad.getByRole('button', { name: 'Transferir titularidad' }).click()
   await titularidad.getByRole('combobox', { name: /^Nuevo titular/ }).selectOption('24')
@@ -579,6 +594,60 @@ test('la transferencia de titularidad solo está en Configuración y desaparece 
   await expect.poll(() => transferida).toEqual({ membresia_id: '24' })
   await expect(titularidad).toHaveCount(0)
   await expect(page).toHaveURL(`${ruta}/configuracion`)
+})
+
+test('el Coordinador sin permiso de configuración encuentra los datos de la cuenta, los perfiles de cuidador y el plan fuera de Inicio', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética', rol: 'coordinador',
+    permisos: ['adultos:ver', 'cuidadores:gestionar', 'cuenta:suscripcion'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  await page.route(backend, (r) => r.fulfill({ json: { data: { cuenta: {
+    cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+    categoria: { categoria_cuenta_id: 3, nombre: 'Iglesia o parroquia' },
+    municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+    fecha_creacion: '2026-11-07T12:00:00Z',
+  }, contexto: cuenta } } }))
+  await page.route(`${backend}/**`, (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes') || path.endsWith('/candidatos/cuidado')) return r.fulfill({ json: pagina([adulto]) })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  // Inicio: solo el panel (Figma «Inicio v3»).
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
+  for (const nombre of ['Datos de la cuenta', 'Perfiles globales de cuidadores', 'Suscripción']) await expect(page.getByRole('heading', { name: nombre })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Ver suscripción y pagos' })).toHaveCount(0)
+
+  // Sin «organizacion:configurar» no hay Configuración, pero sí «Datos de cuenta» y «Plan y pago» en Más (móvil) o el menú lateral.
+  const navegacion = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+  const entradas = async () => {
+    await expect(navegacion.first()).toBeVisible()
+    const mas = navegacion.getByRole('button', { name: 'Más' })
+    const enMovil = await mas.isVisible()
+    if (!enMovil) return navegacion
+    await mas.click()
+    return page.getByRole('dialog', { name: 'Más opciones' })
+  }
+  let lugar = await entradas()
+  await expect(lugar.getByRole('link', { name: /^(Configuración|Organización)$/ })).toHaveCount(0)
+  await expect(lugar.getByRole('link', { name: 'Plan y pago', exact: true })).toBeVisible()
+  await lugar.getByRole('link', { name: 'Datos de cuenta', exact: true }).click()
+  await expect(page).toHaveURL(`${ruta}/datos-cuenta`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByText('Iglesia o parroquia')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Perfiles globales de cuidadores' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Configurar organización' })).toHaveCount(0)
+
+  // La suscripción se abre desde la misma entrada.
+  await page.goto(`${ruta}/cuenta`)
+  lugar = await entradas()
+  await lugar.getByRole('link', { name: 'Plan y pago', exact: true }).click()
+  await expect(page).toHaveURL(`${ruta}/suscripcion`)
+
+  // Quien no tiene el permiso no ve la entrada ni abre la pantalla.
+  await page.goto(`${ruta}/configuracion`)
+  await expect(page.getByText('No tienes acceso a este módulo de la cuenta.')).toBeVisible()
 })
 
 test('RF-16: programa una serie semanal con un cuidador asignado y días ISO', async ({ page }) => {

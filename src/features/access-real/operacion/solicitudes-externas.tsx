@@ -58,9 +58,9 @@ function Autorizar({ base, token, item, volver, listo }: {
       })
       listo(visita.visita_id)
     }}>
-    <p className="text-sm text-ink-2">{item.visitante.nombres} {item.visitante.apellidos}{institucional ? <> representa a <strong>{item.entidad_visitante}</strong>.</> : <> solicita visitar a <strong>{item.persona_a_visitar}</strong>.</>}</p>
-    <p className="text-sm text-ink-2">{item.cantidad_visitantes ?? 1} visitante(s). {item.aporte_previsto && <>Aporte previsto · {item.aporte_previsto}</>}</p>
-    {institucional && <p className="text-sm text-ink-2">Esta visita se agenda para la organización. El responsable asignado registrará la actividad.</p>}
+    <p className="text-sm text-ink-2 wrap-anywhere">{item.visitante.nombres} {item.visitante.apellidos}{institucional ? <> representa a <strong>{item.entidad_visitante}</strong>.</> : <> solicita visitar a <strong>{item.persona_a_visitar}</strong>.</>}</p>
+    <p className="text-sm text-ink-2 wrap-anywhere">{item.cantidad_visitantes ?? 1} visitante(s). {item.aporte_previsto && <>Aporte previsto · {item.aporte_previsto}</>}</p>
+    {institucional && <p className="text-sm text-ink-2 wrap-anywhere">Esta visita se agenda para la organización. El responsable asignado registrará la actividad.</p>}
     {!institucional && <><SelectField label="Persona mayor de la organización" placeholder="Selecciona una persona" value={adulto?.envejeciente_id ?? ''}
       options={[...new Map([...(adultos.datos?.data ?? []), ...(adulto ? [adulto] : [])].map((row) => [row.envejeciente_id, row])).values()]
         .map((row) => ({ value: row.envejeciente_id, label: row.nombres + ' ' + row.apellidos }))}
@@ -72,7 +72,7 @@ function Autorizar({ base, token, item, volver, listo }: {
         .map((row) => ({ value: row.usuario_id, label: row.nombre }))}
       onChange={(e) => setResponsable(disponibles.find((row) => row.usuario_id === e.target.value))} required />
     <Estado consulta={candidatos} vacio={candidatos.datos && !disponibles.length ? 'No hay responsables disponibles en esta página.' : undefined} />
-    {faltanPerfiles && <p className="text-sm text-ink-2">{avisoPerfilCuidador}</p>}
+    {faltanPerfiles && <p className="text-sm text-ink-2 wrap-anywhere">{avisoPerfilCuidador}</p>}
     {candidatos.datos && <Paginador pagina={candidatos.pagina} total={candidatos.datos.meta.totalPages} cambiar={candidatos.cambiar} />}
     <VentanaVisita base={base} token={token} inicial={{ fecha: item.fecha_propuesta, inicio: item.hora_propuesta }} />
   </Formulario>
@@ -88,7 +88,7 @@ export function SolicitudesExternas({ base, token, volver, abrirVisita }: {
   const enLinea = useConexionReal()
   const ruta = base + '/solicitudes-visita'
   const listado = usePagina<Solicitud>(ruta, token, revision, { filters: { estado: filtro } })
-  return <section aria-labelledby="solicitudes-externas" className="grid gap-4">
+  return <section aria-labelledby="solicitudes-externas" className="grid grid-cols-1 gap-4">
     <Button variant="ghost" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />} onClick={volver}>Volver a visitas</Button>
     <h2 id="solicitudes-externas" className="flex items-center gap-2 text-xl font-bold text-navy"><Inbox size={22} aria-hidden /> Solicitudes externas</h2>
     {aviso && <p role="status" className="rounded-sm bg-success-100 p-3 text-success-700">{aviso}</p>}
@@ -107,15 +107,15 @@ export function SolicitudesExternas({ base, token, volver, abrirVisita }: {
         <SelectField label="Estado de la solicitud" options={estados} value={filtro} onChange={(event) => { setFiltro(event.target.value); setAviso('') }} />
       </div>
       <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'No hay solicitudes en este estado.' : undefined} />
-      {listado.datos?.data.map((item) => <Card key={item.solicitud_visita_id} className="grid gap-3">
-        <h3 className="text-lg font-semibold">{item.visitante.nombres} {item.visitante.apellidos}</h3>
-        <p className="text-sm text-ink-2">{item.tipo_visita === 'institucional' ? `Visita de ${item.entidad_visitante}` : `Quiere visitar a ${item.persona_a_visitar}`} · {fechaCorta(item.fecha_propuesta)} · {hhmmA12(item.hora_propuesta)}</p>
-        <p className="text-sm text-ink-2">{item.cantidad_visitantes ?? 1} visitante(s)</p>
-        {item.aporte_previsto && <p className="text-sm text-ink-2"><strong>Aporte previsto</strong> · {item.aporte_previsto}</p>}
-        {(item.visitante.telefono || item.visitante.correo) && <p className="text-sm text-ink-2">Contacto · {item.visitante.telefono}{item.visitante.correo && ` · ${item.visitante.correo}`}</p>}
-        <p className="text-sm text-ink-2">{item.motivo}</p>
-        {item.motivo_rechazo && <p className="text-sm text-ink-2">{item.motivo_rechazo}</p>}
-        {item.observacion_visitante && <div><Badge tone="success">Observación del visitante</Badge><p className="mt-1 whitespace-pre-line">{item.observacion_visitante}</p></div>}
+      {listado.datos?.data.map((item) => <Card key={item.solicitud_visita_id} className="grid grid-cols-1 gap-3">
+        <h3 className="text-lg font-semibold wrap-anywhere">{item.visitante.nombres} {item.visitante.apellidos}</h3>
+        <p className="text-sm text-ink-2 wrap-anywhere">{item.tipo_visita === 'institucional' ? `Visita de ${item.entidad_visitante}` : `Quiere visitar a ${item.persona_a_visitar}`} · {fechaCorta(item.fecha_propuesta)} · {hhmmA12(item.hora_propuesta)}</p>
+        <p className="text-sm text-ink-2 wrap-anywhere">{item.cantidad_visitantes ?? 1} visitante(s)</p>
+        {item.aporte_previsto && <p className="text-sm text-ink-2 wrap-anywhere"><strong>Aporte previsto</strong> · {item.aporte_previsto}</p>}
+        {(item.visitante.telefono || item.visitante.correo) && <p className="text-sm text-ink-2 wrap-anywhere">Contacto · {item.visitante.telefono}{item.visitante.correo && ` · ${item.visitante.correo}`}</p>}
+        <p className="text-sm text-ink-2 wrap-anywhere">{item.motivo}</p>
+        {item.motivo_rechazo && <p className="text-sm text-ink-2 wrap-anywhere">{item.motivo_rechazo}</p>}
+        {item.observacion_visitante && <div><Badge tone="success">Observación del visitante</Badge><p className="mt-1 whitespace-pre-line wrap-anywhere">{item.observacion_visitante}</p></div>}
         <div className="flex flex-wrap gap-2">
           {item.estado === 'pendiente' && <>
             <Button disabled={!enLinea} onClick={() => setSeleccion({ item, accion: 'autorizar' })}>Revisar y autorizar</Button>

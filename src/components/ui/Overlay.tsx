@@ -5,9 +5,10 @@
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Smile, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { EVENTO_TOAST, type ToastTone } from '@/domain/avisos'
+import { Icono, type NombreIcono } from './Icono'
 
 /* ───────────── Modal / Sheet ─────────────
  * Sheet: panel inferior en móvil, diálogo centrado en tablet/escritorio. Cierra con Esc y clic en el fondo.
@@ -54,16 +55,16 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-h-[88vh] flex flex-col bg-bg rounded-t-lg shadow-2 pb-safe outline-none animate-up md:max-w-[520px] md:rounded-lg md:animate-pop"
+        className="w-full max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] flex flex-col bg-bg rounded-t-lg shadow-2 pb-safe outline-none animate-up md:max-w-[520px] md:rounded-lg md:animate-pop"
       >
-        <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <button type="button" className="size-12 grid place-items-center rounded-full text-ink hover:bg-surface-2" onClick={onClose} aria-label="Cerrar">
+        <div className="flex flex-none items-center justify-between gap-3 px-5 pt-5 pb-2">
+          <h2 className="min-w-0 break-words text-xl font-bold">{title}</h2>
+          <button type="button" className="size-12 flex-none grid place-items-center rounded-full text-ink hover:bg-surface-2" onClick={onClose} aria-label="Cerrar">
             <X size={22} />
           </button>
         </div>
-        <div className="flex flex-col gap-4 px-5 pt-2 pb-5 overflow-y-auto">{children}</div>
-        {footer && <div className="flex gap-3 px-5 pt-4 pb-5 border-t border-surface-2 [&>*]:flex-1">{footer}</div>}
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-2 pb-5">{children}</div>
+        {footer && <div className="flex flex-none gap-3 border-t border-surface-2 px-5 pt-4 pb-5 [&>*]:min-w-0 [&>*]:flex-1">{footer}</div>}
       </div>
     </div>,
     document.body,
@@ -71,6 +72,7 @@ export function Sheet({
 }
 
 /* ───────────── SuccessOverlay ─────────────
+ * Confirmación a pantalla completa (la versión breve del patrón «guardado con éxito» es el aviso de `useToast`).
  * Pantallas "Visita registrada correctamente!", "Necesidad registrada correctamente!", "Miembro eliminado…":
  * tarjeta blanca con carita sonriente sobre degradado azul. Se renderiza a pantalla completa por encima del contenido.
  */
@@ -109,7 +111,7 @@ export function SuccessOverlay({
       onClick={onDone}
     >
       <div className="w-[min(100%,320px)] flex flex-col items-center gap-4 px-6 py-8 bg-white rounded-md text-navy text-center shadow-2 animate-pop">
-        {icon ?? <Smile size={56} strokeWidth={1.6} aria-hidden />}
+        {icon ?? <Icono nombre="sentiment_satisfied" tamano={56} />}
         <p className="text-xl font-bold">{message}</p>
         {detail && <div className="text-sm text-ink-2">{detail}</div>}
       </div>
@@ -118,22 +120,32 @@ export function SuccessOverlay({
   )
 }
 
-/* ───────────── Toast ───────────── */
-type Toast = { id: number; text: string; tone: ToastTone }
-const ToastCtx = createContext<(text: string, tone?: ToastTone) => void>(() => {})
+/* ───────────── Toast ─────────────
+ * Patrón «guardado con éxito» (Figma 12): barra azul marino con ícono, mensaje y, si aplica, una acción («Deshacer»).
+ * El ícono acompaña al color: el tipo de aviso nunca depende solo del tono.
+ */
+export type AccionToast = { etiqueta: string; alHacer: () => void }
+type Toast = { id: number; text: string; tone: ToastTone; accion?: AccionToast }
+type Empujar = (text: string, tone?: ToastTone, accion?: AccionToast) => void
+const ToastCtx = createContext<Empujar>(() => {})
 
-/** const toast = useToast(); toast('Guardado') */
+/** const toast = useToast(); toast('Cambios guardados.') · toast('Cambios guardados.', 'ok', { etiqueta: 'Deshacer', alHacer }) */
 export const useToast = () => useContext(ToastCtx)
 
-const TOAST_TONO: Record<ToastTone, string> = { ok: 'bg-navy', error: 'bg-danger', info: 'bg-ink' }
+const TOAST_TONO: Record<ToastTone, { caja: string; icono: NombreIcono; color: string }> = {
+  ok: { caja: 'bg-navy', icono: 'check_circle', color: 'text-white' },
+  error: { caja: 'bg-danger', icono: 'error', color: 'text-white' },
+  info: { caja: 'bg-ink', icono: 'info', color: 'text-white' },
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Toast[]>([])
-  const push = useCallback((text: string, tone: ToastTone = 'ok') => {
+  const cerrar = useCallback((id: number) => setItems((x) => x.filter((t) => t.id !== id)), [])
+  const push = useCallback<Empujar>((text, tone = 'ok', accion) => {
     const id = Date.now() + Math.random()
-    setItems((x) => [...x, { id, text, tone }])
-    setTimeout(() => setItems((x) => x.filter((t) => t.id !== id)), tone === 'error' ? 5000 : 3600)
-  }, [])
+    setItems((x) => [...x, { id, text, tone, accion }])
+    setTimeout(() => cerrar(id), accion ? 8000 : tone === 'error' ? 5000 : 3600)
+  }, [cerrar])
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<{ text: string; tone: ToastTone }>).detail
@@ -151,11 +163,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           aria-live="polite"
           role="status"
         >
-          {items.map((t) => (
-            <div key={t.id} className={cn('px-4 py-3 rounded-md text-white font-semibold shadow-2 animate-up', TOAST_TONO[t.tone])}>
-              {t.text}
-            </div>
-          ))}
+          {items.map((t) => {
+            const v = TOAST_TONO[t.tone]
+            return (
+              <div key={t.id} className={cn('pointer-events-auto flex min-h-14 items-center gap-3 rounded-md px-4 py-2 text-white shadow-2 animate-up', v.caja)}>
+                <span className={cn('flex-none', v.color)} aria-hidden><Icono nombre={v.icono} /></span>
+                <p className="min-w-0 flex-1 text-cuerpo font-semibold wrap-anywhere">{t.text}</p>
+                {t.accion && (
+                  <button
+                    type="button"
+                    className="-me-2 min-h-12 flex-none rounded-md px-3 text-cuerpo font-semibold underline underline-offset-4 hover:bg-white/15"
+                    onClick={() => { t.accion?.alHacer(); cerrar(t.id) }}
+                  >
+                    {t.accion.etiqueta}
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>,
         document.body,
       )}

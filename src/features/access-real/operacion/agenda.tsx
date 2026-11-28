@@ -69,7 +69,7 @@ function SelectorPaginado({ label, opciones, seleccion, elegir, consulta, requir
   opcionVacia?: string
 }) {
   const actuales = seleccion && !opciones.some((opcion) => opcion.value === seleccion.value) ? [seleccion, ...opciones] : opciones
-  return <div className="grid min-w-0 gap-2">
+  return <div className="grid grid-cols-1 min-w-0 gap-2">
     <SelectField label={label} value={seleccion?.value ?? ''} onChange={(evento) => elegir(actuales.find((opcion) => opcion.value === evento.currentTarget.value))}
       options={required ? actuales : [{ value: '', label: opcionVacia }, ...actuales]} required={required}
       disabled={required && (!!consulta.error || !consulta.datos || actuales.length === 0)}
@@ -95,10 +95,10 @@ function ResponsableTarea({ base, token, adulto, cuidador, indicacion, cambiarCu
   const asignaciones = useDatos<{ cuidadores: { usuario_id: string }[] }>(rutaAdulto ? `${rutaAdulto}/asignaciones` : null, token)
   const cuidadores = usePagina<Candidato>(rutaAdulto ? `${base}/candidatos/agenda` : null, token)
   const indicaciones = usePagina<Indicacion>(rutaAdulto && puedeVerIndicaciones ? `${rutaAdulto}/indicaciones` : null, token, 0, { filters: { estado: 'activa' } })
-  if (!adulto) return <p className="text-sm text-muted md:col-span-2">Selecciona el adulto mayor para ver sus cuidadores e indicaciones disponibles.</p>
+  if (!adulto) return <p className="text-sm text-muted md:col-span-2 wrap-anywhere">Selecciona el adulto mayor para ver sus cuidadores e indicaciones disponibles.</p>
   const disponibles = new Set(asignaciones.datos?.cuidadores.map(({ usuario_id }) => usuario_id))
   return <>
-    <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-2">
       <SelectorPaginado label="Cuidador asignado" required seleccion={cuidador} elegir={cambiarCuidador} consulta={cuidadores}
         opciones={cuidadores.datos?.data.filter((candidato) => candidato.cuidador_id && disponibles.has(candidato.usuario_id)).map(opcionCuidador) ?? []}
         vacio={asignaciones.datos ? 'No hay cuidadores asignados disponibles en esta página.' : undefined} />
@@ -179,12 +179,12 @@ function FormularioTarea({ base, token, cuenta, tarea, listo, volver }: Pick<Ope
       }
     }}>
     <TextField label="Título de la tarea" name="titulo" required minLength={3} maxLength={80} defaultValue={tarea?.titulo} />
-    <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-2">
       <SelectField label="Prioridad" required value={prioridadId} onChange={(evento) => setPrioridadId(evento.currentTarget.value)}
         placeholder="Selecciona la prioridad" options={prioridades.datos?.map((dato) => ({ value: String(dato.prioridad_id), label: dato.nombre })) ?? []} />
       <Estado consulta={prioridades} />
     </div>
-    {tarea ? <p className="rounded-sm bg-blue-100 p-3 text-sm md:col-span-2"><strong>Adulto mayor:</strong> {tarea.envejeciente_nombre}</p>
+    {tarea ? <p className="rounded-sm bg-blue-100 p-3 text-sm md:col-span-2 wrap-anywhere"><strong>Adulto mayor:</strong> {tarea.envejeciente_nombre}</p>
       : <SelectorPaginado label="Adulto mayor" required opciones={adultos.datos?.data.map(opcionAdulto) ?? []} seleccion={adulto}
           consulta={adultos} vacio="No hay adultos activos en esta página." elegir={(opcion) => { setAdulto(opcion); setCuidador(undefined); setIndicacion(undefined); setVisita(undefined) }} />}
     {!tarea && adulto && cuenta.tipo === 'organizacion' && cuenta.permisos.includes('visitas:programar') &&
@@ -201,7 +201,7 @@ function FormularioTarea({ base, token, cuenta, tarea, listo, volver }: Pick<Ope
       hint={alcance === 'siguientes' ? 'Para cambiar la fecha, aplica los cambios solo a esta tarea.' : undefined} />
     <TextField label="Hora (opcional)" type="time" value={hora} onChange={(evento) => setHora(evento.currentTarget.value)} />
     <Checkbox name="requiere_evidencia" label="Requiere evidencia para completar" defaultChecked={tarea?.requiere_evidencia} className="md:col-span-2" />
-    {!tarea && <div className="grid gap-3 md:col-span-2">
+    {!tarea && <div className="grid grid-cols-1 gap-3 md:col-span-2">
       <ChoicePills label="Repetición" options={REPETICIONES} value={repeticion} onChange={setRepeticion} />
       {repeticion === 'semanal' && <CheckboxGroup label="Días de la semana" required options={DIAS} value={dias} onChange={setDias} />}
       {repeticion !== 'ninguna' && <TextField label="Se repite hasta" type="date" required min={fecha} max={fecha ? sumarDias(fecha, 730) : undefined}
@@ -227,13 +227,13 @@ function EstadoTarea({ tarea }: { tarea: Tarea }) {
 }
 
 function TarjetaTarea({ tarea, abrir }: { tarea: Tarea; abrir: () => void }) {
-  return <Card className="grid gap-3 bg-bg">
+  return <Card className="grid h-full grid-cols-1 content-start gap-3 bg-bg">
     <div className="flex items-start gap-3">
       <IconTile><ClipboardCheck size={24} aria-hidden /></IconTile>
       <div className="min-w-0 flex-1">
         <h3 className="font-bold wrap-anywhere">{tarea.titulo}</h3>
-        <p className="text-sm font-semibold text-navy">{fechaHora(tarea)}</p>
-        {tarea.envejeciente_nombre && <p className="text-sm text-muted">{tarea.envejeciente_nombre}</p>}
+        <p className="text-sm font-semibold text-navy wrap-anywhere">{fechaHora(tarea)}</p>
+        {tarea.envejeciente_nombre && <p className="text-sm text-muted wrap-anywhere">{tarea.envejeciente_nombre}</p>}
       </div>
     </div>
     <EstadoTarea tarea={tarea} />
@@ -279,25 +279,25 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
     refrescar()
   }
 
-  return <section className="grid gap-4" aria-label="Agenda de cuidado">
-    {!enLinea && <p className="flex items-center gap-2 rounded-sm bg-blue-100 p-3 text-sm"><WifiOff size={18} aria-hidden /> Conéctate a internet para guardar cambios en la agenda.</p>}
-    {aviso && <p className="rounded-sm bg-teal-100 p-3 text-sm font-semibold" role="status">{aviso}</p>}
+  return <section className="grid grid-cols-1 gap-4" aria-label="Agenda de cuidado">
+    {!enLinea && <p className="flex items-center gap-2 rounded-sm bg-blue-100 p-3 text-sm wrap-anywhere"><WifiOff size={18} aria-hidden /> Conéctate a internet para guardar cambios en la agenda.</p>}
+    {aviso && <p className="rounded-sm bg-teal-100 p-3 text-sm font-semibold wrap-anywhere" role="status">{aviso}</p>}
     {!enListado && <Button variant="ghost" size="sm" className="justify-self-start" icon={<ArrowLeft size={18} aria-hidden />}
       onClick={() => id && (editando || cancelando) ? abrir(id) : volver()}>{editando || cancelando ? 'Volver al detalle' : 'Volver a la agenda'}</Button>}
     {enListado && <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">Agenda de cuidado</h2>
+        <h2 className="text-xl font-bold wrap-anywhere">Agenda de cuidado</h2>
         {gestionar && <Button size="sm" disabled={!enLinea} icon={<CalendarPlus size={20} aria-hidden />} onClick={() => setParams({ accion: 'nueva' })}>Nueva tarea</Button>}
       </div>
-      <Card className="grid gap-3 bg-bg">
+      <Card className="grid grid-cols-1 gap-3 bg-bg">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold">Filtrar tareas</h3>
+          <h3 className="font-semibold wrap-anywhere">Filtrar tareas</h3>
           <Button size="sm" variant="ghost" disabled={!fecha && !estado && !adultoFiltro && !cuidadorFiltro} onClick={() => {
             setFecha(''); setEstado(''); setAdultoFiltro(undefined); setCuidadorFiltro(undefined)
           }}>Limpiar filtros</Button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2">
             <TextField label="Fecha programada" type="date" value={fecha} onChange={(evento) => setFecha(evento.currentTarget.value)} />
             <Button variant="light" size="sm" icon={<CalendarDays size={18} aria-hidden />} onClick={() => setFecha(fechaDominicana())}>Hoy</Button>
           </div>
@@ -311,8 +311,8 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
         </div>
       </Card>
       <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'No hay tareas para estos filtros.' : undefined} />
-      {listado.datos && listado.datos.meta.total > 0 && <p className="text-sm font-semibold text-muted" role="status">{listado.datos.meta.total} {listado.datos.meta.total === 1 ? 'tarea' : 'tareas'}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
+      {listado.datos && listado.datos.meta.total > 0 && <p className="text-sm font-semibold text-muted wrap-anywhere" role="status">{listado.datos.meta.total} {listado.datos.meta.total === 1 ? 'tarea' : 'tareas'}</p>}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {listado.datos?.data.map((item) => <TarjetaTarea key={item.tarea_id} tarea={item} abrir={() => abrir(item.tarea_id)} />)}
       </div>
       {listado.datos && <Paginador pagina={listado.pagina} total={listado.datos.meta.totalPages} cambiar={listado.cambiar} />}
@@ -324,21 +324,21 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
       else volver()
     }} />}
     {id && <Estado consulta={consulta} />}
-    {tarea && ruta && <section key={tarea.tarea_id} className="grid gap-4">
-      <Card className="grid gap-3 bg-bg">
+    {tarea && ruta && <section key={tarea.tarea_id} className="grid grid-cols-1 gap-4">
+      <Card className="grid grid-cols-1 gap-3 bg-bg">
         <h2 className="text-xl font-bold wrap-anywhere">{tarea.titulo}</h2>
         <EstadoTarea tarea={tarea} />
-        <p className="text-sm font-semibold text-navy">{fechaHora(tarea)}</p>
-        <dl className="grid gap-2 text-sm">
-          {tarea.envejeciente_nombre && <div className="flex items-center gap-2"><UserRound size={18} aria-hidden /><dt className="font-semibold">Adulto mayor:</dt><dd>{tarea.envejeciente_nombre}</dd></div>}
-          {tarea.cuidador_nombre && <div className="flex items-center gap-2"><ClipboardCheck size={18} aria-hidden /><dt className="font-semibold">Cuidador:</dt><dd>{tarea.cuidador_nombre}</dd></div>}
+        <p className="text-sm font-semibold text-navy wrap-anywhere">{fechaHora(tarea)}</p>
+        <dl className="grid grid-cols-1 gap-2 text-sm">
+          {tarea.envejeciente_nombre && <div className="flex items-start gap-2"><UserRound size={18} className="mt-0.5 shrink-0" aria-hidden /><dt className="font-semibold">Adulto mayor:</dt><dd className="min-w-0 wrap-anywhere">{tarea.envejeciente_nombre}</dd></div>}
+          {tarea.cuidador_nombre && <div className="flex items-start gap-2"><ClipboardCheck size={18} className="mt-0.5 shrink-0" aria-hidden /><dt className="font-semibold">Cuidador:</dt><dd className="min-w-0 wrap-anywhere">{tarea.cuidador_nombre}</dd></div>}
           {tarea.visita_id && cuenta.permisos.includes('visitas:ver') && <div><dt className="sr-only">Visita asociada</dt><dd><Link
             to={`/operacion/${idRuta(cuenta.cuenta_id)}/visitas?visita=${idRuta(tarea.visita_id)}`} className="inline-flex min-h-12 items-center font-semibold text-navy underline">Abrir visita asociada</Link></dd></div>}
-          {tarea.indicacion_titulo && <div><dt className="inline font-semibold">Indicación médica:</dt> <dd className="inline">{tarea.indicacion_titulo}</dd></div>}
+          {tarea.indicacion_titulo && <div><dt className="inline font-semibold">Indicación médica:</dt> <dd className="inline wrap-anywhere">{tarea.indicacion_titulo}</dd></div>}
         </dl>
-        {tarea.es_historica && <p className="text-sm text-muted">Esta tarea histórica está disponible para consulta.</p>}
-        {tarea.motivo_cancelacion && <p className="rounded-sm bg-danger-100 p-3 text-sm"><strong>Motivo de cancelación:</strong> {tarea.motivo_cancelacion}</p>}
-        {tarea.ultimo_motivo_rechazo && <p className="rounded-sm bg-danger-100 p-3 text-sm"><strong>Evidencia rechazada:</strong> {tarea.ultimo_motivo_rechazo}</p>}
+        {tarea.es_historica && <p className="text-sm text-muted wrap-anywhere">Esta tarea histórica está disponible para consulta.</p>}
+        {tarea.motivo_cancelacion && <p className="rounded-sm bg-danger-100 p-3 text-sm wrap-anywhere"><strong>Motivo de cancelación:</strong> {tarea.motivo_cancelacion}</p>}
+        {tarea.ultimo_motivo_rechazo && <p className="rounded-sm bg-danger-100 p-3 text-sm wrap-anywhere"><strong>Evidencia rechazada:</strong> {tarea.ultimo_motivo_rechazo}</p>}
       </Card>
       {editando ? <FormularioTarea base={base} token={token} cuenta={cuenta} tarea={tarea}
         volver={() => abrir(tarea.tarea_id)} listo={() => { refrescar(); abrir(tarea.tarea_id) }} />
@@ -356,7 +356,7 @@ export function Agenda({ base, token, cuenta }: OperacionProps) {
           {ejecutar && operativa && tarea.estado === 'pendiente' && <Formulario titulo="Iniciar tarea" accion="Iniciar" campos={[]} disabled={!enLinea}
             enviar={() => post(`${ruta}/iniciar`)} />}
           {ejecutar && operativa && (tarea.requiere_evidencia && tarea.evidencias.validadas === 0
-            ? <p className="rounded-sm border border-blue bg-blue-100 p-3 text-sm" role="status">Para completar esta tarea hace falta una evidencia validada.</p>
+            ? <p className="rounded-sm border border-blue bg-blue-100 p-3 text-sm wrap-anywhere" role="status">Para completar esta tarea hace falta una evidencia validada.</p>
             : <Formulario titulo="Completar tarea" accion="Completar" campos={[]} disabled={!enLinea} enviar={() => post(`${ruta}/completar`)} />)}
           <Evidencias ruta={ruta} token={token} puedeAdjuntar={!!(ejecutar && operativa)} tarea revision={revision} refrescar={refrescar}
             validar={validar && operativa ? (evidencia, aceptar, motivo) => post(`${base}/evidencias/${idRuta(evidencia)}/${aceptar ? 'validar' : 'rechazar'}`, motivo ? { motivo } : undefined) : undefined} />

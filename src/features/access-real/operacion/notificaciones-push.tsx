@@ -97,7 +97,7 @@ export function NotificacionesPush({ token }: { token: string }) {
 
   if (!habilitado && !dispositivo?.activa) return null
   const bloqueadas = compatible && Notification.permission === 'denied' && !dispositivo?.activa
-  return <section aria-label="Notificaciones en este dispositivo" className="grid gap-2 rounded-md border border-line bg-surface p-4">
+  return <section aria-label="Notificaciones en este dispositivo" className="grid grid-cols-1 gap-2 rounded-md border border-line bg-surface p-4">
     <h2 className="font-semibold text-ink">Avisos en este dispositivo</h2>
     <p className="text-sm text-ink-2">{!compatible
       ? 'Este navegador no permite avisos del sistema desde aquí. En iPhone o iPad, abre CuidaRed desde la pantalla de inicio.'

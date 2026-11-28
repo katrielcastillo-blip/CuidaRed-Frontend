@@ -1,17 +1,15 @@
 /*
  * portal.tsx — Navegación operativa por cuenta, con autorización consultada al servidor.
+ * El marco (barras, menú, ayuda flotante, notificaciones y conexión) vive en ./marco; aquí se decide qué pantalla
+ * es principal (barra superior + barra inferior + ayuda) y cuál secundaria (volver + título).
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, Building2, CalendarClock, ChartColumn, ChevronRight, ClipboardList, Ellipsis, HandHelping, HeartHandshake, House, Inbox, ListTodo, ScrollText, Settings, Users, UserRound, Wifi, WifiOff } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/cn'
-import { useLogo } from '@/lib/marca'
 import { PantallaMiembros } from '../miembros'
-import { ResumenCuenta } from '../resumen-cuenta'
-import { puedeConsultarSuscripcion, recibeAvisosDeAlertas, ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
-import type { CuentaMe } from '../client'
+import { datosCuentaAparte, puedeConsultarSuscripcion, recibeAvisosDeAlertas, tienePanelGestion } from '../cuentas-datos'
+import { logout, type CuentaMe } from '../client'
 import { Agenda } from './agenda'
 import { Alertas } from './alertas'
 import { AuditoriaCuenta } from './auditoria'
@@ -19,6 +17,15 @@ import type { ColaOperaciones } from './cola-operaciones'
 import { Estado, idRuta, useConexionReal, useDatos, usePagina } from './controles'
 import { Envejecientes } from './envejecientes'
 import { GestionCuenta } from './gestion-cuenta'
+import { Inicio } from './inicio'
+import { AyudaFlotante } from './marco/ayuda'
+import { BarraSecundaria, BarraSuperior, CabeceraEscritorio, EnlaceVolver, type DatosCabecera } from './marco/barras'
+import { PantallaConexion } from './marco/conexion'
+import { BarraInferior, HojaMas, MenuLateral } from './marco/menu'
+import { esPantallaMarco, idsPestanas, mas, PANTALLAS_MARCO, repartirModulos, secciones } from './marco/modulos'
+import { ContextoPantallaSecundaria, type PantallaSecundaria } from './marco/pantalla-secundaria'
+import { PantallaNotificaciones } from './marco/notificaciones'
+import { PantallaAccesibilidad, PantallaAprende, PantallaIdioma, PantallaPreguntas, PantallaSoporte, PantallaTema } from './marco/pantallas-ayuda'
 import { Necesidades } from './necesidades'
 import { Reportes } from './reportes'
 import { ResumenCasos } from './resumen-casos'
@@ -26,95 +33,18 @@ import { SolicitudesVisita } from './solicitudes-visita'
 import { SuscripcionCuenta } from './suscripcion'
 import { Visitas } from './visitas'
 
-type Seccion = {
-  id: string
-  nombre: string
-  titulo: string
-  descripcion: string
-  icono: LucideIcon
-  permiso?: string
-  soloOrganizacion?: boolean
-}
-
-const secciones: Seccion[] = [
-  { id: 'cuenta', nombre: 'Inicio', titulo: 'Datos de cuenta', descripcion: 'Datos y suscripción de la cuenta activa', icono: House },
-  { id: 'envejecientes', nombre: 'Adultos', titulo: 'Envejecientes', descripcion: 'Expedientes y seguimiento', icono: HeartHandshake, permiso: 'adultos:ver' },
-  { id: 'visitas', nombre: 'Visitas', titulo: 'Mis visitas', descripcion: 'Visitas programadas e historial', icono: CalendarClock, permiso: 'visitas:ver', soloOrganizacion: true },
-  { id: 'agenda', nombre: 'Agenda', titulo: 'Agenda', descripcion: 'Tareas de cuidado y evidencias', icono: ListTodo, permiso: 'agenda:ver' },
-  { id: 'necesidades', nombre: 'Necesidades', titulo: 'Necesidades', descripcion: 'Necesidades activas y su seguimiento', icono: HandHelping, permiso: 'necesidades:ver' },
-  { id: 'alertas', nombre: 'Alertas', titulo: 'Alertas', descripcion: 'Casos prioritarios y notificaciones', icono: Bell, permiso: 'alertas:ver' },
-  { id: 'resumen', nombre: 'Resumen', titulo: 'Resumen de casos', descripcion: 'Casos activos, prioridad y estado de atención', icono: ClipboardList, permiso: 'resumen:ver' },
-  { id: 'reportes', nombre: 'Reportes', titulo: 'Reportes y estadísticas', descripcion: 'Indicadores, gráficos y exportaciones', icono: ChartColumn, permiso: 'reportes:ver' },
-  { id: 'miembros', nombre: 'Miembros', titulo: 'Miembros de la cuenta', descripcion: 'Personas, invitaciones y roles', icono: Users, permiso: 'usuarios:gestionar' },
-  { id: 'configuracion', nombre: 'Configuración', titulo: 'Configurar cuenta', descripcion: 'Datos de contacto y preferencias', icono: Settings, permiso: 'organizacion:configurar' },
-  { id: 'solicitudes-visita', nombre: 'Solicitudes', titulo: 'Solicitudes de visita', descripcion: 'Revisar solicitudes recibidas', icono: Inbox, permiso: 'visitas:autorizar', soloOrganizacion: true },
-  { id: 'auditoria', nombre: 'Auditoría', titulo: 'Auditoría', descripcion: 'Actividad registrada en la cuenta', icono: ScrollText, permiso: 'auditoria:ver' },
-]
-const mas: Seccion = { id: 'mas', nombre: 'Más', titulo: 'Más opciones', descripcion: 'Más módulos de la cuenta', icono: Ellipsis }
-
-function MenuOperativo({ raiz, cuenta, modulos, seccion }: { raiz: string; cuenta: CuentaMe; modulos: Seccion[]; seccion: string }) {
-  const logo = useLogo()
-  const isotipo = useLogo('isotipo')
-  const orden = cuenta.rol === 'administrador' ? ['cuenta', 'envejecientes', 'miembros']
-    : cuenta.rol === 'coordinador' ? ['cuenta', 'envejecientes', 'visitas']
-      : ['cuenta', 'envejecientes', 'visitas', 'agenda']
-  const favoritos = orden.flatMap((id) => modulos.filter((modulo) => modulo.id === id))
-  const adicionales = modulos.filter((modulo) => !orden.includes(modulo.id))
-  const claseMovil = 'flex min-h-12 min-w-0 flex-[0_1_96px] flex-col items-center justify-center gap-1 rounded-md px-1 text-xs font-semibold'
-  const activoEnMas = seccion === 'mas' || adicionales.some((modulo) => modulo.id === seccion)
-
-  return <>
-    <nav aria-label="Módulos de la cuenta" className="sticky top-0 hidden h-dvh flex-col gap-2 overflow-y-auto bg-navy px-3 py-5 text-blue-100 md:flex lg:px-4">
-      <Link to={`${raiz}/cuenta`} className="mb-4 flex min-h-12 items-center justify-center rounded-md bg-surface px-2 py-1.5 hover:bg-blue-100" aria-label="CuidaRed, ir al inicio">
-        <picture className="min-w-0">
-          <source media="(min-width: 1100px)" srcSet={logo} width={517} height={192} />
-          <img src={isotipo} alt="" width={149} height={178} className="h-9 w-auto max-w-full object-contain lg:h-12" />
-        </picture>
-      </Link>
-      {modulos.map((modulo) => <NavLink key={modulo.id} to={`${raiz}/${modulo.id}`} title={modulo.nombre}
-        className={({ isActive }) => cn('flex min-h-12 items-center justify-center gap-3 rounded-md px-3 font-semibold lg:justify-start', isActive ? 'bg-blue-100 text-navy' : 'hover:bg-white/10')}>
-        <modulo.icono size={22} aria-hidden />
-        <span className="sr-only lg:not-sr-only">{modulo.nombre}</span>
-      </NavLink>)}
-      <div className="mt-auto hidden border-t border-blue-100/20 px-2 pt-4 lg:block">
-        <p className="break-words text-sm font-semibold text-white">{cuenta.nombre}</p>
-        <p className="text-xs text-blue-100">{ROL_TEXTO[cuenta.rol]} · {TIPO_TEXTO[cuenta.tipo]}</p>
-      </div>
-    </nav>
-    <nav aria-label="Módulos de la cuenta" className="fixed inset-x-0 bottom-0 z-30 flex justify-center gap-1 bg-navy px-2 pt-2 pb-[calc(8px+var(--safe-bottom))] text-blue-100 shadow-1 md:hidden">
-      {favoritos.map((modulo) => <NavLink key={modulo.id} to={`${raiz}/${modulo.id}`}
-        className={({ isActive }) => cn(claseMovil, isActive ? 'bg-blue-100/15 text-white' : 'hover:bg-white/10')}>
-        <modulo.icono size={22} aria-hidden />
-        <span>{modulo.nombre}</span>
-      </NavLink>)}
-      {adicionales.length > 0 && <Link to={`${raiz}/mas`} aria-current={activoEnMas ? 'location' : undefined}
-        className={cn(claseMovil, activoEnMas ? 'bg-blue-100/15 text-white' : 'hover:bg-white/10')}>
-        <Ellipsis size={22} aria-hidden />
-        <span>Más</span>
-      </Link>}
-    </nav>
-  </>
-}
-
-function Accesos({ raiz, modulos }: { raiz: string; modulos: Seccion[] }) {
-  return <ul className="grid auto-rows-fr gap-3 sm:grid-cols-2">
-    {modulos.map((modulo) => <li key={modulo.id} className="min-w-0">
-      <Link to={`${raiz}/${modulo.id}`} className="flex h-full min-h-16 items-center gap-3 rounded-md border border-line-soft bg-surface p-3 hover:border-blue">
-        <span className="grid size-11 flex-none place-items-center rounded-md bg-blue-100 text-navy"><modulo.icono size={21} aria-hidden /></span>
-        <span className="flex min-w-0 flex-1 flex-col"><strong className="text-ink">{modulo.titulo}</strong><span className="text-sm text-ink-2">{modulo.descripcion}</span></span>
-        <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden />
-      </Link>
-    </li>)}
-  </ul>
-}
-
-export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: string; cola: ColaOperaciones }) {
+export function Portal({ token, usuarioId, nombreUsuario = '', cola }: { token: string; usuarioId: string; nombreUsuario?: string; cola: ColaOperaciones }) {
   const { cuentaId, seccion = 'cuenta' } = useParams()
   const { key: navegacion } = useLocation()
+  const navigate = useNavigate()
   const [revision, setRevision] = useState(0)
+  const [masLocal, setMasLocal] = useState(false)
+  // Subvista de un módulo (detalle o formulario) que pide Barra secundaria: ver marco/pantalla-secundaria.tsx.
+  const [subvista, fijarSubvista] = useState<PantallaSecundaria | null>(null)
   const actualizarContexto = useCallback(() => setRevision((n) => n + 1), [])
   const enLinea = useConexionReal()
   const contenido = useRef<HTMLElement>(null)
+  const masRef = useRef<HTMLButtonElement>(null)
   const base = cuentaId && /^[1-9][0-9]{0,18}$/.test(cuentaId) ? `/cuentas/${idRuta(cuentaId)}` : null
   const raiz = `/operacion/${idRuta(cuentaId ?? '')}`
   const contexto = useDatos<CuentaMe>(base ? `${base}/contexto` : null, token, revision)
@@ -127,85 +57,111 @@ export function Portal({ token, usuarioId, cola }: { token: string; usuarioId: s
       window.removeEventListener('focus', actualizar)
     }
   }, [])
+  const seccionAnterior = useRef(seccion)
   useEffect(() => {
     window.scrollTo(0, 0)
-    contenido.current?.focus({ preventScroll: true })
+    // La hoja «Más» (ruta /mas) toma el foco al abrir y lo devuelve al botón Más al cerrar.
+    const deLaHoja = seccion === 'mas' || seccionAnterior.current === 'mas'
+    seccionAnterior.current = seccion
+    if (!deLaHoja) contenido.current?.focus({ preventScroll: true })
   }, [cuentaId, seccion])
   const cuenta = contexto.datos
   const visible = secciones.filter((modulo) =>
     (!modulo.soloOrganizacion || cuenta?.tipo === 'organizacion') &&
     (!modulo.permiso || (cuenta?.acceso_operativo === true && cuenta.permisos.includes(modulo.permiso))))
-  const actual = [...visible, mas].find((modulo) => modulo.id === seccion)
-  const suscripcion = seccion === 'suscripcion' && puedeConsultarSuscripcion(cuenta)
   // La campana solo se muestra a quien recibe avisos de alertas (ver `recibeAvisosDeAlertas`); el resto tendría un contador siempre en cero.
-  const mostrarAvisos = !!cuenta && recibeAvisosDeAlertas(cuenta) && visible.some((modulo) => modulo.id === 'alertas') && actual?.id !== 'miembros'
+  const recibeAvisos = !!cuenta && recibeAvisosDeAlertas(cuenta) && visible.some((modulo) => modulo.id === 'alertas')
+  const pantalla = esPantallaMarco(seccion) && (seccion !== 'notificaciones' || recibeAvisos) ? seccion : undefined
+  const actual: { id: string; titulo: string } | undefined = pantalla ? { id: pantalla, titulo: PANTALLAS_MARCO[pantalla] }
+    : [...visible, mas].find((modulo) => modulo.id === seccion)
+  const suscripcion = seccion === 'suscripcion' && puedeConsultarSuscripcion(cuenta)
+  // «Datos de cuenta»: pantalla secundaria (como la suscripción) para quien tiene panel de gestión pero no puede abrir Configuración.
+  const datosCuenta = seccion === 'datos-cuenta' && !!cuenta && datosCuentaAparte(cuenta)
+  const mostrarAvisos = recibeAvisos && actual?.id !== 'miembros'
   const avisos = usePagina<unknown>(base && mostrarAvisos ? `${base}/notificaciones-alerta` : null, token, revision,
     { limit: 1, filters: { estado: 'no_leida' } })
   const pendientes = avisos.datos?.meta.total ?? 0
   const props = cuenta && base ? { base, token, cuenta, usuarioId } : undefined
-  const titulo = seccion === 'cuenta' ? cuenta?.nombre ?? 'Cuenta de CuidaRed'
-    : suscripcion ? 'Suscripción y pagos'
-      : actual?.id === 'configuracion' && cuenta?.tipo === 'organizacion' ? 'Configurar organización'
-      : actual?.titulo ?? 'Cuenta de CuidaRed'
-  const IconoConexion = enLinea ? Wifi : WifiOff
-  if (props && actual?.id === 'miembros') return <PantallaMiembros token={token} cuenta={props.cuenta} usuarioId={usuarioId} volver={`${raiz}/cuenta`} />
 
-  return <div className={cn('min-h-dvh bg-bg', cuenta && 'md:grid md:grid-cols-[80px_minmax(0,1fr)] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]')}>
+  // Pantallas principales: pestañas de la barra inferior (y «Más»). El resto es secundaria: volver + título.
+  const { pestanas, adicionales } = cuenta ? repartirModulos(cuenta.rol, visible) : { pestanas: [], adicionales: [] }
+  const idsPrincipales = cuenta ? idsPestanas(cuenta.rol) : ['cuenta']
+  const principal = !subvista && !pantalla && !suscripcion && (seccion === 'mas' || (!!actual && idsPrincipales.includes(actual.id)))
+  const vista = actual?.id === 'mas' ? 'cuenta' : actual?.id
+  const masAbierto = !!cuenta && (seccion === 'mas' || masLocal)
+  const cerrarMas = useCallback(() => {
+    setMasLocal(false)
+    if (seccion === 'mas') navigate(`${raiz}/cuenta`, { replace: true })
+    requestAnimationFrame(() => masRef.current?.focus())
+  }, [navigate, raiz, seccion])
+
+  const nombreCuenta = cuenta?.nombre ?? 'Cuenta de CuidaRed'
+  const titulo = principal ? nombreCuenta
+    : subvista ? subvista.titulo
+    : suscripcion ? 'Suscripción y pagos'
+    : datosCuenta ? 'Datos de la cuenta'
+      : actual?.id === 'configuracion' && cuenta?.tipo === 'organizacion' ? 'Configurar organización'
+        : actual?.titulo ?? 'Cuenta de CuidaRed'
+  const datosCabecera: DatosCabecera = { raiz, enLinea, mostrarAvisos, pendientes, nombreUsuario }
+  // En el panel de gestión la suscripción y los datos de la cuenta ya no están en Inicio: se llega por «Más» (móvil) y el menú lateral.
+  const conSuscripcion = puedeConsultarSuscripcion(cuenta) && !adicionales.some((modulo) => modulo.id === 'suscripcion')
+  const conDatosCuenta = !!cuenta && datosCuentaAparte(cuenta)
+  const hayMas = adicionales.length > 0 || seccion === 'mas' || (!!cuenta && tienePanelGestion(cuenta) && (conSuscripcion || conDatosCuenta))
+  const barraInferior = cuenta && principal ? <BarraInferior raiz={raiz} pestanas={pestanas} hayMas={hayMas}
+    masActivo={adicionales.some((modulo) => modulo.id === seccion)} masAbierto={masAbierto} alAbrirMas={() => setMasLocal(true)} masRef={masRef} /> : null
+  const complementos = cuenta && principal && <>
+    {barraInferior}
+    <AyudaFlotante raiz={raiz} />
+    <HojaMas abierta={masAbierto} cerrar={cerrarMas} raiz={raiz} modulos={adicionales.length ? adicionales : visible.filter((modulo) => modulo.id !== 'cuenta')}
+      conSuscripcion={conSuscripcion} conDatosCuenta={conDatosCuenta} alElegir={() => setMasLocal(false)}
+      rol={cuenta.rol} esOrganizacion={cuenta.tipo === 'organizacion'} alCerrarSesion={() => { void logout({ access_token: token }) }} />
+  </>
+
+  if (props && actual?.id === 'miembros') {
+    return <>
+      <div className={cn(principal && 'pb-[calc(var(--bottomnav-h)+var(--safe-bottom)+88px)] md:pb-0')}>
+        <PantallaMiembros token={token} cuenta={props.cuenta} usuarioId={usuarioId} volver={`${raiz}/cuenta`} />
+      </div>
+      {complementos}
+    </>
+  }
+
+  return <ContextoPantallaSecundaria value={fijarSubvista}><div className={cn('min-h-dvh bg-bg', cuenta && 'md:grid md:grid-cols-[80px_minmax(0,1fr)] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]')}>
     <a href="#contenido-operativo" className="sr-only z-50 rounded-md bg-surface p-3 text-navy focus:not-sr-only focus:fixed focus:left-2 focus:top-2">Saltar al contenido</a>
-    {cuenta && <MenuOperativo raiz={raiz} cuenta={cuenta} modulos={visible} seccion={seccion} />}
-    <div className="min-w-0 pb-[calc(var(--bottomnav-h)+var(--safe-bottom)+12px)] md:pb-0">
-      <header className="bg-navy text-blue-100 shadow-1">
-        <div className="mx-auto flex min-h-[var(--appbar-h)] max-w-[calc(var(--content-max)+var(--gutter)*2)] items-center gap-2 px-3 pt-[var(--safe-top)] sm:gap-3 sm:px-[var(--gutter)]">
-          {seccion !== 'cuenta' && <Link to={`${raiz}/cuenta`} className="grid size-12 flex-none place-items-center rounded-full hover:bg-white/10" aria-label="Volver">
-            <ArrowLeft size={23} aria-hidden />
-          </Link>}
-          <h1 className="min-w-0 flex-1 break-words py-2 text-lg font-semibold leading-tight sm:text-xl">{titulo}</h1>
-          <span role="status" className={cn('inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold', enLinea ? 'bg-white/10 text-blue-100' : 'bg-warning-100 text-ink')}>
-            <IconoConexion size={16} aria-hidden /><span className={enLinea ? 'sr-only sm:not-sr-only' : undefined}>{enLinea ? 'En línea' : 'Sin conexión'}</span>
-          </span>
-          {mostrarAvisos && <Link to={`${raiz}/alertas?bandeja=avisos`}
-            className="relative grid size-12 flex-none place-items-center rounded-full hover:bg-white/10"
-            aria-label={pendientes > 0 ? `Notificaciones, ${pendientes} sin leer` : 'Notificaciones'} title="Notificaciones">
-            <Bell size={22} aria-hidden />
-            {pendientes > 0 && <span aria-hidden className="absolute top-0.5 right-0 min-w-5 rounded-full bg-danger px-1 text-center text-xs leading-5 font-bold text-white">
-              {pendientes > 99 ? '99+' : pendientes}
-            </span>}
-          </Link>}
-          <Link to="/cuenta" className="grid size-12 flex-none place-items-center rounded-full border border-blue-100/40 hover:bg-white/10" aria-label="Mi cuenta">
-            <UserRound size={22} aria-hidden />
-          </Link>
-        </div>
-      </header>
+    {cuenta && <MenuLateral raiz={raiz} cuenta={cuenta} modulos={visible} conSuscripcion={puedeConsultarSuscripcion(cuenta)} conDatosCuenta={conDatosCuenta} />}
+    <div className={cn('min-w-0', principal ? 'pb-[calc(var(--bottomnav-h)+var(--safe-bottom)+88px)] md:pb-24' : 'pb-[calc(var(--safe-bottom)+12px)] md:pb-0')}>
+      {principal ? <BarraSuperior titulo={titulo} {...datosCabecera} /> : <BarraSecundaria titulo={titulo} destino={subvista?.ruta ?? `${raiz}/cuenta`} historial={!!pantalla && !subvista} accion={subvista?.accion} />}
+      <CabeceraEscritorio titulo={titulo} {...datosCabecera}
+        volver={principal ? undefined : <EnlaceVolver destino={subvista?.ruta ?? `${raiz}/cuenta`} historial={!!pantalla && !subvista} accion={subvista?.accion} />} />
       <main ref={contenido} id="contenido-operativo" tabIndex={-1} className="mx-auto grid w-full max-w-[calc(var(--content-max)+var(--gutter)*2)] gap-5 px-[var(--gutter)] py-5 focus:outline-none sm:py-6">
         {!base ? <p role="alert">No se encontró la cuenta.</p> : <Estado consulta={contexto} />}
-        {props && <div key={props.cuenta.cuenta_id} className="grid min-w-0 gap-5">
-          {!actual && !suscripcion && <p role="alert" className="rounded-md border border-line-soft bg-surface p-4">No tienes acceso a este módulo de la cuenta.</p>}
-          {actual?.id === 'cuenta' && <>
-            <div className="flex items-center gap-3">
-              <span className="grid size-12 flex-none place-items-center rounded-md bg-blue-100 text-navy"><Building2 size={23} aria-hidden /></span>
-              <div className="min-w-0"><p className="font-semibold text-ink">{TIPO_TEXTO[props.cuenta.tipo]}</p><p className="text-sm text-ink-2">{ROL_TEXTO[props.cuenta.rol]}</p></div>
-            </div>
-            <ResumenCuenta cuenta={props.cuenta} token={token} mostrarAcciones={false} />
-            {visible.length > 1 && <section aria-labelledby="accesos-operativos" className="grid gap-3">
-              <h2 id="accesos-operativos" className="text-lg font-semibold text-ink">Accesos rápidos</h2>
-              <Accesos raiz={raiz} modulos={visible.filter((modulo) => modulo.id !== 'cuenta')} />
-            </section>}
-            <GestionCuenta {...props} actualizar={() => setRevision((n) => n + 1)} />
-          </>}
-          {actual?.id === 'mas' && <Accesos raiz={raiz} modulos={visible} />}
-          {actual?.id === 'configuracion' && <GestionCuenta {...props} vista="configuracion" actualizar={() => setRevision((n) => n + 1)} />}
-          {actual?.id === 'envejecientes' && <Envejecientes {...props} cola={cola} />}
-          {actual?.id === 'visitas' && <Visitas {...props} cola={cola} />}
-          {actual?.id === 'agenda' && <Agenda {...props} />}
-          {actual?.id === 'necesidades' && <Necesidades {...props} cola={cola} />}
-          {actual?.id === 'alertas' && <Alertas key={navegacion} {...props} alLeerAviso={() => setRevision((n) => n + 1)} />}
-          {actual?.id === 'resumen' && <ResumenCasos {...props} />}
-          {actual?.id === 'reportes' && <Reportes {...props} />}
-          {actual?.id === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
-          {actual?.id === 'auditoria' && <AuditoriaCuenta {...props} />}
+        {props && <div key={props.cuenta.cuenta_id} className="grid min-w-0 grid-cols-1 gap-5">
+          {!actual && !suscripcion && !datosCuenta && <p role="alert" className="rounded-md border border-line-soft bg-surface p-4">No tienes acceso a este módulo de la cuenta.</p>}
+          {vista === 'cuenta' && <Inicio {...props} raiz={raiz} visible={visible} nombreUsuario={nombreUsuario} revision={revision} actualizar={() => setRevision((n) => n + 1)} />}
+          {vista === 'configuracion' && <GestionCuenta {...props} vista="configuracion" actualizar={() => setRevision((n) => n + 1)} />}
+          {vista === 'envejecientes' && <Envejecientes {...props} cola={cola} />}
+          {vista === 'visitas' && <Visitas {...props} cola={cola} />}
+          {vista === 'agenda' && <Agenda {...props} />}
+          {vista === 'necesidades' && <Necesidades {...props} cola={cola} />}
+          {vista === 'alertas' && <Alertas key={navegacion} {...props} alLeerAviso={() => setRevision((n) => n + 1)} />}
+          {vista === 'resumen' && <ResumenCasos {...props} />}
+          {vista === 'reportes' && <Reportes {...props} />}
+          {vista === 'solicitudes-visita' && <SolicitudesVisita {...props} />}
+          {vista === 'auditoria' && <AuditoriaCuenta {...props} />}
+          {datosCuenta && <GestionCuenta {...props} vista="datos" actualizar={() => setRevision((n) => n + 1)} />}
           {suscripcion && <SuscripcionCuenta {...props} actualizarContexto={actualizarContexto} />}
+          {pantalla === 'notificaciones' && <PantallaNotificaciones base={props.base} token={token} raiz={raiz} revision={revision} alCambiar={() => setRevision((n) => n + 1)} />}
+          {pantalla === 'conexion' && <PantallaConexion cola={cola} cuentaId={props.cuenta.cuenta_id} enLinea={enLinea} />}
+          {pantalla === 'aprende' && <PantallaAprende />}
+          {pantalla === 'preguntas' && <PantallaPreguntas />}
+          {pantalla === 'idioma' && <PantallaIdioma />}
+          {pantalla === 'tema' && <PantallaTema />}
+          {pantalla === 'accesibilidad' && <PantallaAccesibilidad />}
+          {pantalla === 'soporte' && <PantallaSoporte cuenta={props.cuenta.nombre} volver={() => navigate(`${raiz}/cuenta`)} />}
         </div>}
       </main>
     </div>
-  </div>
+    {cuenta && !principal && (pantalla === 'notificaciones' || pantalla === 'conexion') && <AyudaFlotante raiz={raiz} sinBarraInferior />}
+    {complementos}
+  </div></ContextoPantallaSecundaria>
 }

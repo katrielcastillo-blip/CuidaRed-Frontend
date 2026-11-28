@@ -9,8 +9,7 @@
  * qué se puede hacer en cada petición.
  */
 import { useEffect, useState } from 'react'
-import { Badge, Button, ButtonLink, Datum } from '@/components/ui'
-import { Aviso } from '../auth/components/Piezas'
+import { Aviso, Badge, Button, ButtonLink, Datum } from '@/components/ui'
 import { obtenerSuscripcion, type Suscripcion } from './api/cuentas'
 import { aceptarMembresia, rechazarMembresia } from './api/miembros'
 import type { CuentaMe } from './client'
@@ -52,11 +51,11 @@ export function InvitacionesPendientes({ pendientes, token, onResuelta }: { pend
 
   if (pendientes.length === 0 && !aviso) return null
   return (
-    <section aria-labelledby="titulo-invitaciones" className="mb-6 flex flex-col gap-3" data-testid="invitaciones-pendientes">
-      <h2 id="titulo-invitaciones" className="text-base font-semibold text-ink">
+    <section aria-labelledby="titulo-invitaciones" className="flex flex-col gap-3" data-testid="invitaciones-pendientes">
+      <h2 id="titulo-invitaciones" className="text-seccion text-ink">
         Invitaciones pendientes
       </h2>
-      {aviso && <Aviso tono="info">{aviso}</Aviso>}
+      {aviso && <Aviso tipo="info">{aviso}</Aviso>}
       <ul className="flex flex-col gap-3">
         {pendientes.map((invitacion) => {
           const id = invitacion.membresia_id!
@@ -70,7 +69,7 @@ export function InvitacionesPendientes({ pendientes, token, onResuelta }: { pend
               <Badge tone={invitacion.tipo === 'familia' ? 'info' : 'neutral'} className="self-start">
                 {TIPO_TEXTO[invitacion.tipo]}
               </Badge>
-              {error && <Aviso tono="error">{error}</Aviso>}
+              {error && <Aviso tipo="error">{error}</Aviso>}
               <div className="grid grid-cols-2 gap-3">
                 <Button size="sm" loading={trabajando} disabled={!!ocupada} onClick={() => void resolver(invitacion, true)}>
                   Aceptar
@@ -119,11 +118,11 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
   const prueba = suscripcion ? textoPrueba(suscripcion.prueba) : null
 
   return (
-    <section aria-labelledby="titulo-resumen" className="mt-6 flex flex-col gap-3" data-testid="resumen-cuenta">
-      <h2 id="titulo-resumen" className="text-base font-semibold text-ink">
+    <section aria-labelledby="titulo-resumen" className="flex flex-col gap-3" data-testid="resumen-cuenta">
+      <h2 id="titulo-resumen" className="break-words text-seccion text-ink">
         Resumen de {cuenta.nombre}
       </h2>
-      <div className="grid grid-cols-2 gap-4 rounded-md border border-line-soft bg-surface p-4">
+      <div className="grid grid-cols-2 gap-4 rounded-md border border-surface-2 bg-surface p-4 shadow-1">
         <Datum label="Tipo de cuenta" value={TIPO_TEXTO[cuenta.tipo]} />
         <Datum label="Tu rol" value={cuenta.es_titular ? `${ROL_TEXTO[cuenta.rol]} · titular` : ROL_TEXTO[cuenta.rol]} />
         <Datum label="Suscripción" value={suscripcionTexto(estadoSuscripcion)} />
@@ -135,7 +134,7 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
         </p>
       )}
       {estado.tipo === 'error' && (
-        <Aviso tono="warning">
+        <Aviso tipo="advertencia">
           <p>No se pudo consultar el detalle de la suscripción.</p>
           <Button
             variant="ghost"
@@ -149,23 +148,25 @@ export function ResumenCuenta({ cuenta, token, mostrarAcciones = true }: { cuent
           </Button>
         </Aviso>
       )}
-      {prueba && <Aviso tono="info">{prueba}</Aviso>}
+      {prueba && <Aviso tipo="info">{prueba}</Aviso>}
       {sinAcceso && (
-        <Aviso tono="warning">
+        <Aviso tipo="advertencia">
           Esta cuenta no tiene acceso operativo. Puedes consultar sus datos y acceder a la suscripción según tu rol.
         </Aviso>
       )}
-      {puedeConsultarSuscripcion(cuenta) && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/suscripcion`} variant="outline" size="sm" className="self-start">
-        Ver suscripción y pagos
-      </ButtonLink>}
-      {mostrarAcciones && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/cuenta`} variant="outline" size="sm" className="self-start">
-        Abrir cuenta
-      </ButtonLink>}
-      {mostrarAcciones && !sinAcceso && puedeGestionarMiembros(cuenta) && (
-        <ButtonLink to="/cuenta/miembros" variant="outline" size="sm" className="self-start">
-          Miembros de la cuenta
-        </ButtonLink>
-      )}
+      <div className="flex flex-wrap gap-2">
+        {puedeConsultarSuscripcion(cuenta) && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/suscripcion`} variant="outline" size="sm">
+          Ver suscripción y pagos
+        </ButtonLink>}
+        {mostrarAcciones && <ButtonLink to={`/operacion/${encodeURIComponent(cuenta.cuenta_id)}/cuenta`} variant="outline" size="sm">
+          Abrir cuenta
+        </ButtonLink>}
+        {mostrarAcciones && !sinAcceso && puedeGestionarMiembros(cuenta) && (
+          <ButtonLink to="/cuenta/miembros" variant="outline" size="sm">
+            Miembros de la cuenta
+          </ButtonLink>
+        )}
+      </div>
     </section>
   )
 }

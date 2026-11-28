@@ -59,7 +59,7 @@ async function entrar(page: Page) {
   await page.getByLabel(/^Contraseña/).fill('Fuerte123!')
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
   await page.getByRole('link', { name: 'Mi cuenta' }).click()
-  await expect(page.getByRole('heading', { name: 'Mi cuenta', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
 }
 
 test('CR-175: lista solo las cuentas activas y cambia de cuenta recalculando permisos', async ({ page }) => {
@@ -86,6 +86,6 @@ test('CR-175: las cuentas no disponibles conservan el perfil de fase 1', async (
   await mock(page, false)
   await entrar(page)
   await expect(page.getByText('No se pudieron consultar tus cuentas.')).toBeVisible()
-  await expect(page.getByLabel(/^Nombres/)).toHaveValue('Carla')
+  await expect(page.getByRole('heading', { level: 2, name: 'Carla Gómez' })).toBeVisible()
   await expect(page.getByTestId('cuentas-conectadas')).toHaveCount(0)
 })

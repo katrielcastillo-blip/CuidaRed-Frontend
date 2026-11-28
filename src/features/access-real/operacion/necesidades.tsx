@@ -76,13 +76,13 @@ function EstadoNecesidad({ valor }: { valor: Necesidad['estado'] }) {
 
 function HistorialNecesidad({ ruta, token, revision }: { ruta: string; token: string; revision: number }) {
   const consulta = usePagina<EventoNecesidad>(`${ruta}/historial`, token, revision)
-  return <section className="grid gap-2" aria-label="Historial de la necesidad">
-    <h3 className="font-semibold">Historial de la necesidad</h3>
+  return <section className="grid grid-cols-1 gap-2" aria-label="Historial de la necesidad">
+    <h3 className="font-semibold wrap-anywhere">Historial de la necesidad</h3>
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin cambios registrados.' : undefined} />
-    {!!consulta.datos?.data.length && <ol className="grid gap-2">
+    {!!consulta.datos?.data.length && <ol className="grid grid-cols-1 gap-2">
       {consulta.datos.data.map((evento) => (
         <li key={evento.necesidad_evento_id}>
-          <Card className="grid gap-2">
+          <Card className="grid grid-cols-1 gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <EstadoNecesidad valor={evento.estado} />
               <span className="text-sm text-ink-2">{evento.prioridad_anterior && evento.prioridad_anterior !== evento.prioridad
@@ -122,7 +122,7 @@ function DetalleNecesidad({ base, token, cuenta, id, reciente, cola, revision, c
   const cierre = estado === 'resuelta' || estado === 'cancelada'
   const cerrar = () => { fijarGestion(undefined); fijarEstado('') }
   return <>
-    <Card className="grid gap-4">
+    <Card className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm text-muted wrap-anywhere">{necesidad.tipo_necesidad_nombre}</p>
@@ -130,7 +130,7 @@ function DetalleNecesidad({ base, token, cuenta, id, reciente, cola, revision, c
         </div>
         <EstadoNecesidad valor={necesidad.estado} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Datum label="Adulto mayor" value={necesidad.envejeciente_nombre} />
         <Datum label="Prioridad" value={necesidad.prioridad} />
         <Datum label="Registrada" value={fechaHora(necesidad.fecha_necesidad)} />
@@ -140,16 +140,16 @@ function DetalleNecesidad({ base, token, cuenta, id, reciente, cola, revision, c
         {necesidad.indicacion_medica_id && <Datum label="Indicación médica" value="Vinculada al expediente" />}
         {necesidad.es_recurrente && <Datum label="Recurrencia" value="Recurrente" />}
       </div>
-      {necesidad.descripcion && <section className="grid gap-1">
-        <h3 className="font-semibold">Descripción</h3>
+      {necesidad.descripcion && <section className="grid grid-cols-1 gap-1">
+        <h3 className="font-semibold wrap-anywhere">Descripción</h3>
         <p className="text-sm text-ink-2 whitespace-pre-line wrap-anywhere">{necesidad.descripcion}</p>
       </section>}
-      {necesidad.motivo_resolucion && <section className="grid gap-1">
-        <h3 className="font-semibold">Motivo de resolución</h3>
+      {necesidad.motivo_resolucion && <section className="grid grid-cols-1 gap-1">
+        <h3 className="font-semibold wrap-anywhere">Motivo de resolución</h3>
         <p className="text-sm text-ink-2 whitespace-pre-line wrap-anywhere">{necesidad.motivo_resolucion}</p>
       </section>}
       {necesidad.envejeciente_estado !== 'activo' &&
-        <p className="text-sm text-ink-2">Los cambios requieren un expediente activo.</p>}
+        <p className="text-sm text-ink-2 wrap-anywhere">Los cambios requieren un expediente activo.</p>}
       {puedeEditar && !gestion && <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" disabled={!enLinea} onClick={() => fijarGestion('prioridad')}>Editar prioridad y responsable</Button>
         <Button size="sm" disabled={!enLinea && !puedeSinConexion} onClick={() => fijarGestion('estado')}>Cambiar estado</Button>
@@ -185,10 +185,10 @@ function DetalleNecesidad({ base, token, cuenta, id, reciente, cola, revision, c
 
 function TarjetaNecesidad({ necesidad, abrir }: { necesidad: Necesidad; abrir: (id: string) => void }) {
   return (
-    <Card className="grid h-full min-w-0 gap-3 sm:flex sm:items-start sm:justify-between">
+    <Card className="grid h-full min-w-0 grid-cols-1 gap-3 sm:flex sm:items-start sm:justify-between">
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <IconTile size={40}><HandHelping size={20} aria-hidden /></IconTile>
-        <div className="grid min-w-0 gap-1">
+        <div className="grid grid-cols-1 min-w-0 gap-1">
           <p className="text-xs text-muted wrap-anywhere">{necesidad.tipo_necesidad_nombre}</p>
           <h3 className="font-semibold text-ink wrap-anywhere">{necesidad.necesidad_nombre}</h3>
           <p className="text-sm text-ink-2 wrap-anywhere">{necesidad.envejeciente_nombre}</p>
@@ -211,7 +211,7 @@ function Responsables({ base, token, adulto, inicial }: Pick<OperacionProps, 'ba
   const disponibles = consulta.datos?.data ?? []
   const opciones = responsable && !disponibles.some((item) => item.usuario_id === responsable.usuario_id)
     ? [responsable, ...disponibles] : disponibles
-  return <div className="grid gap-2">
+  return <div className="grid grid-cols-1 gap-2">
     <Estado consulta={consulta} />
     <SelectField label="Responsable (opcional)" name="responsable" value={responsable?.usuario_id ?? ''}
       onChange={(event) => fijar(opciones.find((item) => item.usuario_id === event.currentTarget.value))}
@@ -226,7 +226,7 @@ function Indicaciones({ base, token, adulto }: Pick<OperacionProps, 'base' | 'to
   const disponibles = consulta.datos?.data ?? []
   const opciones = indicacion && !disponibles.some((item) => item.indicacion_medica_id === indicacion.indicacion_medica_id)
     ? [indicacion, ...disponibles] : disponibles
-  return <div className="grid gap-2">
+  return <div className="grid grid-cols-1 gap-2">
     <Estado consulta={consulta} />
     <SelectField label="Indicación médica (opcional)" name="indicacion" value={indicacion?.indicacion_medica_id ?? ''}
       onChange={(event) => fijar(opciones.find((item) => item.indicacion_medica_id === event.currentTarget.value))}
@@ -349,7 +349,7 @@ function RegistrarNecesidad({ base, token, cuenta, cola, adultoId, cancelar, reg
     <details className="rounded-sm border border-line-soft px-3 sm:col-span-2"
       onInvalid={(event) => { event.currentTarget.open = true }}>
       <summary className="min-h-12 cursor-pointer py-3 font-semibold">Datos opcionales</summary>
-      <div className="grid gap-3 pb-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2">
         <TextField label="Cantidad (opcional)" type="number" value={cantidad} step="any" inputMode="decimal"
           hint="Si indicas una cantidad, selecciona su unidad."
           onChange={(event) => {
@@ -388,8 +388,8 @@ function ListaNecesidades({ base, token, adultoId, abrir, revision }: Pick<Opera
     },
   })
 
-  return <section className="grid gap-3" aria-label="Listado de necesidades">
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  return <section className="grid grid-cols-1 gap-3" aria-label="Listado de necesidades">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <SelectField label="Estado de la necesidad" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
         options={[{ value: 'activas', label: 'Activas' }, { value: '', label: 'Todos los estados' }, ...OPCIONES_ESTADO]} />
       <SelectField label="Tipo de necesidad" value={tipo} onChange={(event) => fijarTipo(event.currentTarget.value)}
@@ -400,7 +400,7 @@ function ListaNecesidades({ base, token, adultoId, abrir, revision }: Pick<Opera
         options={[{ value: '-fecha_necesidad', label: 'Más recientes primero' }, { value: 'prioridad', label: 'Mayor prioridad primero' }]} />
     </div>
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin necesidades que coincidan con los filtros.' : undefined} />
-    {!!consulta.datos?.data.length && <ul className="grid gap-3 lg:grid-cols-2">
+    {!!consulta.datos?.data.length && <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {consulta.datos.data.map((necesidad) => <li key={necesidad.envejeciente_necesidad_id} className="min-w-0">
         <TarjetaNecesidad necesidad={necesidad} abrir={() => abrir(necesidad)} />
       </li>)}
@@ -440,11 +440,11 @@ export function Necesidades({ adultoId, adultoActivo, cola, ...props }: Operacio
     destino?.scrollIntoView({ block: 'nearest' })
   }, [vista])
 
-  return <section className="grid gap-3">
-    {(pendientes.length > 0 || mensaje) && <div className="grid gap-2 rounded-sm border border-blue bg-blue-100 p-3">
+  return <section className="grid grid-cols-1 gap-3">
+    {(pendientes.length > 0 || mensaje) && <div className="grid grid-cols-1 gap-2 rounded-sm border border-blue bg-blue-100 p-3">
       <p role="status" className="text-sm font-semibold">{pendientes.length} necesidad(es) pendiente(s) de sincronización. {mensaje}</p>
       {pendientes.length > 0 && <>
-        <p className="text-sm">Las capturas se conservan mientras esta pestaña siga abierta.</p>
+        <p className="text-sm wrap-anywhere">Las capturas se conservan mientras esta pestaña siga abierta.</p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" disabled={!enLinea} onClick={() => cola.reintentar(cuenta.cuenta_id, 'necesidad')}>Reintentar sincronización</Button>
           {pendientes.some((captura) => captura.rechazada) && <Button size="sm" variant="outline" onClick={() => cola.quitarRechazadas(cuenta.cuenta_id, 'necesidad')}>Descartar capturas rechazadas</Button>}
@@ -456,10 +456,10 @@ export function Necesidades({ adultoId, adultoActivo, cola, ...props }: Operacio
         Registrar necesidad
       </Button>}
       {puedeRegistrar && !enLinea && !puedeRegistrarOffline &&
-        <p className="text-sm text-ink-2">Conéctate para consultar expedientes y catálogos antes de registrar sin conexión.</p>}
+        <p className="text-sm text-ink-2 wrap-anywhere">Conéctate para consultar expedientes y catálogos antes de registrar sin conexión.</p>}
       <ListaNecesidades base={base} token={token} adultoId={adultoId} abrir={abrir} revision={revision} />
     </div>
-    {vista !== 'lista' && <div ref={panel} tabIndex={-1} className="grid gap-3 outline-none">
+    {vista !== 'lista' && <div ref={panel} tabIndex={-1} className="grid grid-cols-1 gap-3 outline-none">
       {registrar && puedeRegistrar && <RegistrarNecesidad {...props} cola={cola} adultoId={adultoId}
         adultos={adultos} tipos={tipos} items={items} prioridades={prioridades}
         cancelar={() => mostrarRegistro(false)} registrada={(nueva) => {

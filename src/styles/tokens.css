@@ -13,6 +13,7 @@
   --c-blue: #378add;          /* acento / bordes de iconos */
   --c-blue-bright: #3b8de0;
   --c-blue-100: #e6f1fb;      /* fondos suaves azules, texto sobre navy */
+  --c-blue-principal: #003f9e; /* rediseño: marca/azul-principal */
   --c-teal: #14a085;          /* acciones positivas / en línea */
   --c-teal-100: #e1f5ee;      /* botones "soft" verdes */
   --c-green: #1d9e75;
@@ -47,6 +48,8 @@
   --grad-auth: linear-gradient(180deg, #1f6fd0 0%, #14a085 100%);
   --grad-splash: linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%);
   --grad-success: linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%);
+  --grad-encabezado: linear-gradient(180deg, #378add 0%, #0c3b6e 100%);
+  --grad-encabezado-verde: linear-gradient(180deg, #378add 0%, #14a085 100%);
 
   /* Tipografía */
   --font: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

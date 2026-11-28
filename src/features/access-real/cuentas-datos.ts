@@ -48,3 +48,15 @@ export const puedeGestionarMiembros = (cuenta: CuentaMe | undefined) =>
  */
 export const recibeAvisosDeAlertas = (cuenta: Pick<CuentaMe, 'rol' | 'tipo'>) =>
   cuenta.rol === 'coordinador' || (cuenta.tipo === 'organizacion' && cuenta.rol === 'administrador')
+
+/** Administrador y Coordinador con acceso operativo ven el panel de gestión en Inicio (Figma «Inicio v3»), sin bloques de cuenta. */
+export const tienePanelGestion = (cuenta: Pick<CuentaMe, 'rol' | 'acceso_operativo'>) =>
+  (cuenta.rol === 'administrador' || cuenta.rol === 'coordinador') && cuenta.acceso_operativo === true
+
+/**
+ * Los datos de la cuenta y los perfiles de cuidador salen de Inicio en el panel de gestión. Quien puede configurar la cuenta
+ * los encuentra en Configuración («Organización»); quien no (p. ej. un Coordinador de Organización) los encuentra en
+ * «Datos de cuenta», una entrada propia de «Más» y del menú lateral.
+ */
+export const datosCuentaAparte = (cuenta: Pick<CuentaMe, 'rol' | 'acceso_operativo' | 'permisos'>) =>
+  tienePanelGestion(cuenta) && !cuenta.permisos.includes('organizacion:configurar')

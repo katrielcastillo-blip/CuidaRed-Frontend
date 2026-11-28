@@ -1,33 +1,35 @@
 /*
  * Display.tsx — Componentes de presentación: Badge, RiesgoBadge, Avatar, Card, LinkCard, IconTile,
- * StatTile, Datum, InfoRow, Segmented, Chip, EmptyState, Spinner, StepBar, HelpTip.
+ * StatTile, Datum, InfoRow, Segmented, Chip, EmptyState, Spinner, StepBar, ProgresoRegistro, HelpTip.
  * Módulo: kit de componentes UI.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleCheck, CircleHelp, Diamond, TriangleAlert, UserRound } from 'lucide-react'
+import { ArrowRight, CircleCheck, Diamond, TriangleAlert } from 'lucide-react'
 import type { Riesgo } from '@/domain/types'
 import { cn } from '@/lib/cn'
+import { Icono, type NombreIcono } from './Icono'
 
 /* ───────────── Badge ───────────── */
 export type Tone = 'danger' | 'warning' | 'success' | 'info' | 'neutral' | 'navy'
 
-// Combinaciones con contraste WCAG AA (≥ 4.5:1) para texto de 10–12 px.
+// Figma «Chip»: Alta (danger) · Media (warning) · Baja (success) · Info · Neutro. Fondo pálido, borde de color y texto con
+// contraste WCAG AA (≥ 4.5:1) para 12 px (el ámbar y el verde llevan texto oscuro; el gris, ink-2 en vez de #64748B).
 const TONOS: Record<Tone, string> = {
-  danger: 'bg-danger text-white',
-  warning: 'bg-warning-700 text-white',
-  success: 'bg-success-700 text-white',
-  info: 'bg-info-100 text-navy border border-blue',
-  neutral: 'bg-surface-2 text-ink-2',
-  navy: 'bg-navy text-blue-100',
+  danger: 'bg-danger-100 border-danger text-danger',
+  warning: 'bg-warning-100 border-warning text-ink',
+  success: 'bg-teal-100 border-teal text-ink',
+  info: 'bg-blue-100 border-blue-principal text-blue-principal',
+  neutral: 'bg-surface-2 border-surface-2 text-ink-2',
+  navy: 'bg-navy border-navy text-blue-100',
 }
 
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
     <span
       className={cn(
-        'relative inline-flex items-center gap-1 px-2 py-0.5 rounded-xl text-[10px] font-bold tracking-[0.02em] uppercase leading-[15px] whitespace-nowrap',
+        'relative inline-flex items-center gap-1 px-2.5 py-1 rounded-pill border text-etiqueta uppercase whitespace-nowrap',
         TONOS[tone],
         className,
       )}
@@ -41,17 +43,21 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
  * Nivel de riesgo con color Y forma (SRS §18.4): se reconoce sin leer el texto.
  *   ALTO = triángulo rojo · MEDIO = rombo ámbar · BAJO = círculo verde.
  */
-export const RIESGO_VISUAL: Record<Riesgo, { tone: Tone; label: string; Icono: typeof TriangleAlert; color: string }> = {
-  alto: { tone: 'danger', label: 'ALTO', Icono: TriangleAlert, color: 'text-riesgo-alto' },
-  medio: { tone: 'warning', label: 'MEDIO', Icono: Diamond, color: 'text-riesgo-medio' },
-  bajo: { tone: 'success', label: 'BAJO', Icono: CircleCheck, color: 'text-riesgo-bajo' },
+// `Icono` (Lucide) se conserva solo por compatibilidad con pantallas que aún lo usan; el kit usa `icono` (Material).
+export const RIESGO_VISUAL: Record<
+  Riesgo,
+  { tone: Tone; label: string; Icono: typeof TriangleAlert; icono: NombreIcono; color: string }
+> = {
+  alto: { tone: 'danger', label: 'ALTO', Icono: TriangleAlert, icono: 'warning', color: 'text-riesgo-alto' },
+  medio: { tone: 'warning', label: 'MEDIO', Icono: Diamond, icono: 'diamond', color: 'text-riesgo-medio' },
+  bajo: { tone: 'success', label: 'BAJO', Icono: CircleCheck, icono: 'check_circle', color: 'text-riesgo-bajo' },
 }
 
 export function RiesgoBadge({ riesgo }: { riesgo: Riesgo }) {
   const r = RIESGO_VISUAL[riesgo]
   return (
     <Badge tone={r.tone}>
-      <r.Icono size={11} strokeWidth={3} aria-hidden />
+      <Icono nombre={r.icono} tamano={14} />
       <span>
         <span className="sr-only">Riesgo </span>
         {r.label}
@@ -61,7 +67,8 @@ export function RiesgoBadge({ riesgo }: { riesgo: Riesgo }) {
 }
 
 /* ───────────── Avatar ───────────── */
-export function Avatar({ nombre, src, size = 44, ring }: { nombre: string; src?: string; size?: number; ring?: boolean }) {
+/** Avatar con iniciales. Figma: Pequeño 40 px · Grande 72 px (las demás medidas escalan la letra). */
+export function Avatar({ nombre, src, size = 40, ring }: { nombre: string; src?: string; size?: number; ring?: boolean }) {
   const initials = nombre
     .split(' ')
     .filter(Boolean)
@@ -71,10 +78,10 @@ export function Avatar({ nombre, src, size = 44, ring }: { nombre: string; src?:
   return (
     <span
       className={cn(
-        'inline-grid place-items-center flex-none rounded-full bg-blue-100 text-navy font-bold overflow-hidden',
-        ring && 'border-[3px] border-white shadow-2',
+        'inline-grid place-items-center flex-none rounded-full bg-blue-100 text-navy font-semibold overflow-hidden border-2 border-blue',
+        ring && 'border-white border-[3px] shadow-2',
       )}
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      style={{ width: size, height: size, fontSize: size >= 64 ? 20 : Math.max(12, Math.round(size * 0.4)) }}
       aria-hidden={!src ? undefined : true}
     >
       {src ? <img src={src} alt="" className="size-full object-cover" /> : initials}
@@ -128,7 +135,7 @@ export function IconTile({ children, size = 48 }: { children?: ReactNode; size?:
       className="inline-grid place-items-center flex-none rounded-md bg-blue-100 border border-blue text-navy"
       style={{ width: size, height: size }}
     >
-      {children ?? <UserRound size={size * 0.5} aria-hidden />}
+      {children ?? <Icono nombre="person" tamano={Math.round(size * 0.5)} />}
     </span>
   )
 }
@@ -221,12 +228,19 @@ export function Chip({ active, children, onClick }: { active?: boolean; children
 }
 
 /* ───────────── Estados ───────────── */
-export function EmptyState({ title, text, action }: { title: string; text?: string; action?: ReactNode }) {
+/**
+ * Patrón «lista vacía» (Figma 10): tarjeta blanca con ícono en círculo azul, título, texto de ayuda y, si aplica,
+ * el botón de la acción que llena la lista. El ícono es decorativo; el mensaje lo dan el título y el texto.
+ */
+export function EmptyState({ title, text, action, icono = 'inbox', className }: { title: string; text?: string; action?: ReactNode; icono?: NombreIcono; className?: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-      <p className="font-bold text-lg">{title}</p>
-      {text && <p className="text-muted">{text}</p>}
-      {action}
+    <div className={cn('flex flex-col items-center gap-3 rounded-2xl bg-surface px-6 py-8 text-center shadow-1', className)}>
+      <span className="grid size-[72px] flex-none place-items-center rounded-full bg-blue-100 text-blue-principal" aria-hidden>
+        <Icono nombre={icono} tamano={36} />
+      </span>
+      <p className="text-tarjeta font-semibold text-ink wrap-anywhere">{title}</p>
+      {text && <p className="max-w-prose text-cuerpo text-muted wrap-anywhere">{text}</p>}
+      {action && <div className="mt-2 flex w-full max-w-sm flex-col [&>*]:w-full">{action}</div>}
     </div>
   )
 }
@@ -241,11 +255,14 @@ export function Spinner() {
   )
 }
 
-/** Barra de progreso de pasos (Registro 1/2). */
-export function StepBar({ step, total }: { step: number; total: number }) {
+/**
+ * Barra de progreso de pasos segmentada (un segmento por paso, 6 px, azul principal / gris). Es un `progressbar`
+ * accesible; el texto «Paso X de N» lo pone el formulario (o usa `ProgresoRegistro`, que lo incluye).
+ */
+export function StepBar({ step, total, className }: { step: number; total: number; className?: string }) {
   return (
     <div
-      className="h-1 rounded-sm bg-surface-2 overflow-hidden"
+      className={cn('flex gap-1.5 overflow-hidden', className)}
       role="progressbar"
       aria-label={`Paso ${step} de ${total}`}
       aria-valuemin={1}
@@ -253,7 +270,21 @@ export function StepBar({ step, total }: { step: number; total: number }) {
       aria-valuenow={step}
       aria-valuetext={`Paso ${step} de ${total}`}
     >
-      <span className="block h-full bg-navy rounded-sm transition-[width] duration-200" style={{ width: `${(step / total) * 100}%` }} />
+      {Array.from({ length: total }, (_, i) => (
+        <span key={i} className={cn('h-1.5 min-w-px flex-1 rounded-[3px] transition-colors duration-200', i < step ? 'bg-blue-principal' : 'bg-surface-2')} />
+      ))}
+    </div>
+  )
+}
+
+/** Figma «Progreso del registro»: texto «Paso X de N» (14 px, gris) y barra segmentada. */
+export function ProgresoRegistro({ paso, total, className }: { paso: number; total: number; className?: string }) {
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <p className="text-ayuda text-muted" aria-live="polite">
+        Paso {paso} de {total}
+      </p>
+      <StepBar step={paso} total={total} />
     </div>
   )
 }
@@ -298,7 +329,7 @@ export function HelpTip({ children, label = 'Ayuda' }: { children: ReactNode; la
           setAbierto(false)
         }}
       >
-        <CircleHelp size={20} aria-hidden />
+        <Icono nombre="help" tamano={24} />
       </button>
       <span
         ref={burbuja}

@@ -37,7 +37,7 @@ function Autorizar({ base, token, solicitud, cerrar, guardar }: Pick<OperacionPr
       { name: 'fecha', label: 'Fecha autorizada', type: 'date', min: hoy, value: solicitud.fecha_propuesta >= hoy ? solicitud.fecha_propuesta : hoy },
       { name: 'hora', label: 'Hora autorizada', type: 'time', value: solicitud.hora_propuesta },
     ]} enviar={guardar}>
-    <div className="grid gap-3 sm:col-span-2">
+    <div className="grid grid-cols-1 gap-3 sm:col-span-2">
       <Estado consulta={adultos} vacio={adultos.datos?.data.length === 0 ? 'Sin adultos activos disponibles.' : undefined} />
       {adultos.datos && <>
         <SelectField name="envejeciente" label="Expediente del adulto" placeholder="Selecciona el expediente" required
@@ -72,7 +72,7 @@ export function SolicitudesVisita({ base, token }: OperacionProps) {
     avisar(accion === 'autorizar' ? 'Solicitud autorizada y visita programada.' : 'Solicitud rechazada.')
     actualizar((n) => n + 1)
   }
-  return <section className="grid gap-3" aria-label="Bandeja interna de solicitudes">
+  return <section className="grid grid-cols-1 gap-3" aria-label="Bandeja interna de solicitudes">
     <div className="max-w-sm">
       <SelectField label="Estado de la solicitud" value={filtro} onChange={(event) => { setFiltro(event.currentTarget.value); cerrar() }}
         options={[{ value: '', label: 'Todos los estados' }, ...Object.entries(ESTADOS).map(([value, label]) => ({ value, label }))]} />
@@ -81,13 +81,13 @@ export function SolicitudesVisita({ base, token }: OperacionProps) {
     <Estado consulta={listado} vacio={listado.datos?.data.length === 0 ? 'Sin solicitudes en este estado.' : undefined} />
     {listado.datos?.data.map((solicitud) => {
       const id = solicitud.solicitud_visita_id
-      return <Card key={id} className="grid gap-3">
+      return <Card key={id} className="grid grid-cols-1 gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold wrap-anywhere">{solicitud.persona_a_visitar}</h2>
           <Badge tone={solicitud.estado === 'pendiente' ? 'warning' : 'neutral'}>{ESTADOS[solicitud.estado]}</Badge>
         </div>
         <p className="text-sm wrap-anywhere">Solicitante · {solicitud.visitante.nombres} {solicitud.visitante.apellidos}</p>
-        <p className="text-sm">Horario propuesto · {fechaCorta(solicitud.fecha_propuesta)}, {hhmmA12(solicitud.hora_propuesta)}</p>
+        <p className="text-sm wrap-anywhere">Horario propuesto · {fechaCorta(solicitud.fecha_propuesta)}, {hhmmA12(solicitud.hora_propuesta)}</p>
         <p className="text-sm wrap-anywhere">{solicitud.motivo}</p>
         {solicitud.motivo_rechazo && <p className="text-sm wrap-anywhere">Rechazo · {solicitud.motivo_rechazo}</p>}
         {solicitud.estado === 'pendiente' && gestion?.id !== id && <div className="flex flex-wrap gap-2">

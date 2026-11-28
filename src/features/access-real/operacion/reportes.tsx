@@ -79,7 +79,7 @@ function TablaDatos({ tabla, etiqueta, raiz, id }: { tabla: TablaReporte; etique
   const [visibles, setVisibles] = useState(FILAS_POR_TRAMO)
   const { columnas, filas } = tabla
   const mostradas = filas.slice(0, visibles)
-  return <section className="grid min-w-0 gap-3" aria-labelledby={id}>
+  return <section className="grid grid-cols-1 min-w-0 gap-3" aria-labelledby={id}>
     <h3 id={id} className="text-lg font-bold">{tabla.titulo} <span className="text-sm font-normal text-muted">({filas.length.toLocaleString('es-DO')})</span></h3>
     {filas.length === 0 ? <p role="status" className="rounded-md border border-line-soft bg-surface p-4 text-sm text-ink-2">Sin filas para mostrar.</p>
       : <div className="relative overflow-x-auto rounded-md bg-surface shadow-1" tabIndex={0} role="region" aria-label={`${etiqueta}: desplázate horizontalmente si no ves todas las columnas`}>
@@ -117,12 +117,12 @@ function TablaDatos({ tabla, etiqueta, raiz, id }: { tabla: TablaReporte; etique
 
 function Bloqueo({ titulo, texto, cuenta, raiz, id }: { titulo: string; texto: string; cuenta: OperacionProps['cuenta']; raiz: string; id: string }) {
   const prueba = cuenta.estado_suscripcion === 'prueba'
-  return <section className="grid gap-3 rounded-md border border-dashed border-line bg-surface p-4" aria-labelledby={id} data-testid="bloqueo-plan">
+  return <section className="grid grid-cols-1 gap-3 rounded-md border border-dashed border-line bg-surface p-4" aria-labelledby={id} data-testid="bloqueo-plan">
     <div className="flex items-center gap-3">
       <span className="grid size-10 flex-none place-items-center rounded-full bg-warning-100 text-warning-700" aria-hidden><Lock size={20} /></span>
       <h2 id={id} className="font-semibold text-ink">{titulo}</h2>
     </div>
-    <p className="text-sm text-ink-2">{texto}{prueba ? ' Tu cuenta está en prueba gratuita y esta funcionalidad no forma parte de ella.' : ''}</p>
+    <p className="text-sm text-ink-2 wrap-anywhere">{texto}{prueba ? ' Tu cuenta está en prueba gratuita y esta funcionalidad no forma parte de ella.' : ''}</p>
     {cuenta.permisos.includes('cuenta:suscripcion') && <div><Link to={`${raiz}/suscripcion`} className="inline-flex min-h-12 items-center font-semibold text-navy underline underline-offset-2">Ver la suscripción de la cuenta</Link></div>}
   </section>
 }
@@ -156,7 +156,7 @@ function SeccionAvanzada({ base, token, cuenta, filtros, revision, enLinea, ocup
   const listo = !!datos && enLinea && ocupado === null
   return <>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="max-w-prose text-sm text-ink-2">Comparativo por sector y por municipio, y tendencias mensuales de los adultos mayores que cumplen los filtros de ubicación y riesgo.</p>
+      <p className="max-w-prose text-sm text-ink-2 wrap-anywhere">Comparativo por sector y por municipio, y tendencias mensuales de los adultos mayores que cumplen los filtros de ubicación y riesgo.</p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Exportar el análisis avanzado">
         <Button size="sm" variant="outline" icon={<FileText size={18} aria-hidden />} disabled={!listo} loading={ocupado === 'avanzado-pdf'} onClick={() => exportar('pdf')}>Análisis en PDF</Button>
         <Button size="sm" variant="outline" icon={<FileSpreadsheet size={18} aria-hidden />} disabled={!listo} loading={ocupado === 'avanzado-xlsx'} onClick={() => exportar('xlsx')}>Análisis en Excel</Button>
@@ -169,7 +169,7 @@ function SeccionAvanzada({ base, token, cuenta, filtros, revision, enLinea, ocup
         {avanzadoSinVisitas(datos) && <p role="note" className="rounded-md bg-surface-2 p-3 text-sm text-ink-2" data-testid="aviso-sin-visitas">
           Las visitas no se muestran porque Visitas no está disponible para tu rol o para este tipo de cuenta.
         </p>}
-        <div className="grid gap-4 md:grid-cols-2 md:items-start">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
           {!analisis.zonas.vacio && <PanelGrafico g={analisis.zonas.grafico} enLinea={enLinea} />}
           {!analisis.tendencias.vacio && <PanelGrafico g={analisis.tendencias.grafico} enLinea={enLinea} />}
         </div>
@@ -245,13 +245,13 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
 
   const listo = !!datos && enLinea && ocupado === null
   const hayCategoria = tipo === 'necesidades'
-  return <section className="grid gap-5" aria-label="Reportes y estadísticas">
+  return <section className="grid grid-cols-1 gap-5" aria-label="Reportes y estadísticas">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <p className="max-w-prose text-sm text-ink-2">Consulta indicadores y gráficos de los adultos mayores de la cuenta, con filtros por período, ubicación y riesgo. Los reportes no incluyen cédula, teléfono ni dirección.</p>
+      <p className="max-w-prose text-sm text-ink-2 wrap-anywhere">Consulta indicadores y gráficos de los adultos mayores de la cuenta, con filtros por período, ubicación y riesgo. Los reportes no incluyen cédula, teléfono ni dirección.</p>
       <Button variant="outline" size="sm" icon={<RefreshCw size={18} aria-hidden />} onClick={() => setRevision((n) => n + 1)}>Actualizar</Button>
     </div>
 
-    <section className="grid gap-2" aria-labelledby="tipo-reporte">
+    <section className="grid grid-cols-1 gap-2" aria-labelledby="tipo-reporte">
       <h2 id="tipo-reporte" className="text-base font-semibold text-ink">Tipo de reporte</h2>
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4" role="radiogroup" aria-labelledby="tipo-reporte">
         {TIPOS_REPORTE.filter((t) => disponibles.includes(t.value)).map((t) => {
@@ -266,8 +266,8 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
       </div>
     </section>
 
-    <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-3 sm:p-4" aria-label="Filtros del reporte">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="grid grid-cols-1 gap-3 rounded-md border border-line-soft bg-surface p-3 sm:p-4" aria-label="Filtros del reporte">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SelectField label="Período" value={seleccion.rango} onChange={(event) => set('rango', event.currentTarget.value as Rango)} options={RANGOS} />
         <SelectField label="Municipio" value={seleccion.municipio} onChange={(event) => set('municipio', event.currentTarget.value)}
           options={[{ value: '', label: 'Todos' }, ...opciones.municipios]} />
@@ -285,19 +285,19 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
       {ubicaciones.error && <EstadoConsulta consulta={ubicaciones} />}
       {errorFechas && <p role="status" className="text-sm text-ink-2">Corrige el período para consultar y exportar reportes.</p>}
       {tipo === 'visitas' && (seleccion.municipio || seleccion.zona || seleccion.riesgo) &&
-        <p className="text-sm text-ink-2">Las visitas institucionales sin expediente se incluyen al filtrar solo por período.</p>}
+        <p className="text-sm text-ink-2 wrap-anywhere">Las visitas institucionales sin expediente se incluyen al filtrar solo por período.</p>}
       {hayFiltros(seleccion) && <div><Button variant="ghost" size="sm" onClick={() => setSeleccion(SELECCION_INICIAL)}>Quitar filtros</Button></div>}
     </section>
 
     {filtros && <EstadoConsulta consulta={consulta} />}
-    {datos && reporte && <section className="grid min-w-0 gap-5" aria-labelledby="titulo-reporte" aria-live="polite">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    {datos && reporte && <section className="grid grid-cols-1 min-w-0 gap-5" aria-labelledby="titulo-reporte" aria-live="polite">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div className="min-w-0">
           <h2 id="titulo-reporte" className="text-xl font-bold text-navy">{reporte.titulo}</h2>
-          <p className="text-sm text-ink-2">{reporte.descripcion}</p>
-          <p className="text-xs text-muted">{filtrosTexto.join(' · ')} · Datos generados el <time dateTime={datos.generado_en}>{fechaHora(datos.generado_en)}</time></p>
+          <p className="text-sm text-ink-2 wrap-anywhere">{reporte.descripcion}</p>
+          <p className="text-xs text-muted wrap-anywhere">{filtrosTexto.join(' · ')} · Datos generados el <time dateTime={datos.generado_en}>{fechaHora(datos.generado_en)}</time></p>
         </div>
-        <div className="grid gap-2 xl:justify-items-end">
+        <div className="grid grid-cols-1 gap-2 xl:justify-items-end">
           <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap [&_button]:whitespace-nowrap" role="group" aria-label="Exportar el reporte">
             <Button size="sm" variant="outline" icon={<FileDown size={18} aria-hidden />} disabled={!listo} loading={ocupado === 'csv'} onClick={descargar}>Descargar CSV</Button>
             <Button size="sm" variant="outline" icon={<FileText size={18} aria-hidden />} disabled={!listo} loading={ocupado === 'pdf'} onClick={() => exportar('pdf')}>Exportar PDF</Button>
@@ -314,26 +314,26 @@ function ReportesActivos({ base, token, cuenta, planAvanzado }: OperacionProps &
 
       {reporte.vacio ? <div className="flex flex-col items-center gap-3 rounded-md bg-surface px-4 py-10 text-center shadow-1" role="status">
         <SearchX size={40} className="text-muted" aria-hidden />
-        <p className="text-lg font-bold">{SIN_DATOS}</p>
-        <p className="text-sm text-muted">Prueba con otro período o quita algún filtro.</p>
+        <p className="text-lg font-bold wrap-anywhere">{SIN_DATOS}</p>
+        <p className="text-sm text-muted wrap-anywhere">Prueba con otro período o quita algún filtro.</p>
       </div> : <>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]" data-testid="indicadores-reporte">
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]" data-testid="indicadores-reporte">
           {reporte.kpis.map((kpi) => <article key={kpi.etiqueta} className="flex min-w-0 flex-col gap-1 rounded-md bg-surface p-4 shadow-1">
-            <h3 className="text-sm font-normal leading-tight text-ink-2">{kpi.etiqueta}</h3>
-            <p className={cn('break-words font-bold leading-tight', typeof kpi.valor === 'string' && kpi.valor.length > 6 ? 'text-xl' : 'text-[28px]', kpi.peligro ? 'text-danger' : 'text-ink')}>
+            <h3 className="text-sm font-normal leading-tight text-ink-2 wrap-anywhere">{kpi.etiqueta}</h3>
+            <p className={cn('wrap-anywhere font-bold leading-tight', typeof kpi.valor === 'string' && kpi.valor.length > 6 ? 'text-xl' : 'text-[28px]', kpi.peligro ? 'text-danger' : 'text-ink')}>
               {typeof kpi.valor === 'number' ? kpi.valor.toLocaleString('es-DO') : kpi.valor}
             </p>
-            {kpi.nota && <p className="text-xs text-muted">{kpi.nota}</p>}
+            {kpi.nota && <p className="text-xs text-muted wrap-anywhere">{kpi.nota}</p>}
           </article>)}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 md:items-start">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
           {reporte.graficos.map((g) => <PanelGrafico key={`${tipo}-${g.id}`} g={g} enLinea={enLinea} />)}
         </div>
         <TablaDatos key={`${tipo}-${datos.generado_en}`} tabla={reporte.tabla} etiqueta={reporte.tabla.titulo} raiz={raiz} id="tabla-reporte" />
       </>}
     </section>}
 
-    {filtros && <section className="grid min-w-0 gap-4" aria-labelledby="titulo-avanzado" data-testid="analisis-avanzado">
+    {filtros && <section className="grid grid-cols-1 min-w-0 gap-4" aria-labelledby="titulo-avanzado" data-testid="analisis-avanzado">
       <h2 id="titulo-avanzado" className="text-xl font-bold text-navy">Análisis avanzado</h2>
       {planAvanzado
         ? <SeccionAvanzada base={base} token={token} cuenta={cuenta} filtros={filtros} revision={revision} enLinea={enLinea} ocupado={ocupado} ejecutar={ejecutar} nombresFiltro={nombresFiltro} />

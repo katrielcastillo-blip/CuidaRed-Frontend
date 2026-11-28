@@ -28,9 +28,9 @@ const capacidad = (limite: number | null, grupo: string) => limite === null ? `$
 const CODIGO_AVANZADA = 'gestion_comunitaria_avanzada'
 
 function CuposCotizados({ limites, titulo = 'Cupos de la cotización' }: { limites: OfertaSuscripcion['limites']; titulo?: string }) {
-  return <div className="grid gap-1 rounded-sm border border-line-soft bg-surface p-3">
-    <p className="text-sm font-semibold text-ink">{titulo}</p>
-    <ul aria-label={titulo} className="grid gap-1 text-sm text-ink-2">
+  return <div className="grid grid-cols-1 gap-1 rounded-sm border border-line-soft bg-surface p-3">
+    <p className="text-sm font-semibold text-ink wrap-anywhere">{titulo}</p>
+    <ul aria-label={titulo} className="grid grid-cols-1 gap-1 text-sm text-ink-2">
       <li>{capacidad(limites.envejecientes, 'Adultos mayores')}</li>
       <li>{capacidad(limites.usuarios, 'Integrantes del equipo')}</li>
       {limites.cuidadores !== undefined && <li>{capacidad(limites.cuidadores, 'Cuidadores')}</li>}
@@ -40,7 +40,7 @@ function CuposCotizados({ limites, titulo = 'Cupos de la cotización' }: { limit
 }
 
 function DatoSuscripcion({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return <div className="grid min-w-0 gap-0.5">
+  return <div className="grid grid-cols-1 min-w-0 gap-0.5">
     <dt className="text-xs text-ink-2">{etiqueta}</dt>
     <dd className="wrap-anywhere font-semibold text-ink">{valor}</dd>
   </div>
@@ -66,7 +66,7 @@ const estadoCotizacion: Record<Exclude<CotizacionSuscripcion['estado'], 'sin_cot
   cotizada: { texto: 'Cotización disponible', tono: 'success' },
 }
 
-const TARJETA = 'grid min-w-0 gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5'
+const TARJETA = 'grid grid-cols-1 min-w-0 gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5'
 const TITULO = 'text-lg font-semibold text-ink'
 
 const CICLOS: { value: OfertaSuscripcion['periodicidad']; label: string }[] = [
@@ -148,14 +148,14 @@ function TarjetaPlan({ plan, tipo, gestion, cotizaciones, titular, enLinea, ocup
   const varianteAviso = variantes.find(({ codigo }) => codigo === avisoPlan?.codigo)
 
   return <article aria-labelledby={titulo} className="flex h-full min-w-0 flex-col gap-4 rounded-md border border-line-soft bg-surface p-4 sm:p-5">
-    <div className="grid min-w-0 gap-1.5">
+    <div className="grid grid-cols-1 min-w-0 gap-1.5">
       <div className="flex flex-wrap items-center gap-2">
         <h3 id={titulo} className="wrap-anywhere text-lg font-semibold text-navy">{plan.nombre}</h3>
         {actual && <Badge tone="info">Plan actual</Badge>}
       </div>
-      {descripciones[plan.codigo] && <p className="text-sm text-ink-2">{descripciones[plan.codigo]}</p>}
+      {descripciones[plan.codigo] && <p className="text-sm text-ink-2 wrap-anywhere">{descripciones[plan.codigo]}</p>}
     </div>
-    <ul className="grid gap-2 text-sm text-ink">
+    <ul className="grid grid-cols-1 gap-2 text-sm text-ink">
       {beneficios.map((beneficio) => <li key={beneficio} className="flex items-start gap-2">
         <Check aria-hidden="true" size={16} className="mt-0.5 shrink-0 text-navy" />
         <span>{beneficio}</span>
@@ -163,20 +163,20 @@ function TarjetaPlan({ plan, tipo, gestion, cotizaciones, titular, enLinea, ocup
     </ul>
     <div className="mt-auto grid gap-3 rounded-sm border border-line-soft bg-surface-2 p-3">
       <ChoicePills label="Periodicidad" options={CICLOS} value={periodicidad} onChange={elegirCiclo} />
-      <div className="grid gap-1" aria-live="polite">
+      <div className="grid grid-cols-1 gap-1" aria-live="polite">
         {pagoEnCurso && <div><Badge tone="warning">Pago iniciado</Badge></div>}
         {cambioEnCurso && <div><Badge tone="warning">Cambio en curso</Badge></div>}
         {estado && <div><Badge tone={estado.tono}>{estado.texto}</Badge></div>}
         {precio === undefined
-          ? <p className="text-sm font-semibold text-navy">{cotizacion?.estado === 'solicitada'
+          ? <p className="text-sm font-semibold text-navy wrap-anywhere">{cotizacion?.estado === 'solicitada'
             ? 'Verás el precio y los cupos cuando publiquen la cotización.'
             : cotizado ? 'Precio y cupos por cotización' : 'Tarifa pendiente de publicación'}</p>
           : <p className="wrap-anywhere text-lg font-bold text-navy">{monto(precio, oferta?.moneda ?? cotizacion?.moneda ?? 'USD')} por {periodo({ periodicidad })}</p>}
-        {!oferta && plan.precios_referencia && <p className="text-sm text-ink-2">Precio de referencia, pendiente de publicación.</p>}
-        {actual && actual.periodicidad !== periodicidad && <p className="text-sm text-ink-2">
+        {!oferta && plan.precios_referencia && <p className="text-sm text-ink-2 wrap-anywhere">Precio de referencia, pendiente de publicación.</p>}
+        {actual && actual.periodicidad !== periodicidad && <p className="text-sm text-ink-2 wrap-anywhere">
           Facturación actual: {actual.periodicidad}.
         </p>}
-        {actual && oferta && !oferta.actual && !oferta.en_curso && actual.periodicidad === periodicidad && <p className="text-sm text-ink-2">
+        {actual && oferta && !oferta.actual && !oferta.en_curso && actual.periodicidad === periodicidad && <p className="text-sm text-ink-2 wrap-anywhere">
           Esta es una nueva oferta. Consulta las condiciones vigentes en el estado de la suscripción.
         </p>}
       </div>
@@ -203,21 +203,21 @@ function PlanesCuenta({ catalogo, consultaCotizaciones, tipo, consultarPlanes, c
   consultandoPlanes: boolean
 }) {
   const organizacion = tipo === 'organizacion'
-  return <section aria-labelledby="planes-suscripcion" className="grid min-w-0 gap-3">
+  return <section aria-labelledby="planes-suscripcion" className="grid grid-cols-1 min-w-0 gap-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 id="planes-suscripcion" className={TITULO}>{organizacion ? 'Planes para tu organización' : 'Planes para tu familia'}</h2>
       <Button size="sm" variant="outline" icon={<RefreshCw size={16} aria-hidden />} loading={consultandoPlanes}
         disabled={!opciones.enLinea || !!opciones.ocupada} onClick={consultarPlanes}>Actualizar planes</Button>
     </div>
-    {organizacion && <p className="text-sm text-ink-2">Contrata Operación Base con tarifa publicada o solicita una cotización de Gestión Comunitaria Avanzada con cupos para tu organización.</p>}
+    {organizacion && <p className="text-sm text-ink-2 wrap-anywhere">Contrata Operación Base con tarifa publicada o solicita una cotización de Gestión Comunitaria Avanzada con cupos para tu organización.</p>}
     {!opciones.enLinea && <p role="status" className="rounded-sm bg-warning-100 p-3 text-sm text-ink">Conéctate a Internet para actualizar planes, solicitar una cotización o gestionar pagos.</p>}
-    {!opciones.titular && <p className="text-sm text-ink-2">Solo la persona titular puede gestionar la contratación.</p>}
+    {!opciones.titular && <p className="text-sm text-ink-2 wrap-anywhere">Solo la persona titular puede gestionar la contratación.</p>}
     {opciones.titular && !opciones.gestion.pagos_disponibles && <p role="status" className="rounded-md bg-warning-100 p-3 text-sm text-ink">
       Los pagos de prueba no están disponibles ahora.
     </p>}
     <Estado consulta={catalogo} vacio={catalogo.datos?.length === 0 ? 'No hay planes activos para esta cuenta.' : undefined} />
     {organizacion && <Estado consulta={consultaCotizaciones} />}
-    <ul className="grid gap-3 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {catalogo.datos?.map((plan) => <li key={plan.codigo} className="min-w-0">
         <TarjetaPlan {...opciones} plan={plan} tipo={tipo} cotizaciones={consultaCotizaciones.datos?.cotizaciones ?? []} />
       </li>)}
@@ -231,16 +231,16 @@ function HistorialPagos({ ruta, token, revision }: { ruta: string; token: string
     <h2 id="historial-pagos" className={TITULO}>Historial de pagos</h2>
     <Estado consulta={pagos} vacio={pagos.datos?.data.length === 0 ? 'Aún no hay pagos de prueba registrados.' : undefined} />
     {pagos.datos && pagos.datos.data.length > 0 && <ul className="divide-y divide-line-soft">
-      {pagos.datos.data.map((pago) => <li key={pago.pago_id} className="grid min-w-0 gap-2 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-center">
+      {pagos.datos.data.map((pago) => <li key={pago.pago_id} className="grid grid-cols-1 min-w-0 gap-2 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
-          <p className="break-words font-semibold text-ink">{pago.plan}</p>
-          <p className="text-sm text-ink-2">
+          <p className="wrap-anywhere font-semibold text-ink">{pago.plan}</p>
+          <p className="text-sm text-ink-2 wrap-anywhere">
             <time dateTime={pago.fecha}>{fecha(pago.fecha)}</time> · {pago.periodicidad}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="font-semibold text-ink">{monto(pago.importe_centavos, pago.moneda)}</p>
-          {pago.importe_reembolsado_centavos > 0 && <p className="text-sm text-ink-2">Reembolso {monto(pago.importe_reembolsado_centavos, pago.moneda)}</p>}
+          <p className="font-semibold text-ink wrap-anywhere">{monto(pago.importe_centavos, pago.moneda)}</p>
+          {pago.importe_reembolsado_centavos > 0 && <p className="text-sm text-ink-2 wrap-anywhere">Reembolso {monto(pago.importe_reembolsado_centavos, pago.moneda)}</p>}
         </div>
         <div><Badge tone={estadoPago[pago.estado].tono}>{estadoPago[pago.estado].texto}</Badge></div>
       </li>)}
@@ -400,7 +400,7 @@ export function SuscripcionCuenta({ base, token, cuenta, actualizarContexto }: {
         onClick={() => void ejecutar({ tipo: 'checkout', oferta })}>
         {retomar ? 'Retomar pago de prueba' : 'Elegir plan'}
       </Button>}
-      {retomar && <p className="text-sm text-ink-2">Stripe muestra el importe del pago que iniciaste.</p>}
+      {retomar && <p className="text-sm text-ink-2 wrap-anywhere">Stripe muestra el importe del pago que iniciaste.</p>}
       {modificarPlan && !retomar && !oferta.actual && (retomarCambio || (!cambio && oferta.publicada !== false)) && <Button size="sm" variant="outline"
         className="w-full sm:w-fit" disabled={!enLinea || !!ocupada || consultandoGestion}
         aria-label={`${retomarCambio ? 'Retomar cambio a' : 'Cambiar a'} ${oferta.nombre} (${oferta.periodicidad})`}
@@ -416,7 +416,7 @@ export function SuscripcionCuenta({ base, token, cuenta, actualizarContexto }: {
         <h2 id="estado-suscripcion" className={TITULO}>Estado de la suscripción</h2>
         <Badge tone="info">Stripe Sandbox</Badge>
       </div>
-      {gestion?.pagos_disponibles && <p className="text-sm text-ink-2">Stripe procesa únicamente pagos de prueba.</p>}
+      {gestion?.pagos_disponibles && <p className="text-sm text-ink-2 wrap-anywhere">Stripe procesa únicamente pagos de prueba.</p>}
       {retorno === 'retorno' && <p role="status" className="rounded-md bg-info-100 p-3 text-ink">
         {esperandoPago ? 'Volviste de Stripe. El estado y el historial se actualizan cuando CuidaRed recibe la confirmación del pago.' : 'Volviste de Stripe. Consulta los pagos confirmados en el historial.'}
       </p>}
@@ -426,7 +426,7 @@ export function SuscripcionCuenta({ base, token, cuenta, actualizarContexto }: {
       {aviso && <p role="status" className="rounded-md bg-info-100 p-3 text-ink">{aviso}</p>}
       {error && !confirmacion && <p role="alert" className="rounded-md bg-danger-100 p-3 text-danger-700">{error}</p>}
       <Estado consulta={consulta} />
-      {gestion && <dl className="grid gap-3 min-[360px]:grid-cols-2">
+      {gestion && <dl className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
         <DatoSuscripcion etiqueta="Estado" valor={suscripcionTexto(gestion.estado)} />
         <DatoSuscripcion etiqueta="Acceso a la plataforma" valor={gestion.acceso_operativo ? 'Operativo' : 'Limitado a la cuenta'} />
         {actual && <DatoSuscripcion etiqueta="Plan contratado" valor={`${actual.nombre} · ${monto(actual.importe_centavos, actual.moneda)} por ${periodo(actual)}`} />}
@@ -439,7 +439,7 @@ export function SuscripcionCuenta({ base, token, cuenta, actualizarContexto }: {
           ? `Cambio programado para el ${fecha(cambio.efectivo_en)}.`
           : 'El cambio de plan está en revisión.'}
       </p>}
-      {revisionSolicitada !== undefined && !consulta.error && !revisando && <p className="text-sm text-ink-2" role="status">
+      {revisionSolicitada !== undefined && !consulta.error && !revisando && <p className="text-sm text-ink-2 wrap-anywhere" role="status">
         {conciliacionPendiente ? 'Estado consultado. Todavía esperamos la confirmación de Stripe.' : 'Estado consultado.'}
       </p>}
       {gestion && (conciliacionPendiente || (modificar && !gestion.cancelacion_programada)) && <div className="flex flex-wrap gap-2">
@@ -466,13 +466,13 @@ export function SuscripcionCuenta({ base, token, cuenta, actualizarContexto }: {
           onClick={() => { if (confirmacion && confirmarAccion) void ejecutar(confirmacion) }}>Confirmar</Button>
       </>}>
       {confirmacion?.tipo === 'cambio' && <>
-        <p className="font-semibold text-ink">{confirmacion.oferta.nombre} · {monto(confirmacion.oferta.importe_centavos, confirmacion.oferta.moneda)} por {periodo(confirmacion.oferta)}</p>
+        <p className="font-semibold text-ink wrap-anywhere">{confirmacion.oferta.nombre} · {monto(confirmacion.oferta.importe_centavos, confirmacion.oferta.moneda)} por {periodo(confirmacion.oferta)}</p>
         {confirmacion.oferta.codigo.startsWith(`${CODIGO_AVANZADA}_`) && <CuposCotizados limites={confirmacion.oferta.limites} />}
-        <p className="text-sm text-ink-2">{confirmacion.retomar
+        <p className="text-sm text-ink-2 wrap-anywhere">{confirmacion.retomar
           ? 'Se abrirá la factura de prueba en Stripe si el pago todavía necesita confirmación.'
           : condicionesCambio(confirmacion.oferta, actual)}</p>
       </>}
-      {confirmacion?.tipo === 'cancelacion' && <p className="text-sm text-ink-2">La cuenta conserva el acceso hasta el final del período pagado. Después se limitará el acceso a la cuenta y a su suscripción.</p>}
+      {confirmacion?.tipo === 'cancelacion' && <p className="text-sm text-ink-2 wrap-anywhere">La cuenta conserva el acceso hasta el final del período pagado. Después se limitará el acceso a la cuenta y a su suscripción.</p>}
       {error && confirmacion && <p role="alert" className="rounded-md bg-danger-100 p-3 text-danger-700">{error}</p>}
     </Sheet>
   </>

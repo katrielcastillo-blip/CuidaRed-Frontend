@@ -8,12 +8,13 @@
  */
 const CIRCULO = 'absolute rounded-full'
 const FONDOS = {
+  // Medidas tomadas del Figma «Iniciar sesión» (lienzo de 428 × 926).
   acceso: [
-    'size-[calc(var(--u)*438)] right-[calc(var(--u)*-88)] bottom-[calc(var(--u)*-94)] bg-teal-100',
-    'size-[calc(var(--u)*319)] left-[calc(var(--u)*-115)] top-[calc(var(--u)*-61)] bg-blue',
-    'size-[calc(var(--u)*56)] left-[calc(var(--u)*167)] top-[calc(var(--u)*124)] bg-[#003f9e]',
-    'size-[calc(var(--u)*43)] left-[calc(var(--u)*23)] bottom-[calc(var(--u)*145)] bg-teal',
-    'size-[calc(var(--u)*25)] right-[calc(var(--u)*-12)] bottom-[calc(var(--u)*344)] bg-teal',
+    'size-[calc(var(--u)*454)] right-[calc(var(--u)*-125)] bottom-[calc(var(--u)*-153)] bg-teal-100',
+    'size-[calc(var(--u)*334)] left-[calc(var(--u)*-160)] top-[calc(var(--u)*-128)] bg-blue',
+    'size-[calc(var(--u)*48)] left-[calc(var(--u)*154)] top-[calc(var(--u)*114)] bg-[#003f9e]',
+    'size-[calc(var(--u)*42)] left-[calc(var(--u)*11)] bottom-[calc(var(--u)*33)] bg-teal',
+    'size-[calc(var(--u)*24)] right-0 bottom-[calc(var(--u)*331)] bg-teal',
   ],
   portada: [
     '-right-28 -bottom-28 size-64 bg-teal-100 md:-right-36 md:-bottom-40 md:size-[30rem]',

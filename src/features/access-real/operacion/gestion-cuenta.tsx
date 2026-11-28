@@ -3,14 +3,14 @@
  * © 2026 Equipo CuidaRed – INTEC.
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Bell, Building2, ChevronRight, SlidersHorizontal } from 'lucide-react'
-import { Button, ButtonLink, Checkbox, IconTile, SelectField, Switch, TextField } from '@/components/ui'
+import { Bell, Building2, SlidersHorizontal } from 'lucide-react'
+import { Button, ButtonLink, Checkbox, Icono, SelectField, Switch, TextField, type NombreIcono } from '@/components/ui'
 import { fechaCorta } from '@/domain/dates'
 import { api } from '../client'
 import type { CategoriaCuenta, Municipio, Provincia } from '../api/catalogos'
 import type { DetalleCuenta } from '../api/cuentas'
 import { guardarCuidador, transferirTitularidad, type PerfilCuidador } from '../api/miembros'
+import { ROL_TEXTO, TIPO_TEXTO } from '../cuentas-datos'
 import { campo, Estado, Formulario, idRuta, Paginador, useDatos, usePagina, type Campo } from './controles'
 import type { Candidato, OperacionProps } from './visitas'
 
@@ -66,7 +66,7 @@ function DatosContacto({ base, token, cuenta, datos, actualizar, cancelar }: Ope
       })
       actualizar()
     }}>
-    <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 min-w-0 gap-4 sm:grid-cols-2">
       <SelectField label="Provincia" required placeholder="Selecciona una provincia" value={provincia}
         options={provincias.datos?.map((p) => ({ value: p.provincia_cod, label: p.nombre })) ?? []}
         onChange={(e) => { setProvincia(e.target.value); setMunicipio('') }} />
@@ -99,7 +99,7 @@ function Configuracion({ base, token, cuenta, actualizar }: Pick<OperacionProps,
     return nuevo
   })
 
-  return <section aria-label="Preferencias de la cuenta" className="grid gap-4">
+  return <section aria-label="Preferencias de la cuenta" className="grid grid-cols-1 gap-4">
     <Estado consulta={config} vacio={config.datos && parametros.length === 0 ? 'Sin parámetros disponibles.' : undefined} />
     {parametros.length > 0 && <Formulario titulo="Preferencias de la cuenta" campos={[]} accion="Guardar preferencias"
       submitDisabled={!Object.keys(borrador).length || config.error} exito="Preferencias guardadas."
@@ -114,16 +114,16 @@ function Configuracion({ base, token, cuenta, actualizar }: Pick<OperacionProps,
         setRevision((n) => n + 1)
         actualizar()
       }}>
-      {grupos.filter((grupo) => grupo.items.length).map((grupo) => <section key={grupo.titulo} className="grid gap-4 rounded-md border border-line-soft bg-bg p-4">
-        <h4 className="flex items-center gap-2 font-semibold text-ink"><grupo.icono size={19} aria-hidden className="text-navy" />{grupo.titulo}</h4>
+      {grupos.filter((grupo) => grupo.items.length).map((grupo) => <section key={grupo.titulo} className="grid grid-cols-1 gap-4 rounded-md border border-line-soft bg-bg p-4">
+        <h4 className="flex items-center gap-2 font-semibold text-ink wrap-anywhere"><grupo.icono size={19} aria-hidden className="text-navy" />{grupo.titulo}</h4>
         {grupo.items.map((p) => {
           const etiqueta = etiquetasParametros[p.nombre] ?? p.nombre.replaceAll('_', ' ')
           const valor = valorVisible(p)
           const restablecer = p.es_propio || (borrador[p.nombre] !== undefined && borrador[p.nombre] !== null)
-          return <div key={p.nombre} className="grid gap-2 border-b border-line-soft pb-3 last:border-b-0 last:pb-0">
+          return <div key={p.nombre} className="grid grid-cols-1 gap-2 border-b border-line-soft pb-3 last:border-b-0 last:pb-0">
             {p.tipo_dato === 'booleano' ? <>
               <Switch label={etiqueta} checked={valor === 'true'} onChange={(activo) => cambiar(p, String(activo))} />
-              {p.descripcion && <p className="text-sm text-ink-2">{p.descripcion}</p>}
+              {p.descripcion && <p className="text-sm text-ink-2 wrap-anywhere">{p.descripcion}</p>}
             </> : <TextField label={etiqueta} hint={p.descripcion ?? undefined} value={valor}
               type={p.tipo_dato === 'texto' ? (p.nombre.endsWith('_telefono') ? 'tel' : 'text') : 'number'}
               inputMode={p.tipo_dato === 'entero' ? 'numeric' : p.tipo_dato === 'decimal' ? 'decimal' : undefined}
@@ -147,9 +147,9 @@ function Cuidadores({ base, token, cuenta }: OperacionProps) {
   const perfil = useDatos<PerfilCuidador | null>(id ? `${base}/miembros/${idRuta(id)}/cuidador` : null, token, revision)
   const tipos = useDatos<{ tipo_cuidado_id: number; nombre: string }[]>(id ? '/catalogos/tipos-cuidado' : null, token)
   const candidatos = lista.datos?.data ?? []
-  return <section aria-labelledby="perfiles-cuidado" className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5">
+  return <section aria-labelledby="perfiles-cuidado" className="grid grid-cols-1 gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5">
     <h3 id="perfiles-cuidado" className="text-lg font-semibold text-ink">Perfiles globales de cuidadores</h3>
-    <p className="text-sm text-ink-2">El perfil se comparte entre las cuentas donde participa la persona.</p>
+    <p className="text-sm text-ink-2 wrap-anywhere">El perfil se comparte entre las cuentas donde participa la persona.</p>
     <Estado consulta={lista} vacio={lista.datos?.data.length === 0 ? 'Cuando un cuidador acepte su invitación, podrás editar su perfil aquí.' : undefined} />
     {candidatos.length > 0 && <SelectField label="Cuidador" value={id} onChange={(e) => setId(e.target.value)}
       options={[{ value: '', label: 'Selecciona un cuidador' }, ...candidatos.map((c) => ({ value: c.membresia_id, label: c.nombre }))]} />}
@@ -177,7 +177,7 @@ function Cuidadores({ base, token, cuenta }: OperacionProps) {
 
 function Transferir({ base, token, cuenta, actualizar, cerrar }: OperacionProps & { actualizar: () => void; cerrar: () => void }) {
   const candidatos = usePagina<Candidato>(`${base}/candidatos/titularidad`, token)
-  return <section className="grid gap-3">
+  return <section className="grid grid-cols-1 gap-3">
     <Estado consulta={candidatos} vacio={candidatos.datos?.data.length === 0 ? 'No hay otro gestor activo elegible para recibir la titularidad.' : undefined} />
     {!!candidatos.datos?.data.length && <Formulario key={candidatos.pagina} titulo="Transferir titularidad" accion="Transferir cuenta" cancelar={cerrar} campos={[
       { name: 'membresia', label: 'Nuevo titular', options: candidatos.datos.data.map((m) => ({ value: m.membresia_id, label: m.nombre })) },
@@ -185,56 +185,90 @@ function Transferir({ base, token, cuenta, actualizar, cerrar }: OperacionProps 
       await transferirTitularidad(token, cuenta.cuenta_id, campo(datos, 'membresia'))
       actualizar()
     }}>
-      <p className="text-sm text-ink-2">Si hay una suscripción de Stripe, termina su renovación al finalizar el período pagado. La nueva persona titular podrá contratar su propio plan.</p>
+      <p className="text-sm text-ink-2 wrap-anywhere">Si hay una suscripción de Stripe, termina su renovación al finalizar el período pagado. La nueva persona titular podrá contratar su propio plan.</p>
       <Checkbox label="Confirmo que la persona seleccionada será titular de esta cuenta." required />
     </Formulario>}
     {candidatos.datos && <Paginador pagina={candidatos.pagina} total={candidatos.datos.meta.totalPages} cambiar={candidatos.cambiar} />}
   </section>
 }
 
-export function GestionCuenta(props: OperacionProps & { actualizar: () => void; vista?: 'resumen' | 'configuracion' }) {
+/** Fila de datos de la cuenta (Figma «Datos de la cuenta»): ícono en baldosa gris, etiqueta y valor. */
+function Dato({ icono, etiqueta, valor }: { icono: NombreIcono; etiqueta: string; valor: string }) {
+  return <div className="flex min-h-14 items-center gap-3 py-3">
+    <span className="grid size-10 flex-none place-items-center rounded-md bg-bg text-muted" aria-hidden><Icono nombre={icono} /></span>
+    <div className="min-w-0"><dt className="text-ayuda text-muted">{etiqueta}</dt><dd className="text-cuerpo font-semibold text-ink wrap-anywhere">{valor}</dd></div>
+  </div>
+}
+
+function ListaDatos({ datos, cuenta }: { datos: CuentaDetalle; cuenta: OperacionProps['cuenta'] }) {
+  const organizacion = cuenta.tipo === 'organizacion'
+  return <dl className="divide-y divide-surface-2 rounded-2xl bg-surface px-4 shadow-1">
+    <Dato icono="category" etiqueta="Categoría" valor={datos.categoria.nombre} />
+    <Dato icono="location_on" etiqueta="Municipio" valor={`${datos.municipio.nombre}, ${datos.municipio.provincia}`} />
+    {datos.direccion && <Dato icono="location_on" etiqueta="Dirección" valor={datos.direccion} />}
+    {datos.telefono && <Dato icono="call" etiqueta={organizacion ? 'Teléfono institucional' : 'Teléfono'} valor={datos.telefono} />}
+    {datos.correo && <Dato icono="mail" etiqueta={organizacion ? 'Correo institucional' : 'Correo'} valor={datos.correo} />}
+    <Dato icono="badge" etiqueta="Tu rol" valor={cuenta.es_titular ? `${ROL_TEXTO[cuenta.rol]} · titular` : ROL_TEXTO[cuenta.rol]} />
+    <Dato icono="calendar_month" etiqueta="Fecha de creación" valor={fechaCorta(datos.fecha_creacion)} />
+  </dl>
+}
+
+/**
+ * Datos, configuración y perfiles de cuidador de la cuenta. Tres vistas:
+ * - `configuracion` (Figma «Configurar organización»): datos con «Editar datos», parámetros, titularidad y perfiles de cuidador.
+ * - `datos` («Datos de cuenta»): datos y perfiles de cuidador, para quien no puede configurar la cuenta.
+ * - `resumen` (Inicio de los roles sin panel de gestión): datos, acceso a Configuración y perfiles de cuidador.
+ */
+export function GestionCuenta(props: OperacionProps & { actualizar: () => void; vista?: 'resumen' | 'configuracion' | 'datos' }) {
   const { cuenta, token, base, actualizar, vista = 'resumen' } = props
-  const navigate = useNavigate()
   const [revision, setRevision] = useState(0)
   const [transferir, setTransferir] = useState(false)
+  const [editando, setEditando] = useState(false)
   const detalle = useDatos<DetalleCuenta>(base, token, revision)
   const configurar = cuenta.acceso_operativo === true && cuenta.permisos.includes('organizacion:configurar')
+  const perfiles = cuenta.acceso_operativo === true && cuenta.permisos.includes('cuidadores:gestionar')
   const datos = detalle.datos?.cuenta
+  const organizacion = cuenta.tipo === 'organizacion'
   const raiz = `/operacion/${idRuta(cuenta.cuenta_id)}`
   const refrescar = () => { setRevision((n) => n + 1); actualizar() }
-  if (vista === 'configuracion' && configurar) return <section className="grid gap-4">
+  if (vista === 'configuracion' && configurar) return <section className="grid grid-cols-1 gap-4">
     <Estado consulta={detalle} />
-    {datos && <DatosContacto {...props} datos={datos} actualizar={refrescar} cancelar={() => navigate(`${raiz}/cuenta`)} />}
+    {datos && <>
+      <div className="flex items-center gap-4">
+        <span className="grid size-16 flex-none place-items-center rounded-2xl bg-blue-100 text-navy" aria-hidden><Icono nombre={organizacion ? 'add_business' : 'family_home'} tamano={32} /></span>
+        <div className="min-w-0">
+          <p className="text-seccion text-ink wrap-anywhere">{datos.nombre}</p>
+          <p className="text-ayuda text-muted wrap-anywhere">{TIPO_TEXTO[cuenta.tipo]} · {datos.categoria.nombre}</p>
+        </div>
+      </div>
+      <section className="grid grid-cols-1 gap-3" aria-labelledby="datos-cuenta">
+        <h2 id="datos-cuenta" className="text-seccion text-ink">{organizacion ? 'Datos de la organización' : 'Datos de la cuenta'}</h2>
+        <ListaDatos datos={datos} cuenta={cuenta} />
+        {!editando && <Button variant="outline" onClick={() => setEditando(true)}>Editar datos</Button>}
+      </section>
+      {editando && <DatosContacto {...props} datos={datos} actualizar={refrescar} cancelar={() => setEditando(false)} />}
+    </>}
     <Configuracion {...props} actualizar={refrescar} />
-    {cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
+    {cuenta.es_titular && cuenta.permisos.includes('usuarios:gestionar') && <section className="grid grid-cols-1 gap-3 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="titularidad">
       <h2 id="titularidad" className="text-lg font-semibold text-ink">Titularidad</h2>
-      <p className="text-sm text-ink-2">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
+      <p className="text-sm text-ink-2 wrap-anywhere">Puedes entregar la titularidad a otro gestor activo de esta cuenta.</p>
       {transferir ? <Transferir {...props} actualizar={refrescar} cerrar={() => setTransferir(false)} /> : <Button variant="outline" className="justify-self-start" onClick={() => setTransferir(true)}>Transferir titularidad</Button>}
     </section>}
+    {perfiles && <Cuidadores {...props} />}
   </section>
 
-  return <section className="grid gap-4" aria-label="Datos y gestión de cuenta">
+  return <section className="grid grid-cols-1 gap-4" aria-label="Datos y gestión de cuenta">
     <Estado consulta={detalle} />
-    {datos && <section className="grid gap-4 rounded-md border border-line-soft bg-surface p-4 sm:p-5" aria-labelledby="datos-cuenta">
-      <div className="flex items-center gap-3">
-        <IconTile size={48}><Building2 size={23} aria-hidden /></IconTile>
-        <h2 id="datos-cuenta" className="text-lg font-semibold text-ink">Datos de la cuenta</h2>
-      </div>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div><dt className="font-semibold text-ink">Categoría</dt><dd>{datos.categoria.nombre}</dd></div>
-        <div><dt className="font-semibold text-ink">Municipio</dt><dd>{datos.municipio.nombre}, {datos.municipio.provincia}</dd></div>
-        {datos.direccion && <div><dt className="font-semibold text-ink">Dirección</dt><dd>{datos.direccion}</dd></div>}
-        {datos.telefono && <div><dt className="font-semibold text-ink">Teléfono</dt><dd>{datos.telefono}</dd></div>}
-        {datos.correo && <div><dt className="font-semibold text-ink">Correo</dt><dd className="break-words">{datos.correo}</dd></div>}
-        <div><dt className="font-semibold text-ink">Fecha de creación</dt><dd>{fechaCorta(datos.fecha_creacion)}</dd></div>
-      </dl>
-      {configurar && <ButtonLink to={`${raiz}/configuracion`} variant="outline" className="max-w-full justify-self-start py-2">
+    {datos && <section className="grid grid-cols-1 gap-3" aria-labelledby="datos-cuenta">
+      <h2 id="datos-cuenta" className="text-seccion text-ink">Datos de la cuenta</h2>
+      <ListaDatos datos={datos} cuenta={cuenta} />
+      {configurar && vista === 'resumen' && <ButtonLink to={`${raiz}/configuracion`} variant="outline" className="max-w-full justify-self-start py-2">
         <span className="flex items-center gap-2 text-left">
-          <span>{cuenta.tipo === 'organizacion' ? 'Configurar organización' : 'Configurar cuenta'}</span>
-          <ChevronRight size={18} className="shrink-0" aria-hidden />
+          <span>{organizacion ? 'Configurar organización' : 'Configurar cuenta'}</span>
+          <Icono nombre="chevron_right" tamano={20} className="shrink-0" />
         </span>
       </ButtonLink>}
     </section>}
-    {cuenta.acceso_operativo && cuenta.permisos.includes('cuidadores:gestionar') && <Cuidadores {...props} />}
+    {perfiles && <Cuidadores {...props} />}
   </section>
 }

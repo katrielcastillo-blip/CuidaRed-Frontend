@@ -220,7 +220,8 @@ export function useColaOperaciones(usuarioId: string | undefined, token: string 
   }
   const propia = vista.usuarioId === usuarioId
   const mensaje = (cuentaId: string, entidad: Entidad) => propia ? vista.avisos[claveAviso(cuentaId, entidad)] : undefined
-  return { agregar, reintentar, quitarRechazadas, mensaje, capturas: propia ? vista.capturas : [], revision: propia ? vista.revision : 0 }
+  const sincronizar = () => enviar()
+  return { agregar, reintentar, quitarRechazadas, sincronizar, mensaje, capturas: propia ? vista.capturas : [], revision: propia ? vista.revision : 0 }
 }
 
 export type ColaOperaciones = ReturnType<typeof useColaOperaciones>

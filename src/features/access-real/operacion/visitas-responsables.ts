@@ -6,4 +6,4 @@ export function responsablesVisita(candidatos: Candidato[] = []) {
   return { disponibles, faltanPerfiles: candidatos.some(({ rol, cuidador_id }) => rol === 'cuidador' && !cuidador_id) }
 }
 
-export const avisoPerfilCuidador = 'Para asignar a alguien que aún no tiene perfil de cuidador, complétalo en Cuenta → Perfiles globales de cuidadores.'
+export const avisoPerfilCuidador = 'Para asignar a alguien que aún no tiene perfil de cuidador, complétalo en Organización (Configuración en una cuenta familiar) → Perfiles globales de cuidadores.'

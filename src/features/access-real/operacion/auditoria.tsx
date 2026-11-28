@@ -30,16 +30,16 @@ const ENTIDADES: Record<string, string> = {
 export function AuditoriaCuenta({ base, token }: OperacionProps) {
   const [orden, setOrden] = useState('-fecha')
   const consulta = usePagina<Evento>(`${base}/auditoria`, token, 0, { sort: [orden] })
-  return <section className="grid gap-3" aria-label="Actividad de la cuenta">
+  return <section className="grid grid-cols-1 gap-3" aria-label="Actividad de la cuenta">
     <div className="max-w-sm">
       <SelectField label="Orden de la actividad" value={orden} onChange={(event) => setOrden(event.currentTarget.value)}
         options={[{ value: '-fecha', label: 'Más reciente primero' }, { value: 'fecha', label: 'Más antigua primero' }]} />
     </div>
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin actividad registrada.' : undefined} />
-    {consulta.datos?.data.map((evento) => <Card key={evento.auditoria_id} className="grid gap-1">
-      <h2 className="font-semibold">{ACCIONES[evento.accion] ?? 'Registro'} · {ENTIDADES[evento.entidad] ?? 'Registro de la cuenta'}</h2>
-      <p className="text-sm text-ink-2">{evento.actor ?? 'Sin actor registrado'} · {fechaHora(evento.fecha)}</p>
-      <p className="text-sm">Resultado confirmado</p>
+    {consulta.datos?.data.map((evento) => <Card key={evento.auditoria_id} className="grid grid-cols-1 gap-1">
+      <h2 className="font-semibold wrap-anywhere">{ACCIONES[evento.accion] ?? 'Registro'} · {ENTIDADES[evento.entidad] ?? 'Registro de la cuenta'}</h2>
+      <p className="text-sm text-ink-2 wrap-anywhere">{evento.actor ?? 'Sin actor registrado'} · {fechaHora(evento.fecha)}</p>
+      <p className="text-sm wrap-anywhere">Resultado confirmado</p>
     </Card>)}
     {consulta.datos && <Paginador pagina={consulta.pagina} total={consulta.datos.meta.totalPages} cambiar={consulta.cambiar} />}
   </section>

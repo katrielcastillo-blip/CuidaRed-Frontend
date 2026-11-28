@@ -23,7 +23,7 @@ export default {
       colors: {
         // Marca
         navy: { DEFAULT: '#0c3b6e', 700: '#0a3160' },
-        blue: { DEFAULT: '#378add', bright: '#3b8de0', 100: '#e6f1fb' },
+        blue: { DEFAULT: '#378add', bright: '#3b8de0', 100: '#e6f1fb', principal: '#003f9e' },
         teal: { DEFAULT: '#14a085', 100: '#e1f5ee' },
         green: { DEFAULT: '#1d9e75' },
         // Superficies y texto
@@ -39,6 +39,17 @@ export default {
         info: { DEFAULT: '#378add', 100: '#e6f1fb' },
         // Nivel de riesgo
         riesgo: { alto: '#c0392b', medio: '#d4880a', bajo: '#1d9e75' },
+      },
+      // Escala tipográfica del rediseño (Figma «Sistema de diseño»): text-pantalla, text-seccion…
+      fontSize: {
+        // En rem (1rem = 16 px) para que «Tamaño del texto» (Accesibilidad, font-size de <html>) los escale.
+        pantalla: ['1.75rem', { lineHeight: '2.125rem', fontWeight: '700' }],
+        seccion: ['1.25rem', { lineHeight: '1.75rem', fontWeight: '600' }],
+        tarjeta: ['1.125rem', { lineHeight: '1.5rem', fontWeight: '600' }],
+        cuerpo: ['1rem', { lineHeight: '1.5rem' }],
+        ayuda: ['0.875rem', { lineHeight: '1.25rem' }],
+        etiqueta: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.5px', fontWeight: '700' }],
+        nav: ['0.8125rem', { lineHeight: '1rem', fontWeight: '600' }],
       },
       fontFamily: {
         sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
@@ -57,6 +68,9 @@ export default {
         'grad-auth': 'linear-gradient(180deg, #1f6fd0 0%, #14a085 100%)',
         'grad-splash': 'linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%)',
         'grad-success': 'linear-gradient(180deg, #e6f1fb 0%, #3b8de0 100%)',
+        // Encabezados del rediseño: azul (general) y verde (recuperar contraseña); barra secundaria.
+        'grad-encabezado': 'linear-gradient(180deg, #378add 0%, #0c3b6e 100%)',
+        'grad-encabezado-verde': 'linear-gradient(180deg, #378add 0%, #14a085 100%)',
       },
       spacing: {
         gutter: 'var(--gutter)',

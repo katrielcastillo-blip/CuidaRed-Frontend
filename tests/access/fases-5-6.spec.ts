@@ -50,7 +50,7 @@ test('RF-03: consulta necesidades activas del expediente e historial de la ocurr
     return url.pathname.endsWith('/necesidades') && url.searchParams.get('filter[envejeciente_id]') === adultoId
       && url.searchParams.get('filter[activas]') === 'true'
   })
-  await page.getByRole('group', { name: 'Secciones de seguimiento' }).getByRole('button', { name: 'Necesidades', exact: true }).click()
+  await page.getByRole('tab', { name: 'Necesidades', exact: true }).click()
   await consulta
   await page.getByRole('button', { name: /Ver necesidad: Medicamento recetado/ }).click()
   await expect(page.getByText('El medicamento se agotó.')).toBeVisible()
@@ -103,12 +103,18 @@ test('RF-04/RF-18: agrupa alertas, abre la bandeja desde la campana y actualiza 
   await page.getByRole('button', { name: /Ver alerta: Medicamento pendiente/ }).click()
   await expect(page.getByText('Detalle verificado.')).toBeVisible()
   await expect(page.getByText('Necesidad registrada', { exact: true })).toBeVisible()
+  // Rediseño: Alertas es secundaria (sin campana); la campana vive en las pantallas principales.
+  await page.goto(`${ruta}/cuenta`)
   await cabecera.getByRole('link', { name: 'Notificaciones, 1 sin leer' }).click()
-  await expect(page).toHaveURL(`${ruta}/alertas?bandeja=avisos`)
+  // Rediseño: la campana abre la pantalla Notificaciones (el enlace antiguo alertas?bandeja=avisos sigue funcionando).
+  await expect(page).toHaveURL(`${ruta}/notificaciones`)
   await expect(page.getByRole('region', { name: 'Notificaciones de alertas' })).toBeVisible()
-  await page.getByRole('button', { name: 'Marcar como leída' }).click()
-  await expect(page.getByText('Leída', { exact: true })).toBeVisible()
-  await expect(page.getByText(/Leída el/)).toBeVisible()
+  // Rediseño: tocar la tarjeta marca el aviso como leído y abre la alerta.
+  await page.getByRole('button', { name: /Tienes una alerta asignada/ }).click()
+  await expect(page).toHaveURL(`${ruta}/alertas?alerta=${medicamentoId}`)
+  expect(leida).toBe(true)
+  // De vuelta en Inicio, la campana ya no muestra avisos sin leer.
+  await page.goto(`${ruta}/cuenta`)
   await expect(cabecera.getByRole('link', { name: 'Notificaciones', exact: true })).toBeVisible()
 })
 

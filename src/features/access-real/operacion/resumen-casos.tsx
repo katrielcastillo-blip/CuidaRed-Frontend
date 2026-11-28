@@ -56,10 +56,10 @@ function Indicador({ etiqueta, valor, peligro, nota }: { etiqueta: string; valor
 
 function Indicadores({ datos }: { datos: IndicadoresResumen }) {
   const alertas = datos.alertas_abiertas
-  return <section className="grid gap-3" aria-labelledby="indicadores-resumen">
+  return <section className="grid grid-cols-1 gap-3" aria-labelledby="indicadores-resumen">
     <div>
       <h2 id="indicadores-resumen" className="text-lg font-semibold text-ink">Indicadores de la cuenta</h2>
-      <p className="text-sm text-ink-2">Cubren todos los casos activos al {fechaCorta(datos.fecha_calculo)}; no cambian con los filtros de la lista.</p>
+      <p className="text-sm text-ink-2 wrap-anywhere">Cubren todos los casos activos al {fechaCorta(datos.fecha_calculo)}; no cambian con los filtros de la lista.</p>
     </div>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       <Indicador etiqueta="Casos activos" valor={datos.casos_activos} />
@@ -69,13 +69,13 @@ function Indicadores({ datos }: { datos: IndicadoresResumen }) {
       {datos.umbral_dias_sin_visita !== null && <Indicador etiqueta={`Más de ${datos.umbral_dias_sin_visita} días sin visita`} valor={datos.seguimiento_vencido} peligro />}
       <Indicador etiqueta="Sin personal asignado" valor={datos.sin_personal_asignado} peligro />
     </div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <Card tone="info" className="grid gap-1" data-testid="indicador-adultos-prioritarios">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <Card tone="info" className="grid grid-cols-1 gap-1" data-testid="indicador-adultos-prioritarios">
         <span className="text-sm font-semibold text-ink-2">Adultos prioritarios</span>
         <strong className="text-3xl leading-none text-danger">{datos.adultos_prioritarios.toLocaleString('es-DO')}</strong>
         <span className="text-sm text-ink-2">Personas con al menos una alerta prioritaria abierta (riesgo alto, medicamentos pendientes o necesidad prioritaria).</span>
       </Card>
-      <Card tone="info" className="grid gap-1" data-testid="indicador-alertas-abiertas">
+      <Card tone="info" className="grid grid-cols-1 gap-1" data-testid="indicador-alertas-abiertas">
         <span className="text-sm font-semibold text-ink-2">Alertas abiertas</span>
         <strong className="text-3xl leading-none text-ink">{alertas.toLocaleString('es-DO')}</strong>
         <span className="text-sm text-ink-2">
@@ -83,7 +83,7 @@ function Indicadores({ datos }: { datos: IndicadoresResumen }) {
           {' '}{plural(datos.alertas_pendientes, 'pendiente', 'pendientes')} · {plural(datos.alertas_en_proceso, 'en atención', 'en atención')} · {plural(datos.alertas_prioritarias_abiertas, 'prioritaria', 'prioritarias')}.
         </span>
       </Card>
-      <Card tone="info" className="grid gap-1">
+      <Card tone="info" className="grid grid-cols-1 gap-1">
         <span className="text-sm font-semibold text-ink-2">Necesidades activas</span>
         <strong className="text-3xl leading-none text-ink">{datos.necesidades_activas.toLocaleString('es-DO')}</strong>
         <span className="text-sm text-ink-2">Pendientes o en proceso, de {plural(datos.adultos_con_necesidades_activas, 'adulto', 'adultos')}.</span>
@@ -95,7 +95,7 @@ function Indicadores({ datos }: { datos: IndicadoresResumen }) {
 function TarjetaCaso({ caso, raiz }: { caso: CasoResumen; raiz: string }) {
   const { alertas, asignados, seguimiento } = caso
   const personal = [...asignados.cuidadores.map((p) => ({ ...p, rol: 'Cuidador' })), ...asignados.voluntarios.map((p) => ({ ...p, rol: 'Voluntario' }))]
-  return <Card className="grid h-full min-w-0 content-start gap-3" data-testid="caso-resumen">
+  return <Card className="grid h-full min-w-0 grid-cols-1 content-start gap-3" data-testid="caso-resumen">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="text-base font-bold wrap-anywhere">
@@ -109,19 +109,19 @@ function TarjetaCaso({ caso, raiz }: { caso: CasoResumen; raiz: string }) {
       <Badge tone={PRIORIDAD_TONO[caso.prioridad]}>Prioridad {PRIORIDAD_TEXTO[caso.prioridad].toLowerCase()}</Badge>
       <Badge tone={ESTADO_ATENCION_TONO[caso.estado_atencion]}>{ESTADO_ATENCION_TEXTO[caso.estado_atencion]}</Badge>
     </div>
-    {caso.motivos.length > 0 && <p className="text-xs text-muted">{caso.motivos.map(textoMotivo).join(' · ')}</p>}
+    {caso.motivos.length > 0 && <p className="text-xs text-muted wrap-anywhere">{caso.motivos.map(textoMotivo).join(' · ')}</p>}
     <dl className={`grid ${seguimiento ? 'grid-cols-3' : 'grid-cols-2'} gap-2 border-t border-line-soft pt-3 text-center`}>
       <div><dt className="text-xs text-muted">Alertas abiertas</dt><dd className={alertas.abiertas > 0 ? 'text-lg font-bold text-danger' : 'text-lg font-bold'}>{alertas.abiertas}</dd></div>
-      <div><dt className="text-xs text-muted">Necesidades activas</dt><dd className="text-lg font-bold">{caso.necesidades_activas}</dd></div>
+      <div><dt className="text-xs text-muted">Necesidades activas</dt><dd className="text-lg font-bold wrap-anywhere">{caso.necesidades_activas}</dd></div>
       {seguimiento && <div><dt className="text-xs text-muted">Días sin visita</dt><dd className={seguimiento.vencido ? 'text-lg font-bold text-danger' : 'text-lg font-bold'}>{seguimiento.dias_sin_visita}</dd></div>}
     </dl>
-    {alertas.abiertas > 0 && <p className="text-sm text-ink-2">
+    {alertas.abiertas > 0 && <p className="text-sm text-ink-2 wrap-anywhere">
       {plural(alertas.abiertas, 'alerta abierta', 'alertas abiertas')}: {alertas.pendientes} pendientes, {alertas.en_proceso} en atención, {alertas.prioritarias_abiertas} prioritarias.
     </p>}
     {seguimiento && <p className={seguimiento.vencido ? 'text-sm font-semibold text-danger' : 'text-sm text-ink-2'}>
       {textoSeguimiento(seguimiento)}{seguimiento.vencido ? `. Supera el límite de ${seguimiento.umbral_dias} días.` : ''}
     </p>}
-    <p className="text-sm text-ink-2">
+    <p className="text-sm text-ink-2 wrap-anywhere">
       {personal.length === 0 ? <span className="font-semibold text-warning-700">Sin personal asignado</span>
         : <><b className="text-ink">{plural(personal.length, 'persona asignada', 'personas asignadas')}:</b> {personal.map((p) => `${p.nombres} ${p.apellidos} (${p.rol})`).join(', ')}</>}
     </p>
@@ -151,23 +151,23 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
   const estados = ESTADOS_ATENCION.filter((e) => cuenta.tipo === 'organizacion' || e.value !== 'seguimiento_vencido')
   const criterios = CRITERIOS_ORDEN.filter((c) => cuenta.tipo === 'organizacion' || c.value !== 'ultima_visita')
 
-  return <section className="grid gap-5" aria-label="Resumen de casos">
+  return <section className="grid grid-cols-1 gap-5" aria-label="Resumen de casos">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <p className="max-w-prose text-sm text-ink-2">Casos activos de la cuenta con su prioridad y su estado de atención. La prioridad combina alertas abiertas, riesgo, seguimiento y necesidades.</p>
+      <p className="max-w-prose text-sm text-ink-2 wrap-anywhere">Casos activos de la cuenta con su prioridad y su estado de atención. La prioridad combina alertas abiertas, riesgo, seguimiento y necesidades.</p>
       <Button variant="outline" size="sm" icon={<RefreshCw size={18} aria-hidden />} onClick={() => setRevision((n) => n + 1)}>Actualizar</Button>
     </div>
 
     {(!lista.error || !indicadores.error) && <EstadoConsulta consulta={indicadores} />}
     {indicadores.datos && <Indicadores datos={indicadores.datos} />}
 
-    <section className="grid gap-3 rounded-md border border-line-soft bg-surface p-3 sm:p-4" aria-label="Filtros y orden del resumen">
-      <label className="grid gap-1.5 text-sm font-semibold text-ink">
+    <section className="grid grid-cols-1 gap-3 rounded-md border border-line-soft bg-surface p-3 sm:p-4" aria-label="Filtros y orden del resumen">
+      <label className="grid grid-cols-1 gap-1.5 text-sm font-semibold text-ink">
         Buscar por nombre, sector o municipio
         <SearchInput value={filtros.busqueda} maxLength={BUSQUEDA_MAX} placeholder="Nombre, sector o municipio" aria-label="Buscar por nombre, sector o municipio"
           onChange={(event) => set('busqueda', event.currentTarget.value)} />
       </label>
       {terminoCorto && <p role="status" className="text-sm text-ink-2">Escribe al menos 2 caracteres para buscar.</p>}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SelectField label="Estado de atención" value={filtros.estado} onChange={(event) => set('estado', event.currentTarget.value)}
           options={[{ value: '', label: 'Todos' }, ...estados.map((e) => ({ value: e.value, label: e.label }))]} />
         <SelectField label="Prioridad" value={filtros.prioridad} onChange={(event) => set('prioridad', event.currentTarget.value)}
@@ -183,7 +183,7 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
       </div>
       {universo.error && <EstadoConsulta consulta={universo} />}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1 sm:max-w-xs">
+        <div className="min-w-48 flex-1 sm:max-w-xs">
           <SelectField label="Ordenar por" value={criterio} onChange={(event) => { setCriterio(event.currentTarget.value as CriterioOrden); setInvertido(false) }}
             options={criterios.map((c) => ({ value: c.value, label: c.label }))}
             help={<>{estados.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}</>} />
@@ -197,7 +197,7 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
 
     {/* Reintentar vuelve a consultar los indicadores y la lista juntos. */}
     <EstadoConsulta consulta={{ ...lista, reintentar: () => setRevision((n) => n + 1) }} />
-    {lista.datos && <p className="flex flex-wrap items-center gap-1 text-sm text-ink-2" aria-live="polite">
+    {lista.datos && <p className="flex flex-wrap items-center gap-1 text-sm text-ink-2 wrap-anywhere" aria-live="polite">
       <span data-testid="total-casos">{filtrando ? `${plural(total ?? 0, 'caso coincide', 'casos coinciden')} con los filtros` : plural(total ?? 0, 'caso activo', 'casos activos')} · ordenados por {CRITERIOS_ORDEN.find((c) => c.value === criterio)?.label.toLowerCase()} ({sentido})</span>
       <HelpTip label="Ayuda: estados de atención">
         {estados.map((e) => <span key={e.value} className="block"><b>{e.label}:</b> {e.descripcion}</span>)}
@@ -207,7 +207,7 @@ export function ResumenCasos({ base, token, cuenta }: OperacionProps) {
       ? <EmptyState title="Ningún caso coincide con los filtros" text="Prueba con otra búsqueda o quita algún filtro."
         action={<Button variant="outline" size="sm" onClick={() => setFiltros(FILTROS_RESUMEN_INICIALES)}>Quitar filtros</Button>} />
       : <EmptyState title="No hay casos activos" text="Cuando haya adultos mayores activos con consentimiento vigente aparecerán aquí con su prioridad y su estado de atención." />)}
-    {!!lista.datos?.data.length && <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Casos activos">
+    {!!lista.datos?.data.length && <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Casos activos">
       {lista.datos.data.map((caso) => <li key={caso.envejeciente_id} className="min-w-0"><TarjetaCaso caso={caso} raiz={raiz} /></li>)}
     </ul>}
     {lista.datos && <Paginador pagina={lista.pagina} total={lista.datos.meta.totalPages} cambiar={lista.cambiar} />}

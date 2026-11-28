@@ -59,21 +59,21 @@ export function Evidencias({ ruta, token, puedeAdjuntar, tarea = false, validar,
     refrescar()
   }
   return (
-    <section className="grid gap-3" aria-label="Evidencias privadas">
+    <section className="grid grid-cols-1 gap-3" aria-label="Evidencias privadas">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-bold">Evidencias</h3>
+        <h3 className="text-base font-bold wrap-anywhere">Evidencias</h3>
         {puedeAdjuntar && !mostrarCarga && (
           <Button variant="outline" size="sm" icon={<Paperclip size={18} aria-hidden />} disabled={!enLinea} onClick={() => setMostrarCarga(true)}>
             Adjuntar evidencia
           </Button>
         )}
       </div>
-      {puedeAdjuntar && !enLinea && <p className="text-sm text-ink-2">Conéctate a internet para adjuntar archivos.</p>}
+      {puedeAdjuntar && !enLinea && <p className="text-sm text-ink-2 wrap-anywhere">Conéctate a internet para adjuntar archivos.</p>}
       {puedeAdjuntar && mostrarCarga && (
         <Formulario titulo="Adjuntar evidencia privada" campos={[]} accion="Adjuntar archivo" enviar={adjuntar} disabled={!enLinea}
           cancelar={() => setMostrarCarga(false)}>
-          <div className="grid gap-3 md:col-span-2">
-            <label className="grid gap-1 text-sm font-semibold" htmlFor={idArchivo}>
+          <div className="grid grid-cols-1 gap-3 md:col-span-2">
+            <label className="grid grid-cols-1 gap-1 text-sm font-semibold" htmlFor={idArchivo}>
               Archivo
               <input id={idArchivo} name="archivo" type="file" accept={TIPOS.join(',')} required aria-describedby={`${idArchivo}-ayuda`}
                 className="min-h-12 w-full min-w-0 rounded-sm border border-line bg-bg p-2 text-sm file:mr-2 file:rounded-sm file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:font-semibold file:text-navy" />
@@ -84,24 +84,24 @@ export function Evidencias({ ruta, token, puedeAdjuntar, tarea = false, validar,
         </Formulario>
       )}
       <Estado consulta={consulta} vacio={consulta.datos?.length === 0 ? 'Aún no hay evidencias adjuntas.' : undefined} />
-      {!!consulta.datos?.length && <ul className="grid gap-2">
+      {!!consulta.datos?.length && <ul className="grid grid-cols-1 gap-2">
         {consulta.datos.map((archivo) => {
           const estado = ESTADOS[archivo.estado_validacion ?? '']
           const puedeValidar = validar && !archivo.es_historica && archivo.estado_validacion === 'pendiente'
           return <li key={archivo.evidencia_id}>
-            <Card className="grid gap-3">
+            <Card className="grid grid-cols-1 gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <IconTile size={40}><FileText size={20} aria-hidden /></IconTile>
                 <p className="min-w-0 flex-1 font-semibold wrap-anywhere">{archivo.nombre_archivo || 'Evidencia histórica'}</p>
                 {estado && <Badge tone={estado.tono}>{estado.texto}</Badge>}
               </div>
-              {archivo.observacion && <p className="text-sm text-ink-2 whitespace-pre-line">{archivo.observacion}</p>}
-              {archivo.motivo_rechazo && <p className="text-sm text-danger-700">Motivo de rechazo: {archivo.motivo_rechazo}</p>}
+              {archivo.observacion && <p className="text-sm text-ink-2 whitespace-pre-line wrap-anywhere">{archivo.observacion}</p>}
+              {archivo.motivo_rechazo && <p className="text-sm text-danger-700 wrap-anywhere">Motivo de rechazo: {archivo.motivo_rechazo}</p>}
               {archivo.url_descarga
                 ? <a href={archivo.url_descarga} rel="noreferrer" target="_blank" className="inline-flex min-h-12 items-center gap-2 self-start text-sm font-semibold text-navy underline underline-offset-4">
                     Abrir archivo privado <ExternalLink size={16} aria-hidden />
                   </a>
-                : <p className="text-sm text-muted">{archivo.es_historica ? 'Archivo histórico disponible para consulta de sus datos.' : 'El archivo no está disponible para abrir.'}</p>}
+                : <p className="text-sm text-muted wrap-anywhere">{archivo.es_historica ? 'Archivo histórico disponible para consulta de sus datos.' : 'El archivo no está disponible para abrir.'}</p>}
               {puedeValidar && <>
                 <Formulario titulo="Revisar evidencia" campos={[]} accion="Validar" disabled={!enLinea}
                   enviar={() => validar(archivo.evidencia_id, true)}>

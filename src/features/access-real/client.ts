@@ -243,7 +243,7 @@ export async function obtenerSuscripcionPush() {
   return registro?.pushManager ? registro.pushManager.getSubscription() : null
 }
 
-export async function logout(session: BrowserSession) {
+export async function logout(session: Pick<BrowserSession, 'access_token'>) {
   let revoked = true
   const suscripcion = await obtenerSuscripcionPush().catch(() => null)
   if (suscripcion) {

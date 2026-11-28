@@ -79,13 +79,13 @@ function TarjetaAlerta({ alerta, abrir, mostrarAdulto }: {
   alerta: Alerta; abrir: (id: string) => void; mostrarAdulto?: boolean
 }) {
   return (
-    <Card className="grid min-w-0 gap-3 sm:flex sm:items-start sm:justify-between">
+    <Card className="grid grid-cols-1 min-w-0 gap-3 sm:flex sm:items-start sm:justify-between">
       <div className="flex min-w-0 flex-1 gap-3">
         <IconTile size={40}><Bell size={19} aria-hidden /></IconTile>
-        <div className="grid min-w-0 flex-1 gap-1">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-1">
           <h3 className="font-semibold text-ink wrap-anywhere">{alerta.tipo.nombre}</h3>
           {mostrarAdulto && <p className="text-sm text-ink-2 wrap-anywhere">{alerta.nombres} {alerta.apellidos}</p>}
-          <p className="text-xs text-muted"><time dateTime={alerta.fecha_alerta}>{fechaHora(alerta.fecha_alerta)}</time></p>
+          <p className="text-xs text-muted wrap-anywhere"><time dateTime={alerta.fecha_alerta}>{fechaHora(alerta.fecha_alerta)}</time></p>
           <div className="flex flex-wrap gap-1.5">
             <EstadoAlerta valor={alerta.estado} />
             <Badge tone={alerta.es_prioritaria ? 'danger' : 'neutral'}>Prioridad {alerta.prioridad.nombre}</Badge>
@@ -127,12 +127,12 @@ function DetalleAlerta({ base, token, cuenta, id, revision, cambio }: OperacionP
   return <>
     {aviso && <p role="status" className="rounded-sm bg-teal-100 p-3 text-sm font-semibold">{aviso}</p>}
     <Estado consulta={consulta} />
-    {alerta && <Card className="grid gap-4">
+    {alerta && <Card className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-bold wrap-anywhere">{alerta.tipo.nombre}</h2>
         <EstadoAlerta valor={alerta.estado} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Datum label="Adulto mayor" value={`${alerta.nombres} ${alerta.apellidos}`} />
         <Datum label="Prioridad" value={alerta.prioridad.nombre} />
         <Datum label="Registrada" value={fechaHora(alerta.fecha_alerta)} />
@@ -140,10 +140,10 @@ function DetalleAlerta({ base, token, cuenta, id, revision, cambio }: OperacionP
         {alerta.fecha_atencion && <Datum label="Fecha de atención" value={fechaHora(alerta.fecha_atencion)} />}
         {alerta.atendida_por && <Datum label="Atendida por" value={alerta.atendida_por} />}
       </div>
-      {alerta.cierre_automatico && <p className="text-sm text-ink-2">La alerta se cerró automáticamente al dejar de cumplirse su causa.</p>}
+      {alerta.cierre_automatico && <p className="text-sm text-ink-2 wrap-anywhere">La alerta se cerró automáticamente al dejar de cumplirse su causa.</p>}
       {alerta.descripcion && <p className="text-ink-2 whitespace-pre-line wrap-anywhere">{alerta.descripcion}</p>}
-      {alerta.accion_tomada && <section className="grid gap-1">
-        <h3 className="font-semibold">Acción tomada</h3>
+      {alerta.accion_tomada && <section className="grid grid-cols-1 gap-1">
+        <h3 className="font-semibold wrap-anywhere">Acción tomada</h3>
         <p className="text-sm text-ink-2 whitespace-pre-line wrap-anywhere">{alerta.accion_tomada}</p>
       </section>}
       {(puedeResolver || puedeAtender) && !gestion && <div className="flex flex-wrap gap-2">
@@ -166,15 +166,15 @@ function DetalleAlerta({ base, token, cuenta, id, revision, cambio }: OperacionP
 
 function Casos({ base, token, abrir, revision }: PropsBandeja) {
   const consulta = usePagina<Caso>(`${base}/casos-prioritarios`, token, revision)
-  return <section className="grid gap-4" aria-label="Casos prioritarios">
+  return <section className="grid grid-cols-1 gap-4" aria-label="Casos prioritarios">
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin casos prioritarios abiertos.' : undefined} />
     {consulta.datos?.data.map((caso) => (
-      <section key={caso.envejeciente_id} className="grid gap-2 rounded-md border border-line-soft bg-bg p-3 sm:p-4">
+      <section key={caso.envejeciente_id} className="grid grid-cols-1 gap-2 rounded-md border border-line-soft bg-bg p-3 sm:p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-bold wrap-anywhere">{caso.nombres} {caso.apellidos}</h2>
-          <p className="text-sm text-ink-2">{caso.total_alertas} {caso.total_alertas === 1 ? 'alerta abierta' : 'alertas abiertas'}</p>
+          <p className="text-sm text-ink-2 wrap-anywhere">{caso.total_alertas} {caso.total_alertas === 1 ? 'alerta abierta' : 'alertas abiertas'}</p>
         </div>
-        <ul className="grid gap-2">
+        <ul className="grid grid-cols-1 gap-2">
           {caso.alertas.map((alerta) => <li key={alerta.alerta_envejeciente_id}><TarjetaAlerta alerta={alerta} abrir={abrir} /></li>)}
         </ul>
       </section>
@@ -197,8 +197,8 @@ function ListaAlertas({ base, token, cuenta, abrir, revision, adultoInicial }: P
   const consulta = usePagina<Alerta>(`${base}/alertas`, token, revision, {
     filters: { ...(estado && { estado }), ...(tipo && { tipo }), ...(adulto && { envejeciente_id: adulto }) },
   })
-  return <section className="grid gap-3" aria-label="Listado de alertas">
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  return <section className="grid grid-cols-1 gap-3" aria-label="Listado de alertas">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <SelectField label="Estado de la alerta" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
         options={[{ value: '', label: 'Todos los estados' }, ...Object.entries(ESTADOS).map(([value, info]) => ({ value, label: info.nombre }))]} />
       <SelectField label="Tipo de alerta" value={tipo} onChange={(event) => fijarTipo(event.currentTarget.value)}
@@ -213,7 +213,7 @@ function ListaAlertas({ base, token, cuenta, abrir, revision, adultoInicial }: P
     {adultos.datos && adultos.datos.meta.totalPages > 1 &&
       <Paginador pagina={adultos.pagina} total={adultos.datos.meta.totalPages} cambiar={adultos.cambiar} />}
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin alertas en este listado.' : undefined} />
-    {!!consulta.datos?.data.length && <ul className="grid gap-3">
+    {!!consulta.datos?.data.length && <ul className="grid grid-cols-1 gap-3">
       {consulta.datos.data.map((alerta) => <li key={alerta.alerta_envejeciente_id}><TarjetaAlerta alerta={alerta} abrir={abrir} mostrarAdulto /></li>)}
     </ul>}
     {consulta.datos && <Paginador pagina={consulta.pagina} total={consulta.datos.meta.totalPages} cambiar={consulta.cambiar} />}
@@ -225,7 +225,7 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
   const [estado, fijarEstado] = useState('')
   const enLinea = useConexionReal()
   const consulta = usePagina<Notificacion>(`${base}/notificaciones-alerta`, token, revision, { filters: estado ? { estado } : undefined })
-  return <section className="grid gap-3" aria-label="Notificaciones de alertas">
+  return <section className="grid grid-cols-1 gap-3" aria-label="Notificaciones de alertas">
     <div className="max-w-sm">
       <SelectField label="Lectura de notificaciones" value={estado} onChange={(event) => fijarEstado(event.currentTarget.value)}
         options={[{ value: '', label: 'Todas' }, { value: 'no_leida', label: 'Sin leer' }, { value: 'leida', label: 'Leídas' }]} />
@@ -233,7 +233,7 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
     {confirmacion && <p role="status" className="rounded-sm bg-teal-100 p-3 text-sm font-semibold">Notificación marcada como leída.</p>}
     <Estado consulta={consulta} vacio={consulta.datos?.data.length === 0 ? 'Sin notificaciones de alertas.' : undefined} />
     {consulta.datos?.data.map((aviso) => (
-      <Card key={aviso.notificacion_id} className="grid gap-2">
+      <Card key={aviso.notificacion_id} className="grid grid-cols-1 gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="font-semibold whitespace-pre-line wrap-anywhere">{aviso.mensaje}</p>
           <Badge tone={aviso.estado === 'no_leida' ? 'info' : 'neutral'}>
@@ -241,7 +241,7 @@ function Notificaciones({ base, token, abrir, revision, cambio }: PropsBandeja &
           </Badge>
         </div>
         <time className="text-sm text-muted" dateTime={aviso.fecha_notificacion}>{fechaHora(aviso.fecha_notificacion)}</time>
-        {aviso.fecha_lectura && <p className="text-sm text-ink-2">Leída el <time dateTime={aviso.fecha_lectura}>{fechaHora(aviso.fecha_lectura)}</time></p>}
+        {aviso.fecha_lectura && <p className="text-sm text-ink-2 wrap-anywhere">Leída el <time dateTime={aviso.fecha_lectura}>{fechaHora(aviso.fecha_lectura)}</time></p>}
         {aviso.alerta_envejeciente_id && <div><Button variant="ghost" size="sm" onClick={() => {
           if (aviso.alerta_envejeciente_id) abrir(aviso.alerta_envejeciente_id)
         }}>Ver alerta</Button></div>}
@@ -264,7 +264,8 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
   // Quien no recibe avisos no tiene bandeja de notificaciones: solo vería una lista vacía.
   const bandejas = BANDEJAS.filter((item) => item.value !== 'avisos' || puedeRecibirAvisos)
   const bandeja = bandejas.find((item) => item.value === parametros.get('bandeja'))?.value ?? 'casos'
-  const [id, abrir] = useState<string>()
+  // /alertas?alerta=<id> (enlace desde Notificaciones) abre directamente el detalle de esa alerta.
+  const [id, abrir] = useState<string | undefined>(() => { const pedida = parametros.get('alerta'); return pedida && UUID.test(pedida) ? pedida : undefined })
   const [revision, setRevision] = useState(0)
   const panel = useRef<HTMLDivElement>(null)
   const bandejaRef = useRef<HTMLDivElement>(null)
@@ -278,7 +279,7 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
   }, [id])
   const cambio = () => setRevision((n) => n + 1)
   const listado = { base, token, abrir, revision }
-  return <section className="grid gap-4">
+  return <section className="grid grid-cols-1 gap-4">
     <div ref={bandejaRef} tabIndex={-1} hidden={!!id} className="space-y-4 outline-none">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Bandeja de alertas">
         {bandejas.map((item) => <Chip key={item.value} active={bandeja === item.value}
@@ -291,7 +292,7 @@ export function Alertas({ alLeerAviso, ...props }: OperacionProps & { alLeerAvis
         <Notificaciones {...listado} cambio={() => { cambio(); alLeerAviso() }} />
       </>}
     </div>
-    {id && <div ref={panel} tabIndex={-1} className="grid gap-3 outline-none">
+    {id && <div ref={panel} tabIndex={-1} className="grid grid-cols-1 gap-3 outline-none">
       <div><Button variant="outline" size="sm" onClick={() => abrir(undefined)}>Volver a la bandeja</Button></div>
       <DetalleAlerta {...props} id={id} revision={revision} cambio={cambio} />
     </div>}

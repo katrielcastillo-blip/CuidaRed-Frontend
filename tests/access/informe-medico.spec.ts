@@ -21,18 +21,29 @@ const ROLES: Rol[] = [
 const cuentaDe = (datos: Partial<CuentaSim> = {}) =>
   cuentaActiva({ cuenta_id: '9007199254740993', nombre: 'Fundación Esperanza', tipo: 'organizacion', rol: 'coordinador', permisos: [...SENSIBLES, 'informe:exportar'], funcionalidades: [], ...datos })
 
-async function abrirExpediente(page: Page, cuenta: CuentaSim, opciones: OpcionesReportes = {}) {
+/** Rediseño: el informe es una pantalla propia que se abre desde «Más acciones» → «Informe PDF». */
+async function abrirInforme(page: Page) {
+  await page.getByRole('button', { name: 'Más acciones' }).click()
+  await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Informe PDF' }).click()
+}
+
+async function abrirExpediente(page: Page, cuenta: CuentaSim, opciones: OpcionesReportes = {}, abrir = true) {
   const sim = await simular(page, { cuentas: [cuenta] })
   const api = await montarReportes(page, cuenta, opciones)
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/envejecientes?adulto=${juanaId}`)
   await expect(page.getByRole('heading', { level: 2, name: 'Juana Pérez Díaz' })).toBeVisible()
+  if (abrir) await abrirInforme(page)
   return api
 }
 
 for (const caso of ROLES) {
   test(`el ${caso.nombre} ${caso.informe ? 'puede' : 'no puede'} generar el informe médico`, async ({ page }) => {
-    const { de } = await abrirExpediente(page, cuentaDe({ tipo: caso.tipo, rol: caso.rol, permisos: caso.permisos }))
+    const { de } = await abrirExpediente(page, cuentaDe({ tipo: caso.tipo, rol: caso.rol, permisos: caso.permisos }), {}, false)
+    // Sin el permiso no existe ni la acción «Informe PDF» ni el botón para generarlo.
+    await page.getByRole('button', { name: 'Más acciones' }).click()
+    await expect(page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Informe PDF' })).toHaveCount(caso.informe ? 1 : 0)
+    if (caso.informe) await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Informe PDF' }).click()
     const boton = page.getByRole('button', { name: 'Generar informe médico' })
     await expect(boton).toHaveCount(caso.informe ? 1 : 0)
     if (caso.informe) await expect(boton).toBeEnabled()

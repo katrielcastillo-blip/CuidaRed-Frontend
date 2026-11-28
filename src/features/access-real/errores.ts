@@ -44,7 +44,7 @@ const POR_CODIGO: Record<string, string> = {
   VISIT_RECIPIENT_BUSY: 'La persona mayor ya tiene una visita en ese horario. Consulta el calendario y elige otra ventana.',
   VISIT_EVIDENCE_PENDING: 'La coordinación debe revisar las evidencias adjuntas antes de cerrar la visita.',
   VISIT_WINDOW_PASSED: 'El horario de esta visita ya pasó. Reprográmala antes de autorizarla.',
-  CAREGIVER_PROFILE_REQUIRED: 'La persona seleccionada necesita un perfil de cuidador vigente. Complétalo en Cuenta → Perfiles globales de cuidadores o elige a otra persona.',
+  CAREGIVER_PROFILE_REQUIRED: 'La persona seleccionada necesita un perfil de cuidador vigente. Complétalo en Organización (Configuración en una cuenta familiar) → Perfiles globales de cuidadores o elige a otra persona.',
   REQUEST_ALREADY_REVIEWED: 'Esta solicitud ya fue revisada. Actualiza la bandeja para ver su estado.',
 
   INVALID_VISIT_SERIES: 'Revisa la frecuencia, los días y la fecha de fin. El máximo es de 60 visitas.',

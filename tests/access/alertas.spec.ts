@@ -222,6 +222,7 @@ test('el expediente de un adulto inactivo no ofrece el enlace a sus alertas', as
   await iniciarSesion(page, sim.correo)
   await page.goto(`${ruta}/envejecientes`)
   await page.getByRole('button', { name: /Juana Prueba/ }).click()
+  await page.getByRole('tab', { name: 'Historial', exact: true }).click()
   await expect(page.getByRole('group', { name: 'Filtrar historial' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Ver alertas de este adulto' })).toHaveCount(0)
 })

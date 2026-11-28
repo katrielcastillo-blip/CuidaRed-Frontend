@@ -14,10 +14,10 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
-import { Check, CircleAlert, Eye, EyeOff, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useAyudaAbreviaturas } from './Abreviaturas'
 import { HelpTip } from './Display'
+import { Icono } from './Icono'
 
 interface FieldShellProps {
   label?: string
@@ -32,7 +32,7 @@ interface FieldShellProps {
   children: ReactNode
 }
 
-const LABEL = 'text-base font-semibold text-ink'
+const LABEL = 'text-cuerpo font-semibold text-ink wrap-anywhere'
 
 /** Marca de campo obligatorio: asterisco visible + "(obligatorio)" para lectores de pantalla. */
 const Obligatorio = () => (
@@ -46,15 +46,15 @@ const Obligatorio = () => (
 function MensajeCampo({ id, error, hint }: { id: string; error?: string; hint?: string }) {
   if (error) {
     return (
-      <p className="flex items-start gap-1.5 text-danger text-sm" role="alert" id={`${id}-err`}>
-        <CircleAlert size={16} className="mt-0.5 flex-none" aria-hidden />
+      <p className="flex items-start gap-1.5 text-danger text-ayuda" role="alert" id={`${id}-err`}>
+        <Icono nombre="error" tamano={20} className="flex-none" />
         <span>{error}</span>
       </p>
     )
   }
   if (hint) {
     return (
-      <p className="text-muted text-sm" id={`${id}-hint`}>
+      <p className="text-muted text-ayuda" id={`${id}-hint`}>
         {hint}
       </p>
     )
@@ -101,11 +101,15 @@ type PropsAbreviaturas = {
   procesarAbreviaturas?: boolean
 }
 
-/** Clase base de inputs: 52 px de alto, 16 px de letra (evita el zoom de iOS). */
+/**
+ * Clase base de inputs (Figma «Campo»): 52 px de alto, 16 px de letra (evita el zoom de iOS), fondo blanco,
+ * borde #64748B de 1 px (contraste 3:1) y esquinas de 12 px. Deshabilitado: fondo gris claro.
+ */
 export const INPUT =
-  'w-full min-h-[52px] px-4 bg-bg border border-line rounded-sm text-base text-ink transition ' +
-  'focus:outline-none focus:border-blue focus:ring-[3px] focus:ring-blue/25 disabled:bg-surface-2 disabled:text-muted'
-const INVALIDO = 'border-danger'
+  'w-full min-h-[52px] px-4 bg-surface border border-line rounded-md text-cuerpo text-ink transition placeholder:text-muted ' +
+  'focus:outline-none focus:border-blue focus:ring-[3px] focus:ring-blue/25 disabled:bg-surface-2 disabled:text-muted disabled:cursor-not-allowed'
+// Error: borde rojo de 2 px (el segundo píxel va por dentro con una sombra para no mover el contenido).
+const INVALIDO = 'border-danger shadow-[inset_0_0_0_1px_#c0392b]'
 
 const describedBy = (fid: string, error?: string, hint?: string) => (error ? `${fid}-err` : hint ? `${fid}-hint` : undefined)
 
@@ -200,7 +204,7 @@ export function PasswordField({ label, error, hint, help, required, id, ...rest 
           onClick={() => setShow((s) => !s)}
           aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
         >
-          {show ? <Eye size={22} /> : <EyeOff size={22} />}
+          <Icono nombre={show ? 'visibility' : 'visibility_off'} tamano={24} />
         </button>
       </div>
     </FieldShell>
@@ -328,12 +332,12 @@ export function SearchInput({ className, ...rest }: Omit<InputHTMLAttributes<HTM
     <div className={cn('relative', className)}>
       <input
         type="search"
-        className="w-full min-h-12 pl-4 pr-11 bg-surface border border-line rounded-3xl text-base focus:outline-none focus:border-blue focus:ring-[3px] focus:ring-blue/25"
+        className="w-full min-h-12 pl-4 pr-11 bg-surface border border-line rounded-3xl text-cuerpo focus:outline-none focus:border-blue focus:ring-[3px] focus:ring-blue/25"
         placeholder="Buscar..."
         aria-label="Buscar"
         {...rest}
       />
-      <Search size={20} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden />
+      <Icono nombre="search" tamano={24} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
     </div>
   )
 }
@@ -352,16 +356,28 @@ export function Checkbox({
   const casilla = (
     <label
       htmlFor={fid}
-      className={cn('flex items-center gap-3 min-h-12 text-sm text-ink-2 cursor-pointer [&_a]:text-navy [&_a]:font-semibold [&_a]:underline', className)}
+      className={cn(
+        'flex items-start gap-3 min-h-12 py-2.5 text-cuerpo text-ink cursor-pointer [&_a]:text-navy [&_a]:font-semibold [&_a]:underline',
+        rest.disabled && 'cursor-not-allowed opacity-55',
+        className,
+      )}
     >
-      <input
-        id={fid}
-        type="checkbox"
-        className="size-6 m-0 accent-navy flex-none"
-        aria-invalid={!!error || undefined}
-        aria-describedby={describedBy(fid, error, hint)}
-        {...rest}
-      />
+      <span className="relative size-7 flex-none">
+        <input
+          id={fid}
+          type="checkbox"
+          className="peer absolute inset-0 m-0 size-7 appearance-none rounded-[5px] cursor-[inherit]"
+          aria-invalid={!!error || undefined}
+          aria-describedby={describedBy(fid, error, hint)}
+          {...rest}
+        />
+        <Icono
+          nombre="check_box_outline_blank"
+          tamano={28}
+          className={cn('pointer-events-none absolute inset-0 peer-checked:hidden', error ? 'text-danger' : 'text-muted')}
+        />
+        <Icono nombre="check_box" tamano={28} className="pointer-events-none absolute inset-0 hidden text-blue-principal peer-checked:block" />
+      </span>
       <span>{label}</span>
     </label>
   )
@@ -421,19 +437,14 @@ export function CheckboxGroup<T extends string>({
             <label
               key={o.value}
               className={cn(
-                'flex items-center gap-3 min-h-12 px-3 rounded-sm border cursor-pointer text-sm font-semibold select-none',
+                'flex items-center gap-3 min-h-12 px-3 rounded-md border cursor-pointer text-cuerpo font-semibold select-none',
                 'has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-blue',
-                on ? 'bg-blue-100 border-navy text-navy' : 'bg-bg border-line text-ink-2',
+                on ? 'bg-blue-100 border-navy text-navy' : 'bg-surface border-line text-ink-2',
                 error && !on && 'border-danger',
               )}
             >
               <input type="checkbox" className="sr-only" checked={on} onChange={() => toggle(o.value)} />
-              <span
-                aria-hidden
-                className={cn('grid place-items-center size-6 flex-none rounded-[5px] border-2', on ? 'bg-navy border-navy text-white' : 'border-line bg-white')}
-              >
-                {on && <Check size={16} strokeWidth={3} />}
-              </span>
+              <Icono nombre={on ? 'check_box' : 'check_box_outline_blank'} tamano={28} className={cn('flex-none', on ? 'text-blue-principal' : 'text-muted')} />
               <span>{o.label}</span>
             </label>
           )
@@ -554,8 +565,8 @@ export function ChoicePills<T extends string>({
             role="radio"
             aria-checked={value === o.value}
             className={cn(
-              'flex-1 basis-0 min-h-12 px-5 rounded-sm border font-semibold',
-              value === o.value ? 'bg-navy text-white border-navy' : 'bg-bg text-ink-2',
+              'flex-1 basis-0 min-h-12 px-5 rounded-md border font-semibold text-cuerpo',
+              value === o.value ? 'bg-navy text-white border-navy' : 'bg-surface text-ink-2',
               error ? 'border-danger' : value === o.value ? '' : 'border-line',
             )}
             onClick={() => onChange(o.value)}

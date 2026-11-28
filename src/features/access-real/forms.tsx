@@ -1,18 +1,17 @@
 /*
- * forms.tsx — Formularios conectados del acceso: inicio de sesión, activación de invitación, recuperación y perfil.
+ * forms.tsx — Formularios conectados del acceso: inicio de sesión, activación de invitación y recuperación (el perfil propio vive en perfil-cuenta.tsx).
  * Módulo: access-real (ID01), sin contraseñas locales.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { Mail } from 'lucide-react'
-import { Button, ButtonLink, Checkbox, IconTile, PasswordField, StepBar, TextField } from '@/components/ui'
+import { Button, ButtonLink, Checkbox, PasswordField, ProgresoRegistro, TextField } from '@/components/ui'
 import { useLogo } from '@/lib/marca'
 import { AuthScreen } from '../auth/components/AuthScreen'
-import { Aviso, RequisitosPassword } from '../auth/components/Piezas'
+import { Aviso, RequisitosPassword, TITULO_PASO, YaTienesCuenta } from '../auth/components/Piezas'
 import { LogoBadge } from '../auth/components/LogoBadge'
-import { api, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CurrentUser, type Profile } from './client'
+import { api, guardarSesionDelNavegador, passwordError, temporaryClient, type BrowserSession, type CurrentUser } from './client'
 
 const GENERIC_RECOVERY = 'Si el correo pertenece a una cuenta, recibirás un código para restablecer tu contraseña.'
 const GENERIC_CODE = 'El código no es válido o ha vencido. Solicita uno nuevo a la persona responsable.'
@@ -46,16 +45,19 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
       setBusy(false)
     }
   }
+  const actualizada = (location.state as { contrasenaActualizada?: unknown } | null)?.contrasenaActualizada === true
   return (
     <AuthScreen homeLink>
       <h1 className="sr-only">Iniciar sesión en CuidaRed</h1>
-      <img className="mb-7 self-center w-[min(279px,100%)]" src={logo} alt="CuidaRed" />
-      <form className="flex flex-col gap-5" onSubmit={submit}>
+      <img className="mb-8 self-center w-[min(248px,100%)]" src={logo} alt="CuidaRed" />
+      <form className="flex flex-col gap-6" onSubmit={submit}>
+        {actualizada && <Aviso tono="exito">Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.</Aviso>}
         <TextField
           label="Correo electrónico"
           type="email"
           required
           autoComplete="username"
+          placeholder="ejemplo@correo.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -63,6 +65,7 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
           label="Contraseña"
           required
           autoComplete="current-password"
+          placeholder="Tu contraseña"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
@@ -70,25 +73,29 @@ export function AccessForm({ notice, onSession }: { notice: string; onSession: (
         {new URLSearchParams(window.location.search).has('cierre') && (
           <Aviso tono="warning">Se borró la sesión de este navegador, pero no se pudo confirmar su revocación en el servidor.</Aviso>
         )}
-        <Button type="submit" fullWidth loading={busy}>
-          Iniciar sesión
-        </Button>
-        <ButtonLink to="/recuperar" variant="ghost">
-          ¿Olvidaste tu contraseña?
-        </ButtonLink>
-        <ButtonLink to="/registro" variant="outline">
-          Activar mi cuenta
-        </ButtonLink>
-        <ButtonLink to="/crear-cuenta" state={location.state} variant="ghost">
-          Crear una cuenta
-        </ButtonLink>
-        <nav className="flex justify-center gap-4">
-          <Link className="inline-flex min-h-12 items-center" to="/terminos">
+        <div className="flex flex-col gap-2">
+          <Button type="submit" fullWidth loading={busy}>
+            Iniciar sesión
+          </Button>
+          <ButtonLink to="/recuperar" variant="ghost" className="self-center">
+            ¿Olvidaste tu contraseña?
+          </ButtonLink>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <ButtonLink to="/registro" variant="outline" className="px-2!">
+            Activar cuenta
+          </ButtonLink>
+          <ButtonLink to="/crear-cuenta" state={location.state} variant="outline" className="px-2!">
+            Crear cuenta
+          </ButtonLink>
+        </div>
+        <nav aria-label="Avisos legales" className="flex justify-center gap-4">
+          <ButtonLink to="/terminos" variant="ghost">
             Términos
-          </Link>
-          <Link className="inline-flex min-h-12 items-center" to="/privacidad">
+          </ButtonLink>
+          <ButtonLink to="/privacidad" variant="ghost">
             Privacidad
-          </Link>
+          </ButtonLink>
         </nav>
       </form>
     </AuthScreen>
@@ -173,17 +180,24 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
       setBusy(false)
     }
   }
+  const TITULOS = ['Confirma tu invitación', 'Tus datos personales', 'Crea tu contraseña']
   return (
-    <AuthScreen title="Activar mi cuenta" back="/inicio">
-      <StepBar step={step} total={3} />
-      <form className="mt-5 flex flex-col gap-5" onSubmit={submit}>
+    <AuthScreen title="Activar mi cuenta" back={step > 1 && !busy ? () => { setError(''); setStep(step - 1) } : '/inicio'}>
+      <LogoBadge />
+      <ProgresoRegistro paso={step} total={3} className="mt-6" />
+      <form className="mt-6 flex flex-col gap-6" onSubmit={submit}>
+        <h2 className={TITULO_PASO}>{TITULOS[step - 1]}</h2>
         {step === 1 && (
           <>
+            <p className="text-cuerpo text-ink">
+              Tu cuenta la creó la persona responsable de tu organización o familia. Escribe tu correo y el código de activación que te llegó por correo.
+            </p>
             <TextField
               label="Correo electrónico"
               type="email"
               required
               disabled={!!session}
+              placeholder="ejemplo@correo.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -195,9 +209,10 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
               required
               pattern="[0-9]{6}"
               maxLength={6}
+              placeholder="000000"
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-              help="Usa el código enviado por Supabase a tu correo. Caduca a los 15 minutos."
+              hint="6 dígitos. Lo encuentras en el correo de invitación y caduca a los 15 minutos."
             />
           </>
         )}
@@ -226,11 +241,11 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
               label={
                 <>
                   Acepto los{' '}
-                  <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/terminos">
+                  <Link target="_blank" rel="noopener" to="/terminos">
                     Términos
                   </Link>{' '}
                   y la{' '}
-                  <Link className="inline-flex min-h-12 items-center" target="_blank" rel="noopener" to="/privacidad">
+                  <Link target="_blank" rel="noopener" to="/privacidad">
                     Política de privacidad
                   </Link>
                   .
@@ -244,10 +259,11 @@ export function InvitationForm({ onSession }: { onSession: (session: BrowserSess
           {step === 3 ? 'Activar cuenta' : 'Continuar'}
         </Button>
         {step > 2 && (
-          <Button variant="ghost" onClick={() => setStep(step - 1)}>
+          <Button variant="ghost" className="self-center" onClick={() => setStep(step - 1)}>
             Volver
           </Button>
         )}
+        {step === 1 && <YaTienesCuenta />}
       </form>
     </AuthScreen>
   )
@@ -280,14 +296,24 @@ export function RecoveryForm() {
   return (
     <AuthScreen title="Recuperar contraseña" back="/inicio" gradient="auth">
       <LogoBadge />
-      <form className="flex flex-col gap-5" onSubmit={submit}>
-        <TextField label="Correo electrónico" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-        {sent && <Aviso>{GENERIC_RECOVERY}</Aviso>}
+      <ProgresoRegistro paso={1} total={3} className="mt-6" />
+      <form className="mt-6 flex flex-col gap-6" onSubmit={submit}>
+        <h2 className={TITULO_PASO}>¿Olvidaste tu contraseña?</h2>
+        <p className="text-cuerpo text-ink">Escribe el correo de tu cuenta. Te enviaremos un código de 6 dígitos para crear una contraseña nueva.</p>
+        <TextField
+          label="Correo electrónico"
+          type="email"
+          required
+          placeholder="ejemplo@correo.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+        <Aviso>{sent ? GENERIC_RECOVERY : 'Si el correo está registrado, el código llegará en unos minutos. Revisa también la carpeta de spam.'}</Aviso>
         {error && <Aviso tono="error">{error}</Aviso>}
         <Button type="submit" loading={busy}>
           {sent ? 'Enviar otro código' : 'Enviar código'}
         </Button>
-        <ButtonLink to="/restablecer" variant="ghost">
+        <ButtonLink to="/restablecer" variant="ghost" className="self-center">
           Ingresar el código
         </ButtonLink>
       </form>
@@ -350,7 +376,7 @@ export function ResetForm() {
       setPassword('')
       setConfirm('')
       setCode('')
-      navigate('/inicio', { replace: true })
+      navigate('/inicio', { replace: true, state: { contrasenaActualizada: true } })
     } catch {
       setError('No se pudo completar la recuperación. Intenta de nuevo.')
     } finally {
@@ -358,13 +384,21 @@ export function ResetForm() {
     }
   }
   return (
-    <AuthScreen title="Restablecer contraseña" back="/recuperar" gradient="auth">
-      <form className="flex flex-col gap-5" onSubmit={submit}>
+    <AuthScreen title="Recuperar contraseña" back="/recuperar" gradient="auth">
+      <LogoBadge />
+      <form className="mt-6 flex flex-col gap-6" onSubmit={submit}>
+        <h2 className={TITULO_PASO}>Restablecer contraseña</h2>
+        <p className="text-cuerpo text-ink">
+          {tokenHash
+            ? 'Tu enlace fue verificado. Elige una contraseña nueva que no hayas usado antes.'
+            : 'Escribe tu correo y el código de 6 dígitos que te enviamos. Luego elige una contraseña nueva que no hayas usado antes.'}
+        </p>
         {!tokenHash && <><TextField
           label="Correo electrónico"
           type="email"
           required
           disabled={verified}
+          placeholder="ejemplo@correo.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -376,9 +410,10 @@ export function ResetForm() {
           autoComplete="one-time-code"
           pattern="[0-9]{6}"
           maxLength={6}
+          placeholder="000000"
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-          help="Caduca a los 15 minutos y es de un solo uso."
+          hint="6 dígitos. Caduca a los 15 minutos y es de un solo uso."
         /></>}
         <PasswordField
           label="Nueva contraseña"
@@ -455,51 +490,5 @@ function PersonalFields({
         onChange={(event) => setData({ ...data, telefono: event.target.value })}
       />
     </>
-  )
-}
-
-export function ProfileForm({ token, profile, onSaved }: { token: string; profile: Profile; onSaved: () => void }) {
-  const [data, setData] = useState({
-    cedula: profile.cedula,
-    nombres: profile.nombres,
-    apellidos: profile.apellidos,
-    telefono: profile.telefono ?? '',
-  })
-  const [notice, setNotice] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (busy) return
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      const input = { nombres: data.nombres, apellidos: data.apellidos, telefono: data.telefono.trim() || null }
-      await api('/me', token, 'PATCH', input)
-      setNotice('Cambios guardados.')
-      onSaved()
-    } catch (issue) {
-      setError(message(issue))
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <form className="flex flex-col gap-5" onSubmit={submit}>
-      <div className="flex min-w-0 items-center gap-3 rounded-md border border-line-soft bg-surface p-3">
-        <IconTile size={40}><Mail size={20} aria-hidden /></IconTile>
-        <dl className="min-w-0">
-          <dt className="text-sm font-semibold text-navy">Correo electrónico</dt>
-          <dd className="wrap-anywhere font-medium text-ink">{profile.correo}</dd>
-        </dl>
-      </div>
-      <PersonalFields data={data} setData={setData} showCedula />
-      {error && <Aviso tono="error">{error}</Aviso>}
-      {notice && <p role="status">{notice}</p>}
-      <Button type="submit" loading={busy}>
-        Guardar cambios
-      </Button>
-    </form>
   )
 }
