@@ -5,8 +5,10 @@
  *
  *  - Móvil (<768px): barra superior de marca + contenido a ancho completo + bottom-nav navy fijo.
  *  - Tablet (768–1099px): sidebar compacto de iconos. Escritorio (≥1100px): sidebar completo.
- *  - Todas las pantallas: logo arriba a la izquierda; usuario y rol arriba a la derecha; indicador
- *    permanente de conexión y registros pendientes (SRS §18.3 y §18.4). Pie de página en escritorio.
+ *  - Todas las pantallas: logo arriba a la izquierda; usuario, rol y selector de cuenta arriba a la derecha;
+ *    indicador permanente de conexión y registros pendientes (SRS §18.3 y §18.4). Pie de página en escritorio.
+ *  - Plan de la cuenta (V2): banda de prueba gratuita bajo la barra superior y, si la cuenta quedó sin acceso
+ *    operativo (prueba vencida sin pago), la pantalla de contratación en lugar del contenido.
  */
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
@@ -14,7 +16,11 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { logout, nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'
-import { pendientesDelUsuario } from '@/domain/sync'
+import { estaEnLinea } from '@/domain/conectividad'
+import { pendientesDelUsuario, sincronizarAntesDeSalir } from '@/domain/sync'
+import { usePlanCuenta } from '@/domain/usePlan'
+import { BannerPrueba, CuentaSinAcceso } from '@/components/plan'
+import { OnboardingInicial } from '@/features/auth/components/OnboardingInicial'
 import { Avatar, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { BarraSuperior } from './BarraSuperior'
@@ -49,18 +55,30 @@ function Contador({ n, className }: { n?: number; className?: string }) {
 
 export function AppShell({ nav, base, perfilPath }: { nav: NavItem[]; base: string; perfilPath: string }) {
   const { user, org } = useSession()
+  const { accesoOperativo } = usePlanCuenta()
   const navigate = useNavigate()
   const toast = useToast()
 
-  const salir = () => {
-    const pendientes = pendientesDelUsuario().length
+  const salir = async () => {
+    // Con conexión se intenta enviar lo pendiente antes de cerrar (el token sigue vigente hasta el logout).
+    const pendientes = estaEnLinea() ? await sincronizarAntesDeSalir().catch(() => pendientesDelUsuario().length) : pendientesDelUsuario().length
     logout()
     if (pendientes) toast(`Tienes ${pendientes} registro(s) sin sincronizar guardados en este dispositivo. Se enviarán cuando vuelvas a iniciar sesión con conexión.`, 'info')
     navigate('/inicio', { replace: true })
   }
 
+  if (org && !accesoOperativo) {
+    return (
+      <Ctx.Provider value={{ base, perfilPath }}>
+        <CuentaSinAcceso />
+      </Ctx.Provider>
+    )
+  }
+
   return (
     <Ctx.Provider value={{ base, perfilPath }}>
+      {/* Guía de primeros pasos según rol y tipo de cuenta (se muestra una sola vez por usuario y rol). */}
+      <OnboardingInicial />
       <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[80] focus:bg-white focus:text-navy focus:p-3 focus:rounded-md">
         Saltar al contenido
       </a>
@@ -113,7 +131,7 @@ export function AppShell({ nav, base, perfilPath }: { nav: NavItem[]; base: stri
                 className="hidden lg:grid size-12 place-items-center rounded-full text-blue-100 hover:bg-white/10"
                 aria-label="Cerrar sesión"
                 title="Cerrar sesión"
-                onClick={salir}
+                onClick={() => void salir()}
               >
                 <LogOut size={20} />
               </button>
@@ -123,6 +141,7 @@ export function AppShell({ nav, base, perfilPath }: { nav: NavItem[]; base: stri
 
         <div className="min-w-0 flex flex-col min-h-dvh pb-[calc(var(--bottomnav-h)+var(--safe-bottom)+24px)] md:pb-0">
           <BarraSuperior />
+          <BannerPrueba />
           <div id="contenido" className="flex-1 flex flex-col">
             <Outlet />
           </div>
@@ -201,7 +220,7 @@ export function Page({
           <div className="flex-1 min-w-0 flex items-center">{leading ?? <h1 className="text-xl font-semibold text-blue-100 truncate">{title}</h1>}</div>
           {actions}
           {!hideAvatar && user && (
-            <Link to={perfilPath} className="flex-none rounded-full md:hidden" aria-label="Mi perfil">
+            <Link to={perfilPath} className="flex-none grid place-items-center size-12 rounded-full md:hidden" aria-label="Mi perfil">
               <Avatar nombre={nombreCompleto(user)} src={user.avatar} size={40} ring />
             </Link>
           )}

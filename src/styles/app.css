@@ -33,6 +33,38 @@
   [hidden] { display: none !important; }
 }
 
+/* Tamaños del formulario público, limitados a su propio contenedor. */
+@layer utilities {
+  .visita-formulario { container: solicitud-visita / inline-size; }
+  .visita-formulario label { font-size: var(--fs-sm); line-height: 1.5; }
+  .visita-formulario :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    padding-inline: 12px;
+    font-family: var(--font);
+    font-size: var(--fs-md);
+  }
+  .visita-formulario select { padding-right: 44px; }
+  .visita-campo-ancho { grid-column: 1 / -1; }
+  @container solicitud-visita (min-width: 26rem) {
+    .visita-formulario .visita-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .visita-formulario .visita-tipo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .visita-formulario .visita-acciones { flex-direction: row; justify-content: flex-end; }
+  }
+  @media (min-width: 1024px) and (pointer: fine) {
+    .visita-formulario { --field-gap: 6px; gap: 12px; }
+    .visita-formulario .visita-campos { gap: 12px 16px; }
+    .visita-formulario :is(input:not([type='checkbox']):not([type='radio']), select) {
+      min-height: 40px;
+      font-size: var(--fs-sm);
+    }
+    .visita-formulario textarea { min-height: 80px; font-size: var(--fs-sm); padding-block: 8px; }
+    .visita-formulario .visita-acciones { padding-top: 12px; }
+    .visita-formulario .visita-acciones > button { min-height: 40px; font-size: var(--fs-sm); }
+  }
+}
+
 /* Componentes repetidos que no tienen equivalente directo en una sola utilidad de Tailwind. */
 @layer components {
   .section-title { font-size: var(--fs-xl); font-weight: 700; color: var(--c-text); }

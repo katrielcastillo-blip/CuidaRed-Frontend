@@ -43,7 +43,7 @@ Este manual explica, paso a paso y sin tecnicismos, las tareas más comunes. Den
   - ☁ verde **«En línea»**: todo se guarda al instante.
   - ☁ tachada ámbar **«Sin conexión»**: estás sin internet. Puedes seguir registrando visitas y necesidades (ver [sección 5](#5-trabajar-sin-internet)).
   - El número junto al indicador son los registros **pendientes de sincronizar**.
-  - 🔔 (solo coordinadores): **notificaciones** de alertas nuevas.
+  - 🔔 (solo coordinadores y administradores de organización): **notificaciones** de alertas nuevas.
 - **Barra azul:** el nombre de la pantalla y la flecha ← para volver.
 - **Menú inferior (teléfono) o lateral (computadora):** las secciones principales de tu rol.
 
@@ -74,7 +74,7 @@ Al tocar una persona ves su perfil: datos de contacto, condición general, histo
 
 ![Registrar visita](manual/img/05-registrar-visita.png)
 
-> Si marcas **Situación crítica**, el coordinador recibe una alerta de inmediato.
+> Si marcas **Situación crítica**, queda registrado en la visita, pero no se crea una alerta automática: avisa al coordinador por tu canal habitual y, si hay peligro, llama al **9-1-1**.
 > Si cierras la pantalla por error, lo que escribiste se conserva al volver.
 
 ### 4.3 Registrar una necesidad
@@ -85,7 +85,7 @@ Al tocar una persona ves su perfil: datos de contacto, condición general, histo
 
 ![Registrar necesidad](manual/img/06-registrar-necesidad.png)
 
-> Una necesidad de **Medicamentos** pendiente genera automáticamente una alerta de **caso prioritario** para el coordinador.
+> Una necesidad de **Medicamentos** pendiente genera automáticamente una alerta de **Medicamento pendiente**, y una necesidad de otra categoría con prioridad **Alta**, una alerta de **Necesidad prioritaria**. Ambas aparecen en *Alertas* y el coordinador recibe una notificación.
 
 ### 4.4 Actualizar el estado de una necesidad
 
@@ -120,23 +120,77 @@ En campo muchas veces no hay señal. CuidaRed lo resuelve así:
 
 El **Inicio** del coordinador resume: casos activos, alertas abiertas por urgencia, personas que superan los días sin visita, necesidades pendientes y visitas de hoy.
 
-### 6.1 Resumen de seguimiento
+### 6.1 Resumen de casos
 
-En **Más → Resumen de seguimiento** ves **todos los casos activos** ordenados por **prioridad** (alta, media, baja). Puedes ordenarlos por **estado de atención**, **fecha de la última visita** o **nivel de riesgo**, y agruparlos por estado. Se actualiza solo cuando algo cambia.
+En **Resumen** (Coordinador y Administrador de la organización) ves **todos los casos activos** de tu cuenta: adultos mayores activos con consentimiento vigente. Cada caso muestra su **prioridad** (alta, media o baja), su **estado de atención** y los datos que lo explican: alertas abiertas, necesidades activas y días sin visita. La prioridad combina alertas abiertas, riesgo, seguimiento y necesidades.
 
-![Resumen de seguimiento](manual/img/11-resumen.png)
+**Indicadores de arriba.** Cubren todos los casos activos y no cambian con los filtros:
+
+- Casos activos, y cuántos tienen prioridad alta, media o baja.
+- Adultos sin personal asignado. En Organización también se muestran los adultos que superaron el umbral de días sin visita.
+- **Adultos prioritarios:** personas con al menos una alerta prioritaria abierta. Cada persona se cuenta una vez.
+- **Alertas abiertas:** se cuentan una por una. Dos alertas de la misma persona suman dos alertas, pero un solo adulto prioritario.
+- Necesidades activas (pendientes o en proceso).
+
+**Estados de atención** (del más urgente al menos urgente):
+
+- **Alerta pendiente:** tiene una alerta abierta que nadie ha empezado a atender.
+- **Alerta en atención:** tiene alertas abiertas y todas ya están en atención.
+- **Seguimiento vencido:** sin alertas abiertas, pero superó el límite de días sin visita.
+- **Necesidades activas:** sin lo anterior, pero con necesidades pendientes o en proceso.
+- **Al día:** sin alertas abiertas, sin necesidades activas y con visitas al día.
+
+**Buscar, filtrar y ordenar**
+
+1. Escribe al menos 2 letras en el buscador (nombre, sector o municipio).
+2. Filtra por estado de atención, prioridad, riesgo, municipio, sector o personal asignado (con o sin personal, o una persona concreta).
+3. Ordena por prioridad, estado de atención, última visita, nivel de riesgo o nombre. Toca **Orden** para invertir el sentido.
+4. Toca **Quitar filtros** para volver a ver todos los casos.
+
+La lista se muestra por páginas. Toca el nombre de un caso para abrir su expediente.
 
 ### 6.2 Atender alertas
 
-CuidaRed crea alertas **automáticamente**:
+CuidaRed crea las alertas **automáticamente** y genera **una alerta por cada causa**, no una por persona. Estos son los cuatro tipos:
 
-| Alerta | Cuándo se crea | Urgencia |
+| Alerta | Cuándo se crea | Prioridad |
 |---|---|---|
-| **Caso prioritario** | La persona tiene riesgo **Alto** o una necesidad de **Medicamentos** pendiente (una sola alerta aunque se cumplan ambas) | Alta |
-| **Seguimiento familiar** | Pasan **más de 15 días** sin visita registrada (el administrador puede ajustar el número) | Media |
-| **Emergencia** | Un voluntario reporta **Situación crítica** en una visita | Alta |
+| **Riesgo alto** | La persona tiene un factor de riesgo de nivel **Alto** vigente. Hay **una alerta por cada factor** | Alta |
+| **Medicamento pendiente** | Hay una necesidad de **Medicamentos** pendiente. Hay **una alerta por cada necesidad** registrada | Alta |
+| **Necesidad prioritaria** | Hay una necesidad pendiente de **otra categoría** con prioridad **Alta**. Se crea al registrarla o al subirle la prioridad | Alta |
+| **Seguimiento familiar sin visita** | Solo en Organización. Se genera al superar **15 días calendario** desde la última visita completada o desde el alta. Puedes cambiar el umbral en *Días sin visita para generar alerta*. | Media |
 
-En **Alertas** se ordenan de mayor a menor urgencia. Abre una alerta, revisa por qué se generó, **escribe la acción que tomaste** y cambia su estado a **En atención** o **Atendida**. Todo queda en el historial de la alerta. Las alertas automáticas se cierran solas cuando desaparece la causa, por ejemplo al registrarse una visita.
+Los tres primeros tipos forman los **casos prioritarios**. No existe una alerta de «Emergencia»: marcar **Situación crítica** en una visita queda registrado en la visita, pero no crea una alerta.
+
+Cada alerta tiene uno de **tres estados**:
+
+| Estado | Qué significa |
+|---|---|
+| **Pendiente** | Nadie ha empezado a atenderla |
+| **En atención** | Alguien de la coordinación pulsó *Iniciar atención* |
+| **Resuelta** | Se registró la acción tomada, o el sistema la cerró porque dejó de cumplirse su causa |
+
+**Quién puede hacer qué**
+
+- **Coordinador (Familia u Organización) y Administrador (Organización):** consultan las alertas, pueden **iniciar la atención** y **resolver**.
+- **Cuidador:** consulta las alertas de las personas que tiene asignadas y puede **resolverlas**, pero no iniciar la atención.
+- **Voluntario y Familiar:** no ven alertas.
+
+**La pantalla Alertas** tiene tres bandejas:
+
+- **Casos prioritarios:** las personas con alertas abiertas (pendientes o en atención) de riesgo alto, medicamento pendiente o necesidad prioritaria, agrupadas por persona con el número de alertas de cada una.
+- **Alertas:** el listado completo, de la más reciente a la más antigua. Se filtra por **estado**, **tipo** y **adulto mayor**. Desde el perfil de una persona activa, el botón **Ver alertas de este adulto** abre este listado ya filtrado.
+- **Notificaciones:** los avisos recibidos (solo para quienes los reciben, ver más abajo).
+
+**Resolver una alerta**
+
+1. Abre la alerta y revisa por qué se generó: la descripción y su **fuente** (factor de riesgo, necesidad registrada, visita de referencia o alta del expediente).
+2. Si quieres dejar constancia de que ya la estás trabajando, toca **Iniciar atención** (solo coordinación).
+3. Toca **Resolver alerta**, **escribe la acción que tomaste** (hasta 500 caracteres) y confirma. Quedan registradas la acción, la fecha y quién la atendió.
+
+**Cierre automático.** Si desaparece la causa, la alerta se resuelve sola y lo indica: «La alerta se cerró automáticamente al dejar de cumplirse su causa». Ocurre cuando baja el nivel de riesgo, cuando la necesidad se atiende o baja de prioridad, o cuando hubo una visita completada; esta última se comprueba cada noche, a las 00:05 hora de República Dominicana. Si resuelves una alerta a mano, conserva su origen. Solo una nueva causa (otro factor de riesgo, otra necesidad o una nueva ventana sin visitas) crea una alerta nueva.
+
+**Notificaciones.** Al crearse una alerta, reciben una notificación interna el **Coordinador** y, en una organización, el **Administrador** que tengan acceso al caso; en el 🔔 de la barra superior aparece el número de avisos sin leer. El texto es genérico («Hay una alerta de caso prioritario por revisar» o «Hay una alerta de seguimiento por revisar») y no incluye datos de la persona. Los avisos de casos prioritarios se pueden desactivar en la configuración de la cuenta (*Notificar casos prioritarios*). El Cuidador consulta sus alertas, pero **no recibe notificaciones** ni ve el 🔔. En *Alertas → Notificaciones* puedes activar los avisos del dispositivo para recibirlos aunque CuidaRed esté cerrado.
 
 ![Alertas](manual/img/12-alertas.png)
 
@@ -157,11 +211,70 @@ Desde el perfil puedes **editar** los datos, **asignar voluntarios**, hacer la *
 
 ![Programar visita](manual/img/14-programar-visita.png)
 
-### 6.5 Reportes
+### 6.5 Reportes y estadísticas
 
-En **Más → Reportes** elige el tipo de reporte: **adultos mayores registrados**, **visitas realizadas**, **necesidades frecuentes** o **casos prioritarios**. Puedes filtrar por fechas y por categoría. Toca **Exportar CSV** para abrirlo en Excel o **Imprimir / PDF**. Si no hay datos para los filtros elegidos, se indica claramente.
+En **Reportes** (Coordinador y Administrador de la organización) ves indicadores y gráficos de los adultos mayores de tu cuenta. Los reportes **no incluyen cédula, teléfono ni dirección**.
 
-![Reportes](manual/img/15-reportes.png)
+Para usar Reportes, tu plan debe incluir **métricas**. Si no lo incluye, la pantalla lo indica y no muestra datos. La prueba gratuita de una organización sí lo incluye; la de una familia, no.
+
+**Tipos de reporte**
+
+- **Adultos mayores registrados:** los dados de alta en el período.
+- **Visitas realizadas:** incluye las visitas institucionales completadas y las muestra por separado. Solo las visitas con expediente suman atenciones a adultos. Los filtros de municipio, sector o riesgo se aplican a expedientes. Disponible solo en Organización.
+- **Necesidades frecuentes y atendidas:** por categoría y con su estado actual.
+- **Casos prioritarios:** alertas prioritarias del período y su estado actual.
+
+**Cómo generar un reporte**
+
+1. Elige el tipo de reporte.
+2. Elige el **período**: todo el tiempo, este mes, últimos 3 meses, últimos 6 meses, este año o personalizado (desde / hasta). Si «hasta» es anterior a «desde», corrige el rango para consultar o exportar.
+3. Si quieres, filtra por municipio, sector o riesgo. En *Necesidades*, también por categoría.
+4. Revisa los indicadores, los gráficos y la tabla de datos. Cada gráfico tiene su tabla con los mismos números. Toca **Mostrar filas más** para ver el detalle completo. Los nombres abren su expediente.
+
+Si el período no tiene datos, la pantalla lo dice. Prueba con otro período o quita algún filtro.
+
+**Exportar**
+
+- **Descargar CSV:** el archivo lo entrega el servidor y se abre en Excel.
+- **Exportar PDF:** CuidaRed registra primero la exportación. Si no puede registrarla, no genera ningún archivo.
+- **Exportar Excel** y **Análisis avanzado** (comparativo por sector y por municipio, y tendencias mensuales): solo si tu plan incluye **reportes avanzados**. La prueba gratuita no lo incluye.
+
+Cada exportación queda en **Auditoría** con la acción **Exportación**. Exportar necesita Internet: sin conexión, los botones se desactivan y la pantalla te explica por qué.
+
+### 6.6 Informe médico de un adulto mayor
+
+El informe médico es un PDF que resume el expediente de una persona, para que lo interprete personal de salud. Lo pueden generar el **Coordinador** y el **Cuidador**; el Cuidador, solo de los adultos que tiene asignados. El Administrador no lo ve.
+
+1. Abre el expediente del adulto mayor y ve a la sección de **seguimiento**.
+2. Toca **Generar informe médico**. CuidaRed consulta la información en ese momento.
+3. Revisa el informe en pantalla. Si necesitas una copia, toca **Descargar informe en PDF**.
+
+El informe contiene:
+
+- Identificación mínima: nombre, cédula, fecha de nacimiento, sexo, municipio y estado del expediente.
+- Indicaciones médicas activas cuya fecha de inicio ya llegó y cuyo fin sigue vigente.
+- Riesgo vigente e historial (hasta 15 registros).
+- Las últimas 10 visitas realizadas, con sus observaciones.
+- Quién lo generó y cuándo.
+- Un aviso: CuidaRed **no es un diagnóstico médico**.
+
+Si tu rol no puede ver alguna sección, el informe la omite y dice cuál y por qué.
+
+Cada informe queda registrado en la auditoría. Generarlo necesita Internet. Contiene datos sensibles: compártelo solo con quien corresponda.
+
+### 6.7 Suscripción y pagos de prueba
+
+Desde el resumen de la cuenta, abre **Ver suscripción y pagos** para consultar el estado, los planes disponibles y el historial. Los roles autorizados conservan acceso a esta pantalla cuando termina la prueba o vence el plan.
+
+Cada tarjeta muestra los beneficios y límites de un plan. Elige **Mensual** o **Anual** en la misma tarjeta. En Familia, las tarifas publicadas por Backoffice sustituyen a los precios de referencia y habilitan la contratación cuando Stripe Sandbox está disponible.
+
+La pantalla consulta los valores vigentes al volver a la pestaña y se actualiza mientras permanece abierta. El cupo de cuidadores de Básico Familiar es inicialmente de cinco y Backoffice puede ajustarlo.
+
+En una organización, **Operación Base** se contrata directamente cuando Backoffice publica la tarifa de la periodicidad elegida. Para **Gestión Comunitaria Avanzada**, selecciona el ciclo y usa **Solicitar cotización**. La tarjeta muestra el importe en USD y los cupos acordados de adultos mayores, integrantes del equipo, cuidadores y familiares cuando Backoffice los publica. Cada periodicidad tiene su propia cotización. Pulsa **Actualizar planes** para consultar la tarifa o cotización más reciente.
+
+La persona titular puede contratar en **Stripe Sandbox** con datos de prueba. Al volver, CuidaRed revisa el estado mientras espera la confirmación. Durante esa espera, **Consultar estado del pago** permite consultar si el pago ya se refleja en el historial. Si saliste de Stripe con un pago todavía abierto, retómalo desde la tarjeta del plan para ver el precio y los cupos de ese intento.
+
+La persona titular de una suscripción de prueba activa puede cambiar de plan o cancelar la renovación. Un plan más caro con la misma periodicidad se aplica cuando se confirma el cargo proporcional. Un plan de menor precio o una periodicidad distinta se aplica en el próximo corte. Al cancelar la renovación, el acceso se mantiene hasta el final del período pagado.
 
 ## 7. Colores y formas del nivel de riesgo
 

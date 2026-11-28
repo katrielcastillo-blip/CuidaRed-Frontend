@@ -1,6 +1,7 @@
 /*
  * TileSelect.tsx — Grupo de "tiles" con icono para elegir una sola opción sin escribir (RF-06):
- * estado del adulto durante la visita.
+ * estado del adulto durante la visita. Marca aria-invalid cuando hay error y anuncia "(obligatorio)" a los lectores
+ * de pantalla (el asterisco visible es decorativo).
  * Módulo: visitas.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -24,7 +25,7 @@ const TONO_ON: Record<NonNullable<TileOpcion<string>['tone']> | 'navy', string> 
   danger: 'bg-danger border-danger text-white',
 }
 
-/** Rejilla de tres tiles de ≥ 64 px de alto (objetivo táctil amplio). Navegable con teclado: es un radiogroup de botones. */
+/** Rejilla de tres tiles de ≥ 56 px de alto (objetivo táctil amplio, por encima de los 48 px exigidos). Navegable con teclado: es un radiogroup de botones. */
 export function TileSelect<T extends string>({
   value,
   onChange,
@@ -47,7 +48,12 @@ export function TileSelect<T extends string>({
     <div className="flex flex-col gap-2 min-w-0">
       <span className="flex items-center gap-1 text-base font-semibold text-ink" id={id}>
         {label}
-        {required && <span aria-hidden> *</span>}
+        {required && (
+          <>
+            <span aria-hidden> *</span>
+            <span className="sr-only"> (obligatorio)</span>
+          </>
+        )}
         {help && <HelpTip label={`Ayuda: ${label}`}>{help}</HelpTip>}
       </span>
       <div
@@ -56,6 +62,7 @@ export function TileSelect<T extends string>({
         aria-labelledby={id}
         aria-describedby={error ? `${id}-err` : undefined}
         aria-required={required || undefined}
+        aria-invalid={!!error || undefined}
       >
         {options.map((o) => {
           const on = value === o.value
@@ -66,7 +73,7 @@ export function TileSelect<T extends string>({
               role="radio"
               aria-checked={on}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 min-h-16 px-1 py-2 rounded-sm border text-xs font-bold leading-tight text-center transition-colors',
+                'flex flex-col items-center justify-center gap-1 min-h-14 px-1 py-1.5 rounded-sm border text-xs font-bold leading-tight text-center transition-colors',
                 on ? cn(TONO_ON[o.tone ?? 'navy'], 'shadow-1') : cn('bg-bg text-ink hover:border-navy', error ? 'border-danger' : 'border-blue'),
               )}
               onClick={() => onChange(o.value)}

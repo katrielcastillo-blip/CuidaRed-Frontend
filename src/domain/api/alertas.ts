@@ -18,9 +18,13 @@ export function gestionarAlerta(actor: Usuario, alertaId: string, estado: Estado
   const db = getDB()
   const al = db.alertas.find((x) => x.id === alertaId)
   if (!al) return fallo(ERROR_NO_ENCONTRADO)
-  const denegado = verificar(actor, 'alertas:gestionar', 'alerta', db.adultos.find((a) => a.id === al.adultoId), alertaId)
+  const adulto = db.adultos.find((a) => a.id === al.adultoId)
+  // V2: el Cuidador puede cerrar las alertas de sus adultos asignados (siempre con la acción tomada).
+  const soloCierre = !puede(actor, 'alertas:gestionar', adulto) && puede(actor, 'alertas:cerrar', adulto)
+  const denegado = soloCierre ? null : verificar(actor, 'alertas:gestionar', 'alerta', adulto, alertaId)
   if (denegado) return denegado
   if (!enLista(estado, ESTADOS_ALERTA.map((e) => e.value))) return fallo('Estado no válido.')
+  if (soloCierre && estado !== 'atendida') return fallo('Puedes cerrar la alerta registrando la acción tomada.')
   const texto = nota.trim()
   if (estado === 'atendida' && texto.length < 5) return fallo(ERROR_VALIDACION, { nota: 'Describe la acción tomada (mínimo 5 caracteres).' })
   if (texto.length > 500) return fallo(ERROR_VALIDACION, { nota: 'Máximo 500 caracteres.' })

@@ -7,7 +7,17 @@
 import { TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
-export function BarraUso({ etiqueta, usado, limite, excede }: { etiqueta: string; usado: number; limite: number; excede: boolean }) {
+/** `limite` null = ilimitado (plan sin tope). */
+export function BarraUso({ etiqueta, usado, limite: limiteRaw, excede }: { etiqueta: string; usado: number; limite: number | null; excede: boolean }) {
+  if (limiteRaw == null) {
+    return (
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-semibold text-ink">{etiqueta}</span>
+        <span className="font-bold whitespace-nowrap text-ink">{usado} · ilimitado</span>
+      </div>
+    )
+  }
+  const limite = limiteRaw
   const pct = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 100
   const tono = excede ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success-700'
   return (

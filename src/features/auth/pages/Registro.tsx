@@ -1,5 +1,6 @@
 /*
- * Registro.tsx — "/registro": activación de una cuenta creada por el administrador de la organización.
+ * Registro.tsx — "/registro": activación de una cuenta a la que te invitaron (administrador de una organización o
+ * coordinador de una familia). Crear una cuenta nueva (Familia u Organización) es "/crear-cuenta".
  *  1) Correo de la invitación  2) Datos personales  3) Contraseña propia + aceptación de términos y privacidad.
  * Módulo: auth (CU-01 · CU-13 · SRS §8.2.2.3.5 b: política de contraseñas · Ley 172-13: consentimiento).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
@@ -130,7 +131,7 @@ export default function Registro() {
         {paso === 1 && (
           <>
             <Lead>
-              Las cuentas de CuidaRed las crea el administrador de cada organización. Escribe el correo con el que te invitaron para activar tu cuenta.
+              Las cuentas de CuidaRed las crea quien gestiona cada organización o familia. Escribe el correo con el que te invitaron y tu código para activar tu cuenta.
             </Lead>
             <TextField
               label="Correo electrónico"
@@ -140,7 +141,7 @@ export default function Registro() {
               placeholder="ejemplo@correo.com"
               value={datos.email}
               error={errores.email}
-              help="Es el correo que tu organización registró al invitarte. Si no lo sabes, pregúntale al administrador."
+              help="Es el correo con el que te invitaron. Si no lo sabes, pregúntale a quien te invitó."
               onChange={(e) => set('email', e.target.value)}
             />
             <TextField
@@ -151,7 +152,7 @@ export default function Registro() {
               placeholder="000000"
               value={datos.codigo}
               error={errores.codigo}
-              help="Código de 6 dígitos que te entregó el administrador de tu organización al crear tu cuenta. Es de un solo uso y caduca a los 7 días."
+              help="Código de 6 dígitos que te entregó quien creó tu cuenta. Es de un solo uso y caduca a los 7 días."
               onChange={(e) => set('codigo', e.target.value.replace(/\D/g, '').slice(0, 6))}
             />
             {general && (
@@ -184,7 +185,7 @@ export default function Registro() {
                   maxLength={13}
                   value={datos.cedula}
                   error={errores.cedula}
-                  help="Si tu organización registró tu cédula al invitarte, debe coincidir."
+                  help="Si quien te invitó registró tu cédula, debe coincidir."
                   onChange={(e) => set('cedula', formatCedula(e.target.value))}
                 />
               </div>

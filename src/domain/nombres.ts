@@ -10,6 +10,7 @@ export const ROL_LABEL: Record<Rol, string> = {
   familiar: 'Familiar responsable',
   admin: 'Administrador',
   coordinador: 'Coordinador',
+  cuidador: 'Cuidador',
 }
 
 export function nombreCompleto(u: Pick<Usuario, 'nombre' | 'apellido'>) {

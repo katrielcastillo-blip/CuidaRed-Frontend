@@ -1,0 +1,696 @@
+/*
+ * operacion.spec.ts — Integración de expedientes, visitas offline y agenda con la API interceptada.
+ * © 2026 Equipo CuidaRed – INTEC.
+ */
+import { expect, test, type Locator } from '@playwright/test'
+import { API, cuentaActiva, iniciarSesion, simular } from './ayudas-fase2'
+
+const cuentaId = '9007199254740993'
+const adultoId = '11111111-1111-4111-8111-111111111111'
+const visitaId = '22222222-2222-4222-8222-222222222222'
+const tareaId = '33333333-3333-4333-8333-333333333333'
+const ruta = `/operacion/${cuentaId}`
+const backend = `${API}/api/v1/cuentas/${cuentaId}`
+const adulto = { envejeciente_id: adultoId, nombres: 'Juana', apellidos: 'Prueba', estado: 'activo', zona: 'Centro', municipio_nombre: 'Distrito Nacional' }
+const pagina = (data: unknown[]) => ({ data, meta: { page: 1, limit: 20, total: data.length, totalPages: data.length ? 1 : 0 } })
+
+test('Inicio y Más mantienen tarjetas uniformes y el filtro de adultos se lee completo', async ({ page, isMobile }) => {
+  await page.setViewportSize({ width: isMobile ? 508 : 1361, height: 618 })
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética',
+    permisos: ['adultos:ver', 'visitas:ver', 'agenda:ver', 'usuarios:gestionar', 'organizacion:configurar'] })
+  const sim = await simular(page, { cuentas: [cuenta], correo: `${'contacto'.repeat(7)}@example.test` })
+  await page.route(backend, (r) => r.fulfill({ json: { data: { cuenta: {
+    cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+    categoria: { categoria_cuenta_id: 3, nombre: 'Iglesia o parroquia' },
+    municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+    fecha_creacion: '2026-11-07T12:00:00Z',
+  }, contexto: cuenta } } }))
+  await page.route(`${backend}/**`, (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([]) })
+    return r.fallback()
+  })
+  const tarjetasUniformes = async (enlaces: Locator, cantidad: number) => {
+    await expect(enlaces).toHaveCount(cantidad)
+    await expect.poll(() => enlaces.evaluateAll((items) => {
+      const tamanos = items.map((item) => {
+        const { width, height } = item.getBoundingClientRect()
+        return `${Math.round(width)}×${Math.round(height)}`
+      })
+      return new Set(tamanos).size
+    })).toBe(1)
+  }
+
+  await iniciarSesion(page, sim.correo)
+  const cabecera = page.getByRole('banner')
+  const navegacion = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+  await expect(cabecera.getByRole('link', { name: 'Volver' })).toHaveCount(0)
+  // Figma «Inicio v3»: el Inicio del Administrador termina en el panel; las tarjetas del resumen miden lo mismo y ya no hay
+  // accesos rápidos, suscripción ni datos de la cuenta (esos viven en Más, en el menú lateral y en Configuración).
+  await tarjetasUniformes(page.getByRole('region', { name: 'Resumen de hoy' }).getByRole('link'), 2)
+  await expect(page.getByRole('region', { name: 'Accesos rápidos' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Configurar organización' })).toHaveCount(0)
+
+  if (isMobile) {
+    // Rediseño: «Más» es un botón que abre una hoja inferior con los módulos que no son pestañas.
+    const mas = navegacion.getByRole('button', { name: 'Más' })
+    await mas.click()
+    const hoja = page.getByRole('dialog', { name: 'Más opciones' })
+    await expect(hoja).toBeVisible()
+    await tarjetasUniformes(hoja.getByRole('link'), 4)
+    await page.keyboard.press('Escape')
+    await expect(hoja).toHaveCount(0)
+    await expect(mas).toBeFocused()
+  } else {
+    const marca = navegacion.getByRole('link', { name: 'CuidaRed, ir al inicio' })
+    await expect.poll(() => marca.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0 && img.currentSrc.endsWith('/brand/logo.png'))).toBe(true)
+    await navegacion.getByRole('link', { name: 'Adultos', exact: true }).click()
+    await marca.click()
+    await expect(page).toHaveURL(`${ruta}/cuenta`)
+  }
+  await navegacion.getByRole('link', { name: 'Adultos', exact: true }).click()
+  // Rediseño: Adultos es una pestaña (pantalla principal): barra superior con Mi cuenta y sin «Volver».
+  await expect(cabecera.getByRole('link', { name: 'Volver' })).toHaveCount(0)
+  // Rediseño: el estado del expediente se filtra con fichas (Todos · Activos · Inactivos · Fallecidos) y todas caben en pantalla.
+  const estado = page.getByRole('group', { name: 'Estado del expediente' })
+  await expect(estado.getByRole('button', { name: 'Todos', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => estado.evaluate((grupo) => [...grupo.querySelectorAll('button')]
+    .every((ficha) => ficha.getBoundingClientRect().left >= 0 && ficha.getBoundingClientRect().right <= document.documentElement.clientWidth))).toBe(true)
+  if (isMobile) await page.setViewportSize({ width: 360, height: 640 })
+  await cabecera.getByRole('link', { name: 'Mi cuenta', exact: true }).click()
+  await expect(page.getByText('Correo electrónico', { exact: true })).toBeVisible()
+  await expect(page.getByText(sim.correo, { exact: true })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+test('ID03: registra un expediente con consentimiento y muestra el selector de asignaciones completo', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', permisos: ['adultos:ver', 'adultos:crear', 'adultos:asignar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const candidata = { usuario_id: sim.usuarioId, nombre: 'Mariana Reyes', rol: 'cuidador' }
+  let alta: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes') && r.request().method() === 'POST') {
+      alta = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: adulto } })
+    }
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina(alta ? [adulto] : []) })
+    if (path.endsWith(adultoId)) return r.fulfill({ json: { data: adulto } })
+    if (path.endsWith('/historial')) return r.fulfill({ json: pagina([]) })
+    if (path.endsWith('/asignaciones')) return r.fulfill({ json: { data: { cuidadores: [], voluntarios: [] } } })
+    if (path.endsWith('/candidatos/asignacion')) return r.fulfill({ json: pagina([candidata]) })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await expect(page).toHaveURL(`${ruta}/cuenta`)
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
+  await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
+  await page.getByRole('navigation', { name: 'Módulos de la cuenta' }).getByRole('link', { name: 'Adultos', exact: true }).click()
+  await page.getByRole('button', { name: 'Registrar adulto mayor' }).click()
+  await page.getByLabel(/^Nombres/).fill('Juana')
+  await page.getByLabel(/^Apellidos/).fill('Prueba')
+  await page.getByLabel(/^Cédula del adulto/).fill('00112345679')
+  await page.getByLabel(/^Fecha de nacimiento/).fill('1945-05-06')
+  await page.getByRole('radio', { name: 'Femenino' }).check()
+  await page.getByRole('button', { name: 'Continuar' }).click()
+  await page.getByLabel(/^Provincia/).selectOption('01')
+  await page.getByLabel(/^Municipio/).selectOption('0101')
+  await page.getByLabel(/^Sector o zona/).fill('Centro')
+  await page.getByRole('radio', { name: 'Necesita ayuda parcial' }).check()
+  await page.getByRole('button', { name: 'Continuar' }).click()
+  await page.getByLabel(/^Nombres del contacto/).fill('Elena')
+  await page.getByLabel(/^Apellidos del contacto/).fill('Prueba')
+  await page.getByRole('combobox', { name: /^Parentesco/ }).selectOption('Hermano/a')
+  await page.getByLabel(/^Teléfono del contacto/).fill('8095550100')
+  await page.getByRole('radio', { name: 'El adulto mayor' }).check()
+  await page.getByLabel(/Confirmo que se otorgó el consentimiento/).check()
+  await page.getByRole('button', { name: 'Registrar adulto mayor', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Juana Prueba' })).toBeVisible()
+  expect(alta).toMatchObject({ cedula: '00112345679', municipio_cod: '0101', consentimiento: { otorgado: true, otorgado_por: 'adulto' },
+    contactos: [{ nombres: 'Elena', es_principal: true }] })
+
+  // Rediseño: «Cuidador» vive en la hoja «Más acciones» y abre una pantalla con las personas elegibles como opciones (radio).
+  await page.getByRole('button', { name: 'Más acciones' }).click()
+  await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Cuidador', exact: true }).click()
+  const persona = page.getByRole('radio', { name: /Mariana Reyes/ })
+  await expect(persona).not.toBeChecked()
+  await persona.check()
+  await expect(persona).toBeChecked()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+for (const { tipo, rol } of [
+  { tipo: 'familia', rol: 'coordinador' },
+  { tipo: 'organizacion', rol: 'administrador' },
+  { tipo: 'organizacion', rol: 'coordinador' },
+] as const) {
+  test(`ID03: ${rol} asigna un cuidador desde el expediente de ${tipo}`, async ({ page }) => {
+    const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', tipo, rol,
+      permisos: ['adultos:ver', 'adultos:asignar', ...(rol === 'administrador' || tipo === 'familia' ? ['usuarios:gestionar'] : [])] })
+    const sim = await simular(page, { cuentas: [cuenta] })
+    const candidata = { usuario_id: sim.usuarioId, nombre: 'Mariana Reyes', rol: 'cuidador' }
+    const voluntario = { usuario_id: '55555555-5555-4555-8555-555555555555', nombre: 'Daniel Paz', rol: 'voluntario' }
+    let disponible = false
+    let asignacion: unknown
+    await page.route(`${backend}/**`, (req) => {
+      const { pathname } = new URL(req.request().url())
+      if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: cuenta } })
+      if (pathname.endsWith('/envejecientes')) return req.fulfill({ json: pagina([adulto]) })
+      if (pathname.endsWith(adultoId)) return req.fulfill({ json: { data: adulto } })
+      if (pathname.endsWith('/historial')) return req.fulfill({ json: pagina([]) })
+      if (pathname.endsWith('/candidatos/asignacion')) {
+        return req.fulfill({ json: pagina(disponible ? [candidata, ...(tipo === 'organizacion' ? [voluntario] : [])] : []) })
+      }
+      if (pathname.endsWith(`/${adultoId}/asignaciones`)) {
+        if (req.request().method() === 'POST') {
+          asignacion = req.request().postDataJSON()
+          return req.fulfill({ status: 201, json: { data: asignacion } })
+        }
+        return req.fulfill({ json: { data: {
+          cuidadores: asignacion ? [{ usuario_id: candidata.usuario_id, nombres: 'Mariana', apellidos: 'Reyes' }] : [],
+          voluntarios: [],
+        } } })
+      }
+      return req.fallback()
+    })
+
+    await iniciarSesion(page, sim.correo)
+    await page.goto(`${ruta}/envejecientes`)
+    await page.getByRole('button', { name: /Juana Prueba/ }).click()
+    const abrirAsignacion = async () => {
+      await page.getByRole('button', { name: 'Más acciones' }).click()
+      await page.getByRole('dialog', { name: 'Más acciones' }).getByRole('button', { name: 'Cuidador', exact: true }).click()
+    }
+    await abrirAsignacion()
+    const seguimiento = page.getByRole('region', { name: 'Asignaciones' })
+    await expect(seguimiento.getByText(/tener un perfil vigente/)).toBeVisible()
+    await expect(seguimiento.getByRole('link', { name: 'Ir a Miembros' }))
+      .toHaveCount(cuenta.permisos.includes('usuarios:gestionar') ? 1 : 0)
+    // «Cancelar» vuelve al perfil.
+    await seguimiento.getByRole('button', { name: 'Cancelar' }).click()
+    disponible = true
+
+    await abrirAsignacion()
+    await expect(page.getByRole('radio', { name: /Voluntario/ })).toHaveCount(tipo === 'organizacion' ? 1 : 0)
+    await page.getByRole('radio', { name: /Mariana Reyes/ }).check()
+    await page.getByRole('button', { name: 'Asignar persona' }).click()
+    await expect.poll(() => asignacion).toEqual({ usuario_id: candidata.usuario_id, tipo: 'cuidador_asignado' })
+    // Al asignar se vuelve al perfil, que muestra al cuidador en «Cuidado».
+    await expect(page.getByText('Mariana Reyes', { exact: true })).toBeVisible()
+  })
+}
+
+test('Visitas y Solicitudes están reservadas a Organización, incluso con permisos antiguos de Familia', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Familia de prueba', tipo: 'familia',
+    rol: 'coordinador', permisos: ['visitas:ver', 'visitas:autorizar', 'agenda:ver'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  await page.route(`${backend}/contexto`, (r) => r.fulfill({ json: { data: cuenta } }))
+  await iniciarSesion(page, sim.correo)
+  // Sin módulos de panel (Visitas y Solicitudes son de Organización) el Inicio conserva los accesos rápidos.
+  const inicio = page.getByRole('region', { name: 'Accesos rápidos' })
+  await expect(inicio.getByRole('link', { name: /Agenda/ })).toBeVisible()
+  await expect(inicio.getByRole('link', { name: /visitas|solicitudes/i })).toHaveCount(0)
+  for (const seccion of ['visitas', 'solicitudes-visita']) {
+    await page.goto(`${ruta}/${seccion}`)
+    await expect(page.getByRole('alert').filter({ hasText: 'No tienes acceso a este módulo de la cuenta.' })).toBeVisible()
+    expect(sim.llamadas('GET', new RegExp(`/${seccion}(?:/|$)`))).toHaveLength(0)
+  }
+})
+
+test('RF-10: restaura y envía la misma captura de visita después de cerrar la pestaña', async ({ page, context }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', rol: 'voluntario', permisos: ['visitas:ver', 'visitas:registrar', 'sync:usar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const visita = {
+    visita_id: visitaId, razon: 'Visita autorizada', fecha: '2026-11-07', hora_programada: '09:00',
+    estado: 'en_curso', fecha_actualizacion: '2026-11-07T12:00:00Z',
+    autorizada_por: { usuario_id: adultoId }, participantes: [{ usuario_id: sim.usuarioId }], adultos: [adulto],
+  }
+  let capturas: { id_cliente: string; registro_id: string; tipo: string; datos: object }[] = []
+  await context.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([visita]) })
+    if (path.endsWith(visitaId)) return r.fulfill({ json: { data: visita } })
+    if (path.endsWith('/evidencias')) return r.fulfill({ json: { data: [] } })
+    if (path.endsWith('/sync')) {
+      capturas = r.request().postDataJSON().operaciones
+      visita.estado = 'completada'
+      return r.fulfill({ json: { data: { resultados: capturas.map((c) => ({ id_cliente: c.id_cliente, resultado: 'aplicada' })) } } })
+    }
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.getByRole('link', { name: 'Visitas', exact: true }).click()
+  const desdeListado = page.getByRole('button', { name: /Visita autorizada/ })
+  await expect(desdeListado).toBeVisible()
+  let idCapturado: string | undefined
+  await context.setOffline(true)
+  try {
+    await desdeListado.click()
+    await page.getByRole('button', { name: 'Registrar realización', exact: true }).click()
+    await page.getByLabel(/Observación de Juana Prueba/).fill('Observación sintética')
+    await page.getByRole('button', { name: 'Registrar visita', exact: true }).click()
+    await expect(page.getByText(/1 pendiente\(s\) en esta cuenta/)).toBeVisible()
+    const guardadas = await page.evaluate(() => new Promise<IDBValidKey[]>((resolve, reject) => {
+      const db = indexedDB.open('cuidared-capturas-visita', 1)
+      db.onerror = () => reject(db.error)
+      db.onsuccess = () => {
+        const claves = db.result.transaction('capturas').objectStore('capturas').getAllKeys()
+        claves.onerror = () => reject(claves.error)
+        claves.onsuccess = () => { db.result.close(); resolve(claves.result) }
+      }
+    }))
+    expect(guardadas).toEqual([[sim.usuarioId, expect.any(String)]])
+    idCapturado = (guardadas[0] as [string, string])[1]
+    expect(capturas).toHaveLength(0)
+    await page.close()
+  } finally {
+    await context.setOffline(false)
+  }
+  const reabierta = await context.newPage()
+  await reabierta.goto(`${ruta}/visitas`)
+  await expect.poll(() => capturas.length).toBe(1)
+  expect(capturas[0]).toMatchObject({ id_cliente: idCapturado, registro_id: visitaId, tipo: 'registrar',
+    datos: { detalles: [{ envejeciente_id: adultoId, observacion: 'Observación sintética' }] } })
+  await expect(reabierta.getByText(/0 pendiente\(s\) en esta cuenta/)).toBeVisible()
+})
+
+test('el gestor consulta auditoría y gestiona una solicitud de visita existente', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética',
+    permisos: ['auditoria:ver', 'visitas:autorizar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const id = '44444444-4444-4444-8444-444444444444'
+  const otraSolicitud = '55555555-5555-4555-8555-555555555555'
+  const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  let rechazo: unknown
+  let autorizacion: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/auditoria')) return r.fulfill({ json: pagina([
+      { auditoria_id: '11', actor: 'Persona Revisora', accion: 'alta', entidad: 'cuenta', fecha: '2026-11-09T16:00:00Z', resultado: 'confirmado' },
+      { auditoria_id: '12', actor: 'Persona Revisora', accion: 'exportacion', entidad: 'exportacion_reporte', fecha: '2026-11-09T16:05:00Z', resultado: 'confirmado' },
+      { auditoria_id: '13', actor: 'Persona Revisora', accion: 'exportacion', entidad: 'informe_medico', fecha: '2026-11-09T16:06:00Z', resultado: 'confirmado' },
+    ]) })
+    if (path.endsWith('/solicitudes-visita')) return r.fulfill({ json: pagina([
+      { solicitud_visita_id: id, estado: rechazo ? 'rechazada' : 'pendiente', visitante: { nombres: 'Juan', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Visita comunitaria' },
+      { solicitud_visita_id: otraSolicitud, estado: autorizacion ? 'autorizada' : 'pendiente', visitante: { nombres: 'Lina', apellidos: 'Prueba' },
+        persona_a_visitar: 'Juana Prueba', fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Acompañamiento' },
+    ]) })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/candidatos/visita')) return r.fulfill({ json: pagina([{ usuario_id: sim.usuarioId, nombre: 'Responsable de campo' }]) })
+    if (path.endsWith(`/${id}/rechazar`)) {
+      rechazo = r.request().postDataJSON()
+      return r.fulfill({ json: { data: { solicitud_visita_id: id } } })
+    }
+    if (path.endsWith(`/${otraSolicitud}/autorizar`)) {
+      autorizacion = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: { visita_id: visitaId } } })
+    }
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/auditoria`)
+  await expect(page.getByText('Alta · Cuenta')).toBeVisible()
+  await expect(page.getByText('Exportación · Reporte exportado')).toBeVisible()
+  await expect(page.getByText('Exportación · Informe médico')).toBeVisible()
+  await expect(page.getByText(/Persona Revisora/).first()).toBeVisible()
+  await page.goto(`${ruta}/solicitudes-visita`)
+  await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click()
+  await page.getByLabel(/^Motivo del rechazo/).fill('La fecha debe confirmarse con el equipo.')
+  await page.getByRole('button', { name: 'Confirmar rechazo' }).click()
+  await expect(page.getByText('Solicitud rechazada.')).toBeVisible()
+  expect(rechazo).toEqual({ motivo: 'La fecha debe confirmarse con el equipo.' })
+  const autorizar = page.getByRole('button', { name: 'Autorizar', exact: true })
+  await expect(autorizar).toHaveCount(1)
+  await autorizar.click()
+  await page.getByLabel(/Expediente del adulto/).selectOption(adultoId)
+  await page.getByLabel(/Responsable de la visita/).selectOption(sim.usuarioId)
+  await page.getByRole('button', { name: 'Autorizar y programar' }).click()
+  await expect(page.getByText('Solicitud autorizada y visita programada.')).toBeVisible()
+  expect(autorizacion).toEqual({ envejeciente_id: adultoId, participante_id: sim.usuarioId, fecha, hora: '09:00' })
+})
+
+test('ID04: programa y autoriza una visita con adultos y visitantes seleccionados', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', permisos: ['visitas:ver', 'visitas:programar', 'visitas:autorizar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const visitante = { usuario_id: sim.usuarioId, nombre: 'Patricia Prueba', rol: 'cuidador', cuidador_id: '1' }
+  const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const visita = { visita_id: visitaId, razon: 'Seguimiento acordado', fecha, hora_programada: '09:00', estado: 'programada',
+    pendiente_autorizacion: true, autorizada_por: null as { usuario_id: string } | null, participantes: [visitante], adultos: [adulto] }
+  let alta: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/candidatos/visita')) return r.fulfill({ json: pagina([visitante]) })
+    if (path.endsWith('/visitas') && r.request().method() === 'POST') {
+      alta = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: visita } })
+    }
+    if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([]) })
+    if (path.endsWith('/autorizar')) {
+      visita.pendiente_autorizacion = false
+      visita.autorizada_por = { usuario_id: sim.usuarioId }
+      return r.fulfill({ json: { data: visita } })
+    }
+    if (path.endsWith(visitaId)) return r.fulfill({ json: { data: visita } })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/visitas`)
+  await page.getByRole('button', { name: 'Programar visita', exact: true }).click()
+  await page.getByLabel(/^Fecha de la visita/).fill(fecha)
+  await page.getByLabel(/^Hora de inicio/).fill('09:00')
+  await page.getByLabel(/^Hora de fin/).fill('10:00')
+  await page.getByLabel(/^Motivo de la visita/).fill(visita.razon)
+  const programar = page.getByRole('button', { name: 'Guardar visita pendiente', exact: true })
+  const adultoSeleccion = page.getByRole('checkbox', { name: 'Juana Prueba' })
+  await expect(programar).toBeDisabled()
+  await adultoSeleccion.check()
+  await page.getByRole('checkbox', { name: visitante.nombre }).check()
+  await expect(programar).toBeEnabled()
+  await page.getByRole('button', { name: 'Quitar Juana Prueba' }).click()
+  await expect(programar).toBeDisabled()
+  await adultoSeleccion.check()
+  await programar.click()
+  await expect(page.getByRole('heading', { name: 'Detalle de visita' })).toBeVisible()
+  expect(alta).toEqual({ fecha, hora_programada: '09:00', hora_fin_programada: '10:00', autorizar: false,
+    razon: visita.razon, envejeciente_ids: [adultoId], participante_ids: [visitante.usuario_id] })
+  await expect(page.getByText('Pendiente de autorización', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Autorizar visita', exact: true }).click()
+  await expect(page.getByText('Visita autorizada. El equipo responsable ya puede verla.')).toBeVisible()
+  await expect(page.getByText('Pendiente de autorización', { exact: true })).toHaveCount(0)
+})
+
+test('ID02: una cuenta vencida no consulta rutas operativas ni habilita miembros', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta vencida', acceso_operativo: false, estado_suscripcion: 'vencida', permisos: ['agenda:ver', 'usuarios:gestionar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  let llamadasAgenda = 0
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/tareas')) llamadasAgenda++
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await expect(page.getByRole('link', { name: 'Miembros de la cuenta' })).toHaveCount(0)
+  await page.goto(`${ruta}/agenda`)
+  await expect(page.getByText('No tienes acceso a este módulo de la cuenta.')).toBeVisible()
+  expect(llamadasAgenda).toBe(0)
+})
+
+for (const institucional of [false, true]) {
+test(`ID04: administración agenda una solicitud ${institucional ? 'institucional' : 'personal'} y cambia el horario`, async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización de prueba', rol: 'administrador',
+    permisos: ['visitas:ver', 'visitas:programar', 'visitas:autorizar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const fecha = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const cuidador = { usuario_id: '44444444-4444-4444-8444-444444444444', nombre: 'Cuidadora de prueba', rol: 'cuidador', cuidador_id: '1' }
+  const sinPerfil = { usuario_id: '77777777-7777-4777-8777-777777777777', nombre: 'Cuidadora sin perfil', rol: 'cuidador', cuidador_id: null }
+  const solicitud = { solicitud_visita_id: '55555555-5555-4555-8555-555555555555', estado: 'pendiente',
+    tipo_visita: institucional ? 'institucional' : 'personal', entidad_visitante: institucional ? 'Fundación de prueba' : null,
+    cantidad_visitantes: institucional ? 12 : 1, aporte_previsto: institucional ? 'Actividad musical' : null,
+    visitante: { nombres: 'Ana', apellidos: 'Prueba' }, persona_a_visitar: institucional ? null : 'Juana Prueba',
+    fecha_propuesta: fecha, hora_propuesta: '09:00', motivo: 'Visita de su hija' }
+  const cita = { visita_id: visitaId, fecha, hora_programada: '09:00', hora_fin_programada: '10:00', estado: 'programada',
+    tipo_visita: solicitud.tipo_visita, entidad_visitante: solicitud.entidad_visitante, cantidad_visitantes: solicitud.cantidad_visitantes,
+    autorizada_por: { usuario_id: sim.usuarioId }, razon: solicitud.motivo, participantes: [cuidador], adultos: institucional ? [] : [adulto] }
+  let autorizacion: unknown
+  let reprogramacion: unknown
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/solicitudes-visita')) return r.fulfill({ json: pagina([solicitud]) })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/candidatos/visita')) return r.fulfill({ json: pagina([cuidador, sinPerfil]) })
+    if (path.endsWith('/autorizar')) { autorizacion = r.request().postDataJSON(); return r.fulfill({ json: { data: cita } }) }
+    if (path.endsWith('/reprogramar')) {
+      reprogramacion = r.request().postDataJSON()
+      cita.hora_programada = '11:00'
+      cita.hora_fin_programada = '12:00'
+      return r.fulfill({ json: { data: cita } })
+    }
+    if (path.endsWith(visitaId)) return r.fulfill({ json: { data: cita } })
+    if (path.endsWith('/visitas')) return r.fulfill({ json: pagina([]) })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/visitas`)
+  await page.getByRole('button', { name: 'Solicitudes externas' }).click()
+  await page.getByRole('button', { name: 'Revisar y autorizar' }).click()
+  await expect(page.getByText(/complétalo en Organización \(Configuración en una cuenta familiar\) → Perfiles globales de cuidadores/)).toBeVisible()
+  await expect(page.getByRole('option', { name: sinPerfil.nombre, exact: true })).toHaveCount(0)
+  if (institucional) {
+    await expect(page.getByRole('combobox', { name: /Persona mayor de la organización/ })).toHaveCount(0)
+  } else {
+    await page.getByRole('combobox', { name: /Persona mayor de la organización/ }).selectOption(adultoId)
+  }
+  await page.getByRole('combobox', { name: /Cuidador o voluntario responsable/ }).selectOption(cuidador.usuario_id)
+  await expect(page.getByRole('region', { name: 'Calendario de disponibilidad' })).toBeVisible()
+  await page.getByLabel(/^Hora de fin/).fill('10:00')
+  await page.getByRole('button', { name: 'Autorizar y agendar' }).click()
+  await expect(page.getByRole('heading', { name: 'Detalle de visita' })).toBeVisible()
+  expect(autorizacion).toEqual({ ...(!institucional ? { envejeciente_id: adultoId } : {}), participante_id: cuidador.usuario_id, fecha, hora: '09:00', hora_fin_programada: '10:00' })
+  await expect(page.getByRole('button', { name: 'Iniciar visita' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Reprogramar visita' }).click()
+  await page.getByLabel(/^Hora de inicio/).fill('11:00')
+  await page.getByLabel(/^Hora de fin/).fill('12:00')
+  await page.getByRole('button', { name: 'Confirmar nuevo horario' }).click()
+  await expect(page.getByText('Nuevo horario guardado.')).toBeVisible()
+  expect(reprogramacion).toEqual({ fecha, hora: '11:00', hora_fin_programada: '12:00' })
+})
+}
+
+test('RF-16: la interfaz bloquea completar una tarea que carece de evidencia validada', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', rol: 'cuidador', permisos: ['agenda:ver', 'agenda:ejecutar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const tarea = { tarea_id: tareaId, titulo: 'Seguimiento de prueba', fecha_programada: '2026-11-07', estado: 'en_progreso',
+    requiere_evidencia: true, evidencias: { validadas: 0 } }
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/tareas')) return r.fulfill({ json: pagina([tarea]) })
+    if (path.endsWith(tareaId)) return r.fulfill({ json: { data: tarea } })
+    if (path.endsWith('/evidencias')) return r.fulfill({ json: { data: [] } })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/agenda`)
+  await page.getByRole('button', { name: /Seguimiento de prueba/ }).click()
+  await expect(page.getByText('Para completar esta tarea hace falta una evidencia validada.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toHaveCount(0)
+})
+
+test('RF-19: configura la organización con catálogos dependientes e interruptores', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética' })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const detalle = {
+    cuenta: {
+      cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+      categoria: { categoria_cuenta_id: 3, nombre: 'Iglesia o parroquia' },
+      municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+      direccion: null, telefono: null, correo: null, fecha_creacion: '2026-11-07T12:00:00Z',
+    },
+    contexto: cuenta,
+  }
+  let datosGuardados: Record<string, unknown> | undefined
+  let preferenciasGuardadas: Record<string, unknown> | undefined
+  const parametros = [
+    { nombre: 'dias_sin_visita_alerta', valor: '15', tipo_dato: 'entero', valor_general: '15', es_propio: false, descripcion: null },
+    { nombre: 'notificar_casos_prioritarios', valor: 'false', tipo_dato: 'booleano', valor_general: 'false', es_propio: false, descripcion: null },
+  ]
+  await page.route(backend, (r) => {
+    if (r.request().method() === 'PATCH') datosGuardados = r.request().postDataJSON()
+    return r.fulfill({ json: { data: detalle } })
+  })
+  await page.route(`${backend}/**`, (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/configuracion')) {
+      if (r.request().method() === 'PATCH') preferenciasGuardadas = r.request().postDataJSON()
+      return r.fulfill({ json: { data: parametros } })
+    }
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/configuracion`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Configurar organización' })).toBeVisible()
+  // Figma «Configurar organización»: datos en lista y «Editar datos» abre el formulario de contacto.
+  await expect(page.getByRole('heading', { name: 'Datos de la organización' })).toBeVisible()
+  await expect(page.getByRole('form', { name: 'Datos de contacto institucional' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Editar datos' }).click()
+
+  const contacto = page.getByRole('form', { name: 'Datos de contacto institucional' })
+  await contacto.getByRole('combobox', { name: /^Categoría/ }).selectOption('4')
+  await contacto.getByRole('combobox', { name: /^Provincia/ }).selectOption('25')
+  const municipio = contacto.getByRole('combobox', { name: /^Municipio/ })
+  await expect(municipio).toHaveValue('')
+  await expect(contacto.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled()
+  await municipio.selectOption('2502')
+  await contacto.getByRole('button', { name: 'Guardar cambios' }).click()
+  await expect.poll(() => datosGuardados).toMatchObject({ categoria_cuenta_id: 4, municipio_cod: '2502' })
+
+  const preferencias = page.getByRole('form', { name: 'Preferencias de la cuenta' })
+  const guardarPreferencias = preferencias.getByRole('button', { name: 'Guardar preferencias' })
+  await expect(guardarPreferencias).toBeDisabled()
+  await preferencias.getByRole('spinbutton', { name: /^Días sin visita/ }).fill('20')
+  await preferencias.getByRole('switch', { name: 'Notificar casos prioritarios' }).click()
+  await guardarPreferencias.click()
+  await expect.poll(() => preferenciasGuardadas).toEqual({ valores: { dias_sin_visita_alerta: '20', notificar_casos_prioritarios: 'true' } })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+test('la transferencia de titularidad solo está en Configuración y desaparece para el gestor que deja de ser titular', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Familia sintética', tipo: 'familia', rol: 'coordinador', es_titular: true })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  let esTitular = true
+  let transferida: unknown
+  await page.route(backend, (req) => req.fulfill({ json: { data: {
+    cuenta: {
+      cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+      categoria: { categoria_cuenta_id: 1, nombre: 'Monitoreo a distancia' },
+      municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+      fecha_creacion: '2026-11-07T12:00:00Z',
+    },
+    contexto: { ...cuenta, es_titular: esTitular },
+  } } }))
+  await page.route(`${backend}/**`, (req) => {
+    const { pathname } = new URL(req.request().url())
+    if (pathname.endsWith('/contexto')) return req.fulfill({ json: { data: { ...cuenta, es_titular: esTitular } } })
+    if (pathname.endsWith('/configuracion')) return req.fulfill({ json: { data: [] } })
+    if (pathname.endsWith('/envejecientes')) return req.fulfill({ json: pagina([adulto]) })
+    if (pathname.endsWith('/candidatos/titularidad')) return req.fulfill({ json: pagina([{ membresia_id: '24', nombre: 'Gestora sintética' }]) })
+    if (pathname.endsWith('/titularidad') && req.request().method() === 'POST') {
+      transferida = req.request().postDataJSON()
+      esTitular = false
+      return req.fulfill({ json: { data: {} } })
+    }
+    return req.fallback()
+  })
+
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/cuenta`)
+  // Inicio del Coordinador de una Familia: solo el panel; ni datos de la cuenta ni titularidad.
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Titularidad' })).toHaveCount(0)
+  // La transferencia solo está en Configuración (Más → Configuración, o el menú lateral en pantallas anchas).
+  const navegacionTitular = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+  const masTitular = navegacionTitular.getByRole('button', { name: 'Más' })
+  if (await masTitular.count()) await masTitular.click()
+  await page.getByRole('link', { name: 'Configuración', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Datos de la cuenta' })).toBeVisible()
+  const titularidad = page.getByRole('region', { name: 'Titularidad' })
+  await titularidad.getByRole('button', { name: 'Transferir titularidad' }).click()
+  await titularidad.getByRole('combobox', { name: /^Nuevo titular/ }).selectOption('24')
+  await titularidad.getByRole('checkbox', { name: /^Confirmo/ }).check()
+  await titularidad.getByRole('button', { name: 'Transferir cuenta' }).click()
+  await expect.poll(() => transferida).toEqual({ membresia_id: '24' })
+  await expect(titularidad).toHaveCount(0)
+  await expect(page).toHaveURL(`${ruta}/configuracion`)
+})
+
+test('el Coordinador sin permiso de configuración encuentra los datos de la cuenta, los perfiles de cuidador y el plan fuera de Inicio', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Organización sintética', rol: 'coordinador',
+    permisos: ['adultos:ver', 'cuidadores:gestionar', 'cuenta:suscripcion'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  await page.route(backend, (r) => r.fulfill({ json: { data: { cuenta: {
+    cuenta_id: cuentaId, nombre: cuenta.nombre, tipo: cuenta.tipo,
+    categoria: { categoria_cuenta_id: 3, nombre: 'Iglesia o parroquia' },
+    municipio: { municipio_cod: '0101', nombre: 'Santo Domingo de Guzmán', provincia_cod: '01', provincia: 'Distrito Nacional' },
+    fecha_creacion: '2026-11-07T12:00:00Z',
+  }, contexto: cuenta } } }))
+  await page.route(`${backend}/**`, (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes') || path.endsWith('/candidatos/cuidado')) return r.fulfill({ json: pagina([adulto]) })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  // Inicio: solo el panel (Figma «Inicio v3»).
+  await expect(page.getByRole('region', { name: 'Resumen de hoy' })).toBeVisible()
+  for (const nombre of ['Datos de la cuenta', 'Perfiles globales de cuidadores', 'Suscripción']) await expect(page.getByRole('heading', { name: nombre })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Ver suscripción y pagos' })).toHaveCount(0)
+
+  // Sin «organizacion:configurar» no hay Configuración, pero sí «Datos de cuenta» y «Plan y pago» en Más (móvil) o el menú lateral.
+  const navegacion = page.getByRole('navigation', { name: 'Módulos de la cuenta' })
+  const entradas = async () => {
+    await expect(navegacion.first()).toBeVisible()
+    const mas = navegacion.getByRole('button', { name: 'Más' })
+    const enMovil = await mas.isVisible()
+    if (!enMovil) return navegacion
+    await mas.click()
+    return page.getByRole('dialog', { name: 'Más opciones' })
+  }
+  let lugar = await entradas()
+  await expect(lugar.getByRole('link', { name: /^(Configuración|Organización)$/ })).toHaveCount(0)
+  await expect(lugar.getByRole('link', { name: 'Plan y pago', exact: true })).toBeVisible()
+  await lugar.getByRole('link', { name: 'Datos de cuenta', exact: true }).click()
+  await expect(page).toHaveURL(`${ruta}/datos-cuenta`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Datos de la cuenta' })).toBeVisible()
+  await expect(page.getByText('Iglesia o parroquia')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Perfiles globales de cuidadores' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Configurar organización' })).toHaveCount(0)
+
+  // La suscripción se abre desde la misma entrada.
+  await page.goto(`${ruta}/cuenta`)
+  lugar = await entradas()
+  await lugar.getByRole('link', { name: 'Plan y pago', exact: true }).click()
+  await expect(page).toHaveURL(`${ruta}/suscripcion`)
+
+  // Quien no tiene el permiso no ve la entrada ni abre la pantalla.
+  await page.goto(`${ruta}/configuracion`)
+  await expect(page.getByText('No tienes acceso a este módulo de la cuenta.')).toBeVisible()
+})
+
+test('RF-16: programa una serie semanal con un cuidador asignado y días ISO', async ({ page }) => {
+  const cuenta = cuentaActiva({ cuenta_id: cuentaId, nombre: 'Cuenta sintética', permisos: ['adultos:ver', 'agenda:ver', 'agenda:gestionar'] })
+  const sim = await simular(page, { cuentas: [cuenta] })
+  const cuidador = { usuario_id: sim.usuarioId, cuidador_id: '12', nombre: 'Patricia Prueba' }
+  let alta: unknown
+  await page.route(`${API}/api/v1/catalogos/prioridades`, (r) => r.fulfill({ json: { data: [{ prioridad_id: 2, nombre: 'Media' }] } }))
+  await page.route(`${backend}/**`, async (r) => {
+    const path = new URL(r.request().url()).pathname
+    if (path.endsWith('/contexto')) return r.fulfill({ json: { data: cuenta } })
+    if (path.endsWith('/envejecientes')) return r.fulfill({ json: pagina([adulto]) })
+    if (path.endsWith('/asignaciones')) return r.fulfill({ json: { data: { cuidadores: [{ usuario_id: cuidador.usuario_id }] } } })
+    if (path.endsWith('/candidatos/agenda')) return r.fulfill({ json: pagina([cuidador]) })
+    if (path.endsWith('/tareas') && r.request().method() === 'POST') {
+      alta = r.request().postDataJSON()
+      return r.fulfill({ status: 201, json: { data: { serie_id: tareaId, tareas: [] } } })
+    }
+    if (path.endsWith('/tareas')) return r.fulfill({ json: pagina([]) })
+    return r.fallback()
+  })
+  await iniciarSesion(page, sim.correo)
+  await page.goto(`${ruta}/agenda`)
+  await page.getByRole('button', { name: 'Nueva tarea' }).click()
+  await page.getByLabel(/^Título de la tarea/).fill('Seguimiento semanal')
+  await page.getByRole('combobox', { name: /^Prioridad/ }).selectOption('2')
+  await page.getByRole('combobox', { name: /^Adulto mayor/ }).selectOption(adultoId)
+  await page.getByRole('combobox', { name: /^Cuidador asignado/ }).selectOption('12')
+  const lunes = new Date()
+  lunes.setUTCDate(lunes.getUTCDate() + (8 - lunes.getUTCDay()) % 7 + 7)
+  const domingo = new Date(lunes)
+  domingo.setUTCDate(lunes.getUTCDate() + 6)
+  const fecha = lunes.toISOString().slice(0, 10)
+  const hasta = domingo.toISOString().slice(0, 10)
+  await page.getByLabel(/^Fecha programada/).fill(fecha)
+  await page.getByLabel(/^Hora \(opcional\)/).fill('09:00')
+  await page.getByText('Semanal', { exact: true }).click()
+  await page.getByText('Lunes', { exact: true }).click()
+  await page.getByText('Domingo', { exact: true }).click()
+  await page.getByLabel(/^Se repite hasta/).fill(hasta)
+  await expect(page.getByText(/Se crearán 2 tareas/)).toBeVisible()
+  await page.getByRole('checkbox', { name: 'Requiere evidencia para completar' }).check()
+  await page.getByRole('button', { name: 'Crear tarea' }).click()
+  await expect.poll(() => alta).toMatchObject({ cuidador_id: '12', prioridad_id: 2, fecha_programada: fecha, hora_programada: '09:00',
+    requiere_evidencia: true, repeticion: { frecuencia: 'semanal', hasta, dias_semana: [1, 7] } })
+})

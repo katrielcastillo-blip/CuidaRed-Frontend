@@ -1,63 +1,83 @@
 /*
- * HistorialSeccion.tsx — Historial del adulto mayor en pestañas:
- *   Visitas      (Visita + RegistroVisita + DetalleVisita): incluye las visitas en las que aparece como adulto
- *                adicional del hogar (visitaIncluye), con su razón (Visit_razon), responsable y observación propia.
- *   Necesidades  (Env_Necesidad): catálogo, prioridad, cantidad / unidad, recurrente, estado y responsable.
- *   Alertas      (AlertaEnvejeciente): tipo (catálogo Alertas), prioridad y estado.
- * Cada pestaña se muestra solo si el rol tiene el permiso de consulta correspondiente.
- * Módulo: gestión (administrador y coordinador).
+ * HistorialSeccion.tsx — Historial consolidado del adulto mayor (CU-06 · RF-3.4): una sola línea de tiempo con
+ *   Visitas      realizadas, canceladas y de visitante externo (Visita + RegistroVisita + DetalleVisita).
+ *   Necesidades  registro y cada cambio de estado (Env_Necesidad + historial).
+ *   Alertas      generación y acciones tomadas (AlertaEnvejeciente).
+ *   Riesgos      factores registrados y su estado (Env_Riesgo).
+ * Ordenada por fecha, con filtros por tipo y por rango de fechas. Cada tipo se incluye solo si el rol tiene el
+ * permiso de consulta (visitas:ver, necesidades:ver, alertas:ver, adultos:ver-sensible): sin permiso ni se
+ * calcula ni se muestra. Reutilizable desde el área del cuidador: los permisos se resuelven aquí con `puede()`;
+ * las propiedades `ver*` y `sensible` solo permiten RESTRINGIR aún más.
+ * Módulo: gestión (reutilizable por cualquier área).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarClock, Repeat, UsersRound } from 'lucide-react'
-import { Badge, Button, EmptyState, Segmented } from '@/components/ui'
-import { fechaCorta, hhmmA12, relativo } from '@/domain/dates'
-import { observacionPara, visitaIncluye } from '@/domain/relaciones'
+import { ArrowRight, BellRing, CalendarClock, ClipboardCheck, HandHelping, ShieldAlert, type LucideIcon } from 'lucide-react'
+import { Badge, Button, EmptyState, RiesgoBadge, TextField } from '@/components/ui'
+import { useUser } from '@/domain/auth'
+import { todayISO } from '@/domain/dates'
+import { puede } from '@/domain/permisos'
 import { useDB } from '@/domain/store'
 import type { Adulto } from '@/domain/types'
-import { nombreCatalogo, nombreUsuario } from '../../lib/datos'
+import { useShell } from '@/layouts/AppShell'
+import { cn } from '@/lib/cn'
 import {
-  cantidadTexto,
-  ESTADO_NECESIDAD_TEXTO,
-  ESTADO_VISITA_TEXTO,
-  necesidadAbierta,
-  nombreAdulto,
-  PESO_SEVERIDAD,
-  plural,
-  TIPO_NECESIDAD_TEXTO,
-  TONO_NECESIDAD,
-  TONO_PRIORIDAD,
-  TONO_VISITA,
-} from '../../lib/formato'
-import { EstadoAlertaBadge, UrgenciaBadge } from '../Piezas'
+  construirHistorial,
+  errorRango,
+  FILTRO_VACIO,
+  filtrarHistorial,
+  PERIODO_TEXTO,
+  PERIODOS,
+  TIPO_EVENTO_TEXTO,
+  type EventoHistorial,
+  type FiltroHistorial,
+  type Periodo,
+  type TipoEvento,
+} from '../../lib/historial'
+import { plural } from '../../lib/formato'
+import { FilaFiltros, FilterChip } from '../FilterChip'
+import { Seccion, UrgenciaBadge } from '../Piezas'
 
-type Pestana = 'visitas' | 'necesidades' | 'alertas'
-/** Registros que se muestran antes de "Ver todo". */
-const LIMITE = 5
+/** Eventos que se muestran antes de «Ver más». */
+const PAGINA = 10
 
-/** Tarjeta de actividad que enlaza a su detalle (o informativa si el rol no tiene esa pantalla). */
-function ItemCard({ fecha, badge, titulo, texto, extra, to }: { fecha: string; badge: ReactNode; titulo: string; texto?: string; extra?: ReactNode; to?: string }) {
-  const cuerpo = (
-    <div className="flex flex-col gap-1 px-4 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-xs text-muted pt-0.5">{fecha}</span>
-        <span className="flex flex-wrap justify-end gap-1">{badge}</span>
-      </div>
-      <strong className="text-base font-bold text-ink">{titulo}</strong>
-      {texto && <span className="text-sm text-muted line-clamp-2">{texto}</span>}
-      {extra}
-    </div>
-  )
-  if (!to) return <li className="rounded-sm border border-line-soft bg-bg">{cuerpo}</li>
+const VISUAL: Record<TipoEvento, { Icono: LucideIcon; punto: string; nombre: string }> = {
+  visita: { Icono: ClipboardCheck, punto: 'bg-blue-100 text-navy', nombre: 'Visita' },
+  necesidad: { Icono: HandHelping, punto: 'bg-teal-100 text-success-700', nombre: 'Necesidad' },
+  alerta: { Icono: BellRing, punto: 'bg-warning-100 text-warning-700', nombre: 'Alerta' },
+  riesgo: { Icono: ShieldAlert, punto: 'bg-danger-100 text-danger', nombre: 'Riesgo' },
+}
+
+function Evento({ e, base }: { e: EventoHistorial; base: string }) {
+  const v = VISUAL[e.tipo]
   return (
-    <li>
-      <Link to={to} className="block rounded-sm border border-line bg-bg overflow-hidden transition-shadow hover:shadow-1">
-        {cuerpo}
-        <span className="flex items-center justify-end gap-2 min-h-12 px-4 bg-blue-100 border-t border-navy text-navy text-xs font-semibold">
-          Ver detalle <ArrowRight size={18} aria-hidden />
-        </span>
-      </Link>
+    <li className="relative flex gap-3 pb-4 last:pb-0" data-tipo={e.tipo}>
+      <span className={cn('relative z-10 grid place-items-center size-9 flex-none rounded-full border-2 border-bg', v.punto)} aria-hidden>
+        <v.Icono size={18} />
+      </span>
+      <article className="flex flex-col flex-1 min-w-0 gap-1.5 p-3 rounded-sm border border-line-soft bg-surface">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+          <span className="text-xs text-muted">
+            <b className="font-bold uppercase tracking-wide text-ink-2">{v.nombre}</b> · {e.cuando}
+          </span>
+          <span className="flex flex-wrap justify-end gap-1">
+            {e.pendienteSync && <Badge tone="warning">Pendiente de sincronización</Badge>}
+            {e.severidad && <UrgenciaBadge severidad={e.severidad} />}
+            {e.nivel && <RiesgoBadge riesgo={e.nivel} />}
+            <Badge tone={e.tono}>{e.estado}</Badge>
+          </span>
+        </div>
+        <h3 className="text-base font-bold text-ink wrap-anywhere">{e.titulo}</h3>
+        {e.detalle && <p className="text-sm text-ink-2 wrap-anywhere">{e.detalle}</p>}
+        {e.extras.length > 0 && <p className="text-xs text-muted wrap-anywhere">{e.extras.join(' · ')}</p>}
+        {e.autor && <p className="text-xs text-muted">Registrado por {e.autor}</p>}
+        {e.ruta && (
+          <Link to={`${base}/${e.ruta}`} className="inline-flex items-center gap-1.5 self-start min-h-12 -mb-2 text-sm font-semibold text-navy underline-offset-2 hover:underline">
+            Ver detalle <ArrowRight size={16} aria-hidden />
+          </Link>
+        )}
+      </article>
     </li>
   )
 }
@@ -65,167 +85,155 @@ function ItemCard({ fecha, badge, titulo, texto, extra, to }: { fecha: string; b
 export function HistorialSeccion({
   adulto,
   base,
-  verVisitas,
-  verNecesidades,
-  verAlertas,
-  sensible,
+  verVisitas = true,
+  verNecesidades = true,
+  verAlertas = true,
+  sensible = true,
   className,
 }: {
   adulto: Adulto
-  base: string
-  verVisitas: boolean
-  verNecesidades: boolean
-  verAlertas: boolean
-  /** Muestra las observaciones de las visitas (dato sensible). */
-  sensible: boolean
+  /** Base de rutas del rol; por defecto, la del área actual (`useShell().base`). */
+  base?: string
+  /** Restricciones adicionales a los permisos del usuario (nunca los amplían). */
+  verVisitas?: boolean
+  verNecesidades?: boolean
+  verAlertas?: boolean
+  sensible?: boolean
   className?: string
 }) {
+  const user = useUser()
+  const shell = useShell()
+  const raiz = base ?? shell.base
+  const adultos = useDB((s) => s.adultos)
   const visitas = useDB((s) => s.visitas)
   const necesidades = useDB((s) => s.necesidades)
   const alertas = useDB((s) => s.alertas)
+  const riesgos = useDB((s) => s.riesgos)
   const usuarios = useDB((s) => s.usuarios)
-  const adultos = useDB((s) => s.adultos)
   const catalogos = useDB((s) => s.catalogos)
-  const [pestana, setPestana] = useState<Pestana>('visitas')
-  const [verTodo, setVerTodo] = useState(false)
+  const [filtro, setFiltro] = useState<FiltroHistorial>(FILTRO_VACIO)
+  const [masAntiguosPrimero, setMasAntiguosPrimero] = useState(false)
+  const [mostrar, setMostrar] = useState(PAGINA)
 
-  const misVisitas = useMemo(
-    () => visitas.filter((v) => visitaIncluye(v, adulto.id)).sort((a, b) => `${b.fecha} ${b.horaPautada}`.localeCompare(`${a.fecha} ${a.horaPautada}`)),
-    [visitas, adulto.id],
-  )
-  const misNecesidades = useMemo(
+  // Permisos resueltos con puede(): sin permiso, el tipo de evento ni se calcula.
+  const pVisitas = verVisitas && puede(user, 'visitas:ver', adulto)
+  const pNecesidades = verNecesidades && puede(user, 'necesidades:ver', adulto)
+  const pAlertas = verAlertas && puede(user, 'alertas:ver', adulto)
+  const pRiesgos = sensible && puede(user, 'adultos:ver-sensible', adulto)
+  const pObs = pRiesgos
+
+  const eventos = useMemo(
     () =>
-      necesidades
-        .filter((n) => n.adultoId === adulto.id)
-        .sort((a, b) => Number(necesidadAbierta(b.estado)) - Number(necesidadAbierta(a.estado)) || PESO_SEVERIDAD[a.prioridad] - PESO_SEVERIDAD[b.prioridad] || b.creadaEn.localeCompare(a.creadaEn)),
-    [necesidades, adulto.id],
-  )
-  const misAlertas = useMemo(
-    () =>
-      alertas
-        .filter((a) => a.adultoId === adulto.id)
-        .sort((a, b) => Number(a.estado === 'atendida') - Number(b.estado === 'atendida') || PESO_SEVERIDAD[a.severidad] - PESO_SEVERIDAD[b.severidad] || b.creadaEn.localeCompare(a.creadaEn)),
-    [alertas, adulto.id],
+      construirHistorial(
+        adulto,
+        { adultos, visitas, necesidades, alertas, riesgos, usuarios, catalogos },
+        { visitas: pVisitas, necesidades: pNecesidades, alertas: pAlertas, riesgos: pRiesgos, observaciones: pObs },
+      ),
+    [adulto, adultos, visitas, necesidades, alertas, riesgos, usuarios, catalogos, pVisitas, pNecesidades, pAlertas, pRiesgos, pObs],
   )
 
-  const pestanas: Array<{ value: Pestana; label: string }> = [
-    ...(verVisitas ? [{ value: 'visitas' as const, label: `Visitas (${misVisitas.length})` }] : []),
-    ...(verNecesidades ? [{ value: 'necesidades' as const, label: `Necesidades (${misNecesidades.length})` }] : []),
-    ...(verAlertas ? [{ value: 'alertas' as const, label: `Alertas (${misAlertas.length})` }] : []),
-  ]
-  if (pestanas.length === 0) return null
-  const actual: Pestana = pestanas.some((p) => p.value === pestana) ? pestana : pestanas[0]!.value
-  const cantidad = { visitas: misVisitas.length, necesidades: misNecesidades.length, alertas: misAlertas.length }[actual]
-  const vacio: Record<Pestana, string> = { visitas: 'Sin visitas registradas.', necesidades: 'Sin necesidades registradas.', alertas: 'Sin alertas para este adulto.' }
-  const nombreDe = (id: string) => {
-    const a = adultos.find((x) => x.id === id)
-    return a ? nombreAdulto(a) : 'otro adulto'
+  const porTipo = useMemo(() => {
+    const c: Record<TipoEvento, number> = { visita: 0, necesidad: 0, alerta: 0, riesgo: 0 }
+    for (const e of eventos) c[e.tipo]++
+    return c
+  }, [eventos])
+  const habilitado: Record<TipoEvento, boolean> = { visita: pVisitas, necesidad: pNecesidades, alerta: pAlertas, riesgo: pRiesgos }
+  const tiposPermitidos = (Object.keys(VISUAL) as TipoEvento[]).filter((t) => habilitado[t])
+
+  const error = errorRango(filtro)
+  const filtrados = useMemo(() => {
+    const lista = filtrarHistorial(eventos, filtro)
+    return masAntiguosPrimero ? [...lista].reverse() : lista
+  }, [eventos, filtro, masAntiguosPrimero])
+
+  if (tiposPermitidos.length === 0) return null
+
+  const cambiar = (parcial: Partial<FiltroHistorial>) => {
+    setFiltro((f) => ({ ...f, ...parcial }))
+    setMostrar(PAGINA)
   }
+  const hayFiltros = filtro.tipo !== '' || filtro.periodo !== 'todo' || masAntiguosPrimero
+  const limpiar = () => {
+    setFiltro(FILTRO_VACIO)
+    setMasAntiguosPrimero(false)
+    setMostrar(PAGINA)
+  }
+  const visibles = filtrados.slice(0, mostrar)
+  const realizadas = pVisitas ? eventos.filter((e) => e.realizada).length : 0
 
   return (
-    <section className={className ? `flex flex-col gap-3 ${className}` : 'flex flex-col gap-3'} aria-label="Historial del adulto mayor">
-      <h2 className="text-xl font-semibold text-ink">Historial</h2>
-      <Segmented<Pestana>
-        label="Historial"
-        value={actual}
-        onChange={(p) => {
-          setPestana(p)
-          setVerTodo(false)
-        }}
-        options={pestanas}
-      />
-      {cantidad === 0 ? (
-        <EmptyState title={vacio[actual]} />
-      ) : (
-        <ul className="flex flex-col gap-3" role="tabpanel">
-          {actual === 'visitas' &&
-            (verTodo ? misVisitas : misVisitas.slice(0, LIMITE)).map((v) => {
-              const otros = [v.adultoId, ...v.detallesAdicionales.map((d) => d.adultoId)].filter((id) => id !== adulto.id)
-              const obs = observacionPara(v, adulto.id)
-              return (
-                <ItemCard
-                  key={v.id}
-                  fecha={`${fechaCorta(v.fecha)} · ${hhmmA12(v.horaPautada)}`}
-                  badge={
-                    <>
-                      {v.pendienteSync && <Badge tone="warning">Pendiente de sincronización</Badge>}
-                      <Badge tone={TONO_VISITA[v.estado]}>{ESTADO_VISITA_TEXTO[v.estado]}</Badge>
-                    </>
-                  }
-                  titulo={v.razon || v.tipo}
-                  texto={`Responsable: ${nombreUsuario(usuarios, v.cuidadorId) ?? '—'}${sensible && obs ? ` · ${obs}` : ''}`}
-                  extra={
-                    otros.length > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-ink-2">
-                        <UsersRound size={14} aria-hidden /> Visita compartida con {otros.map(nombreDe).join(', ')}
-                      </span>
-                    )
-                  }
-                  to={`${base}/visitas/${v.id}`}
-                />
-              )
-            })}
-          {actual === 'necesidades' &&
-            (verTodo ? misNecesidades : misNecesidades.slice(0, LIMITE)).map((n) => {
-              const cant = cantidadTexto(n)
-              return (
-                <ItemCard
-                  key={n.id}
-                  fecha={relativo(n.creadaEn)}
-                  badge={
-                    <>
-                      {n.pendienteSync && <Badge tone="warning">Pendiente de sincronización</Badge>}
-                      <Badge tone={TONO_PRIORIDAD[n.prioridad]}>Prioridad {nombreCatalogo(catalogos.prioridades, n.prioridad)}</Badge>
-                      <Badge tone={TONO_NECESIDAD[n.estado]}>{ESTADO_NECESIDAD_TEXTO[n.estado]}</Badge>
-                    </>
-                  }
-                  titulo={n.catalogoId ? nombreCatalogo(catalogos.necesidades, n.catalogoId) : TIPO_NECESIDAD_TEXTO[n.tipo]}
-                  texto={n.descripcion}
-                  extra={
-                    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-2">
-                      <span>{TIPO_NECESIDAD_TEXTO[n.tipo]}</span>
-                      {cant && <span>Cantidad: {cant}</span>}
-                      {n.recurrente && (
-                        <span className="inline-flex items-center gap-1">
-                          <Repeat size={13} aria-hidden /> Recurrente
-                        </span>
-                      )}
-                      {n.responsableId && <span>Responsable: {nombreUsuario(usuarios, n.responsableId) ?? '—'}</span>}
-                    </span>
-                  }
-                  to={`${base}/necesidades/${n.id}`}
-                />
-              )
-            })}
-          {actual === 'alertas' &&
-            (verTodo ? misAlertas : misAlertas.slice(0, LIMITE)).map((a) => (
-              <ItemCard
-                key={a.id}
-                fecha={relativo(a.creadaEn)}
-                badge={
-                  <>
-                    <UrgenciaBadge severidad={a.severidad} />
-                    <EstadoAlertaBadge estado={a.estado} />
-                  </>
-                }
-                titulo={a.titulo}
-                texto={a.descripcion}
-                extra={<span className="text-xs text-ink-2">{nombreCatalogo(catalogos.alertas, a.tipo)}</span>}
-                to={`${base}/alertas/${a.id}`}
-              />
-            ))}
-        </ul>
+    <Seccion titulo="Historial consolidado" id="historial" className={className}>
+      <p className="text-sm text-muted -mt-2">
+        Línea de tiempo con {tiposPermitidos.map((t) => TIPO_EVENTO_TEXTO[t].toLowerCase()).join(', ')} del adulto mayor. Solo se incluye lo que tu rol puede consultar.
+      </p>
+
+      <FilaFiltros>
+        <FilterChip<'' | TipoEvento>
+          etiqueta="Tipo"
+          value={filtro.tipo}
+          onChange={(tipo) => cambiar({ tipo })}
+          opciones={[{ value: '', label: `Todos (${eventos.length})` }, ...tiposPermitidos.map((t) => ({ value: t, label: `${TIPO_EVENTO_TEXTO[t]} (${porTipo[t]})` }))]}
+        />
+        <FilterChip<Periodo>
+          etiqueta="Período"
+          value={filtro.periodo}
+          onChange={(periodo) => cambiar({ periodo, desde: '', hasta: '' })}
+          neutro="todo"
+          opciones={PERIODOS.map((p) => ({ value: p, label: PERIODO_TEXTO[p] }))}
+        />
+        <FilterChip<'recientes' | 'antiguos'>
+          etiqueta="Orden"
+          value={masAntiguosPrimero ? 'antiguos' : 'recientes'}
+          onChange={(o) => {
+            setMasAntiguosPrimero(o === 'antiguos')
+            setMostrar(PAGINA)
+          }}
+          opciones={[
+            { value: 'recientes', label: 'Más recientes primero' },
+            { value: 'antiguos', label: 'Más antiguos primero' },
+          ]}
+        />
+      </FilaFiltros>
+
+      {filtro.periodo === 'personalizado' && (
+        <div className="grid grid-cols-2 gap-3">
+          <TextField label="Desde" type="date" max={filtro.hasta || todayISO()} value={filtro.desde} onChange={(e) => cambiar({ desde: e.target.value })} />
+          <TextField label="Hasta" type="date" min={filtro.desde || undefined} max={todayISO()} value={filtro.hasta} onChange={(e) => cambiar({ hasta: e.target.value })} error={error} />
+        </div>
       )}
-      {cantidad > LIMITE && (
-        <Button variant="outline" size="sm" onClick={() => setVerTodo((x) => !x)}>
-          {verTodo ? 'Ver menos' : `Ver todo (${cantidad})`}
+
+      <p className="flex flex-wrap items-center gap-x-1 text-sm text-ink-2" aria-live="polite">
+        Mostrando {visibles.length} de {plural(filtrados.length, 'evento', 'eventos')}
+        {hayFiltros && (
+          <>
+            {' · '}
+            <button type="button" className="min-h-12 px-2 font-semibold text-navy underline underline-offset-2" onClick={limpiar}>
+              Limpiar filtros
+            </button>
+          </>
+        )}
+      </p>
+
+      {filtrados.length === 0 ? (
+        <EmptyState title={eventos.length === 0 ? 'Aún no hay registros' : 'Sin registros para estos filtros'} text={eventos.length === 0 ? 'Cuando haya visitas, necesidades, alertas o riesgos aparecerán aquí.' : 'Prueba con otro tipo o período.'} />
+      ) : (
+        <ol className="relative flex flex-col before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-0.5 before:bg-line-soft" aria-label="Línea de tiempo del adulto mayor">
+          {visibles.map((e) => (
+            <Evento key={e.id} e={e} base={raiz} />
+          ))}
+        </ol>
+      )}
+
+      {filtrados.length > mostrar && (
+        <Button variant="outline" size="sm" onClick={() => setMostrar((m) => m + PAGINA)}>
+          Ver más ({filtrados.length - mostrar} restantes)
         </Button>
       )}
-      {actual === 'visitas' && misVisitas.length > 0 && (
+      {pVisitas && eventos.some((e) => e.tipo === 'visita') && (
         <p className="flex items-center gap-1.5 text-xs text-muted">
-          <CalendarClock size={14} aria-hidden /> {plural(misVisitas.filter((v) => v.estado === 'completada').length, 'visita completada', 'visitas completadas')} en total.
+          <CalendarClock size={14} aria-hidden /> {plural(realizadas, 'visita realizada', 'visitas realizadas')} en total.
         </p>
       )}
-    </section>
+    </Seccion>
   )
 }

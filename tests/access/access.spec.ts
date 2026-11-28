@@ -1,5 +1,6 @@
 /* Integración UI ID01: jamás usa correo ni base reales. © 2026 Equipo CuidaRed – INTEC. */
 import { expect, test, type Page } from '@playwright/test'
+import { simularSesionDelNavegador } from './ayudas-fase2'
 
 const userId = 'a271ce25-7f40-4c45-b5ba-dbc6a0011234'
 const authUser = {
@@ -63,6 +64,13 @@ async function mockServices(
     const path = new URL(request.url()).pathname
     const body = request.postDataJSON() ?? {}
     requests.push({ path, body })
+    if (path.startsWith('/api/v1/session/browser/')) {
+      const error = options.inactive ? { status: 403, code: 'USER_INACTIVE' }
+        : options.expired ? { status: 401, code: 'INVALID_SESSION' }
+          : options.unavailable ? { status: 503, code: 'DEPENDENCY_UNAVAILABLE' } : undefined
+      await simularSesionDelNavegador(route, token, userId, error)
+      return
+    }
     if (options.inactive || options.unavailable || options.expired) {
       await route.fulfill({
         status: options.inactive ? 403 : options.expired ? 401 : 503,
@@ -117,6 +125,8 @@ for (const [status, code, message] of [
   test(`CR-162: ${code} conserva el formulario sin mostrar detalles técnicos`, async ({ page }) => {
     const requests = await mockServices(page, { patchError: { status, code } })
     await login(page)
+    await page.getByRole('link', { name: 'Mi cuenta' }).click()
+    await page.getByRole('button', { name: 'Editar perfil' }).click()
     await page.getByLabel(/^Nombres/).fill('Anabel')
     await page.getByRole('button', { name: 'Guardar cambios' }).click()
     await expect(page.getByRole('alert')).toContainText(message)
@@ -131,7 +141,8 @@ for (const [status, code, message] of [
 test('CR-162: un 403 de permisos oculta el perfil sin cerrar una sesión válida', async ({ page }) => {
   const requests = await mockServices(page, { profileDenied: true })
   await login(page)
-  await expect(page).toHaveURL(/\/cuenta$/)
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/inicio$/)
   await expect(page.getByRole('alert')).toContainText('Tu usuario no tiene acceso.')
   await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
@@ -141,20 +152,36 @@ test('CR-162: un 403 de permisos oculta el perfil sin cerrar una sesión válida
 test('login, perfil persistido por API, recarga y cierre sin datos del simulador', async ({ page }) => {
   const requests = await mockServices(page)
   await login(page)
-  await expect(page.getByRole('heading', { name: 'Mi cuenta', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+  await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  // Rediseño: /cuenta es «Mi perfil» en solo lectura; los campos se editan en «Editar mis datos».
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Ana Pérez' })).toBeVisible()
+  await expect(page.getByLabel(/^Nombres/)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Editar perfil' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Editar mis datos' })).toBeVisible()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   await page.getByLabel(/^Nombres/).fill('Anabel')
   await page.getByRole('button', { name: 'Guardar cambios' }).click()
-  await expect(page.getByRole('status')).toContainText('Cambios guardados')
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
+  await expect(page.getByText('Cambios guardados.')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Anabel Pérez' })).toBeVisible()
   expect(requests.some((r) => r.path === '/api/v1/me' && r.body.nombres === 'Anabel')).toBe(true)
   await page.reload()
+  await expect(page.getByRole('heading', { level: 2, name: 'Anabel Pérez' })).toBeVisible()
+  await page.getByRole('button', { name: 'Editar perfil' }).click()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Anabel')
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([])
   expect(await page.evaluate(() => Object.values(sessionStorage).join(' '))).not.toContain('Fuerte123!')
   await page.goto('/admin')
-  await expect(page).toHaveURL(/\/cuenta$/)
+  await expect(page).toHaveURL(/\/inicio$/)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page).toHaveURL(/\/inicio$/)
+  await expect(page.getByRole('button', { name: 'Iniciar sesión', exact: true })).toBeVisible()
   expect(requests.some((r) => r.path.endsWith('/session/logout'))).toBe(true)
   expect(await page.evaluate(() => sessionStorage.getItem('cuidared.auth.real'))).toBeNull()
 })
@@ -170,7 +197,7 @@ test('credenciales inválidas muestran un mensaje genérico', async ({ page }) =
 test('usuario desactivado no ve módulos ni perfil', async ({ page }) => {
   await mockServices(page, { inactive: true })
   await login(page)
-  await expect(page.getByRole('alert')).toContainText('Tu usuario no tiene acceso.')
+  await expect(page.getByRole('alert')).toContainText('Tu usuario está deshabilitado. Contacta a soporte.')
   await expect(page.getByLabel(/^Nombres/)).not.toBeVisible()
 })
 
@@ -182,6 +209,8 @@ test('recuperación genérica y cambio de contraseña con código Supabase', asy
   await expect(page.getByRole('status')).toContainText('Si el correo pertenece a una cuenta')
   await expect(page.getByText('Modo demostración')).not.toBeVisible()
   await page.getByRole('link', { name: 'Ingresar el código' }).click()
+  // La navegación es una transición: se espera la pantalla nueva antes de escribir (si no, se llena la anterior).
+  await expect(page.getByRole('heading', { name: 'Restablecer contraseña' })).toBeVisible()
   await page.getByLabel(/^Correo electrónico/).fill(authUser.email)
   await page.getByLabel(/^Código de verificación/).fill('123456')
   await page.getByLabel(/^Nueva contraseña/).fill('Otra123!')
@@ -209,7 +238,7 @@ test('activa solo invitación y confirma el perfil previo sin asignarse rol', as
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Activar cuenta' }).click()
   await expect(page).toHaveURL(/\/cuenta$/)
-  await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
+  await expect(page.getByRole('heading', { level: 2, name: 'Ana Pérez' })).toBeVisible()
   expect(requests.some((r) => r.path.endsWith('/verify') && r.body.type === 'invite')).toBe(true)
   const changes = requests.filter((r) => r.path === '/api/v1/me' && r.body.nombres)
   expect(changes).toHaveLength(1)
@@ -232,7 +261,8 @@ test('la sesión vencida en servidor pierde acceso al perfil', async ({ page }) 
   const options = { expired: false }
   await mockServices(page, options)
   await login(page)
-  await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'Ana Pérez' })).toBeVisible()
   options.expired = true
   await page.reload()
   await expect(page).toHaveURL(/\/inicio$/)
@@ -244,6 +274,8 @@ test('un fallo de API al guardar conserva los datos escritos y no anuncia éxito
   const options = { unavailable: false }
   await mockServices(page, options)
   await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  await page.getByRole('button', { name: 'Editar perfil' }).click()
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Ana')
   await page.getByLabel(/^Nombres/).fill('Nombre pendiente')
   options.unavailable = true
@@ -251,4 +283,72 @@ test('un fallo de API al guardar conserva los datos escritos y no anuncia éxito
   await expect(page.getByRole('alert').first()).toContainText('No se pudo conectar')
   await expect(page.getByLabel(/^Nombres/)).toHaveValue('Nombre pendiente')
   await expect(page.getByText('Cambios guardados.')).not.toBeVisible()
+})
+
+test('Mi perfil: datos personales, seguridad y privacidad, y datos de solo lectura al editar', async ({ page }) => {
+  await mockServices(page)
+  await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  const informacion = page.locator('section', { has: page.getByRole('heading', { name: 'Información personal' }) })
+  await expect(informacion.getByText('ana@example.test')).toBeVisible()
+  await expect(informacion.getByText('001-1234567-8')).toBeVisible()
+  await expect(informacion.getByText('Sin registrar')).toBeVisible()
+  const seguridad = page.locator('section', { has: page.getByRole('heading', { name: 'Seguridad y privacidad' }) })
+  await expect(seguridad.getByRole('button', { name: /Cambiar contraseña/ })).toBeVisible()
+  await expect(seguridad.getByRole('link', { name: /Términos de uso/ })).toHaveAttribute('href', '/terminos')
+  await expect(seguridad.getByRole('link', { name: /Política de privacidad/ })).toHaveAttribute('href', '/privacidad')
+  // Editar: correo y cédula no se pueden cambiar desde aquí.
+  await page.getByRole('button', { name: 'Editar perfil' }).click()
+  await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('readonly', '')
+  await expect(page.getByLabel('Cédula')).toHaveAttribute('readonly', '')
+  await expect(page.getByLabel('Cédula')).toHaveValue('001-1234567-8')
+  await expect(page.getByText('Para cambiarlo, contacta a soporte.')).toBeVisible()
+  await page.getByRole('banner').getByRole('link', { name: 'Volver' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
+})
+
+test('Cambiar contraseña: verifica la actual, valida requisitos y guarda con Supabase Auth', async ({ page }) => {
+  const requests = await mockServices(page)
+  await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  await page.getByRole('button', { name: /Cambiar contraseña/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Cambiar contraseña' })).toBeVisible()
+  await page.getByLabel(/^Contraseña actual/).fill('Fuerte123!')
+  await page.getByLabel(/^Nueva contraseña/).fill('corta')
+  await page.getByLabel(/^Confirmar nueva contraseña/).fill('corta')
+  await expect(page.getByText('Al menos 8 caracteres')).toBeVisible()
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page.getByRole('alert')).toContainText('Usa al menos 8 caracteres')
+  expect(requests.some((r) => r.path.endsWith('/user'))).toBe(false)
+  await page.getByLabel(/^Nueva contraseña/).fill('Otra123!')
+  await page.getByLabel(/^Confirmar nueva contraseña/).fill('Distinta123!')
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page.getByRole('alert')).toContainText('no coinciden')
+  await page.getByLabel(/^Confirmar nueva contraseña/).fill('Otra123!')
+  const antes = requests.length
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible()
+  await expect(page.getByText('Contraseña actualizada.')).toBeVisible()
+  const nuevas = requests.slice(antes)
+  // La actual se comprueba iniciando una sesión efímera con ella; la nueva se guarda en Supabase Auth.
+  expect(nuevas.some((r) => r.path.endsWith('/token') && r.body.password === 'Fuerte123!')).toBe(true)
+  expect(nuevas.some((r) => r.path.endsWith('/user') && r.body.password === 'Otra123!')).toBe(true)
+  expect(requests.some((r) => r.path.endsWith('/session/logout'))).toBe(false)
+})
+
+test('Cambiar contraseña: una contraseña actual incorrecta no guarda nada', async ({ page }) => {
+  const opciones = { loginFails: false }
+  const requests = await mockServices(page, opciones)
+  await login(page)
+  await page.getByRole('link', { name: 'Mi cuenta' }).click()
+  await page.getByRole('button', { name: /Cambiar contraseña/ }).click()
+  opciones.loginFails = true
+  await page.getByLabel(/^Contraseña actual/).fill('Equivocada123!')
+  await page.getByLabel(/^Nueva contraseña/).fill('Otra123!')
+  await page.getByLabel(/^Confirmar nueva contraseña/).fill('Otra123!')
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page.getByRole('alert')).toContainText('La contraseña actual no es correcta.')
+  await expect(page.getByRole('alert')).not.toContainText('provider details')
+  expect(requests.some((r) => r.path.endsWith('/user') && r.body.password === 'Otra123!')).toBe(false)
+  await expect(page.getByRole('link', { name: /Recupérala con un código/ })).toHaveAttribute('href', '/recuperar')
 })

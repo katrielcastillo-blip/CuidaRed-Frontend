@@ -1,6 +1,7 @@
 /*
- * NoEncontrado.tsx — Respuesta única cuando el registro de la URL no existe o pertenece a otro grupo
- * familiar: no revela cuál de los dos casos ocurre (SRS §8.2.2.3.4 c · RF-09).
+ * NoEncontrado.tsx — Respuesta única cuando el registro de la URL no existe o la persona no tiene permiso para
+ * consultarlo en la cuenta activa: no revela cuál de los dos casos ocurre (Seguridad §4 · SRS §8.2.2.3.4 c ·
+ * RF-09).
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -18,7 +19,7 @@ export function NoEncontrado({ titulo }: { titulo: string }) {
         </span>
         <EmptyState
           title="No encontrado o sin permiso"
-          text="Este registro no existe o no pertenece a tu grupo familiar. Solo puedes consultar a los adultos mayores que tienes a cargo."
+          text="Este registro no existe o no tienes autorización para consultarlo en esta cuenta. Solo puedes ver a los adultos mayores para los que recibiste permiso."
           action={
             <div className="mt-3">
               <ButtonLink to={base}>Volver al inicio</ButtonLink>

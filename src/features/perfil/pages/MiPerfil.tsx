@@ -1,7 +1,8 @@
 /*
- * MiPerfil.tsx — Mi perfil: datos de la persona usuaria y menú de configuración común a los 4 roles
- * (editar perfil, contraseña, conexión, ayuda, Acerca de, avisos legales, datos de demostración, cerrar sesión).
- * Módulo: perfil (SRS §18.3 "Acerca de accesible desde el menú de configuración" · §8.2.2.1.8.2 · RF-10).
+ * MiPerfil.tsx — Mi perfil: datos de la persona usuaria y menú de configuración común a los 5 roles
+ * (mis cuentas, editar perfil, contraseña, desactivar cuenta, conexión, ayuda, Acerca de, avisos legales, datos
+ * de demostración y cerrar sesión con confirmación).
+ * Módulo: perfil (CU-01 · HU-01 · RF-1.4 · SRS §18.3 "Acerca de accesible desde el menú de configuración" · RF-10).
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useCallback, useState, type ReactNode } from 'react'
@@ -15,14 +16,14 @@ import {
   LogOut,
   Mail,
   Phone,
-  RefreshCcw,
   RotateCcw,
   ShieldCheck,
   UserPen,
+  UserRoundX,
   Wifi,
   WifiOff,
 } from 'lucide-react'
-import { Badge, Button, ButtonLink, InfoRow, Sheet, useToast } from '@/components/ui'
+import { Badge, Button, InfoRow, Sheet, useToast } from '@/components/ui'
 import { logout, nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { resetDemo } from '@/domain/store'
@@ -31,6 +32,8 @@ import type { Organizacion, Usuario } from '@/domain/types'
 import { Page, useShell } from '@/layouts/AppShell'
 import { cn } from '@/lib/cn'
 import { CambiarPassword } from '../components/CambiarPassword'
+import { CerrarSesion } from '../components/CerrarSesion'
+import { MisCuentas } from '../components/MisCuentas'
 import { PerfilCabecera } from '../components/PerfilCabecera'
 import { muestraCedula } from '../lib/rol'
 
@@ -97,11 +100,6 @@ function Vista({ user, org }: { user: Usuario; org: Organizacion | null }) {
   const cerrarSalida = useCallback(() => setConfirmarSalida(false), [])
   const cerrarReinicio = useCallback(() => setConfirmarReinicio(false), [])
 
-  const salir = () => {
-    logout()
-    navigate('/inicio', { replace: true })
-  }
-  const pedirSalida = () => (pendientes.length > 0 ? setConfirmarSalida(true) : salir())
   const reiniciar = () => {
     logout()
     resetDemo()
@@ -131,9 +129,18 @@ function Vista({ user, org }: { user: Usuario; org: Organizacion | null }) {
           </div>
         </section>
 
+        <MisCuentas />
+
         <Grupo titulo="Cuenta">
-          <Fila to={`${base}/perfil/editar`} icono={<UserPen size={20} />} titulo="Editar perfil" detalle="Nombre, correo, teléfono y foto" />
+          <Fila to={`${base}/perfil/editar`} icono={<UserPen size={20} />} titulo="Editar perfil" detalle="Nombre, teléfono y foto" />
           <Fila onClick={() => setCambiando(true)} icono={<KeyRound size={20} />} titulo="Cambiar contraseña" detalle="Actualiza tu contraseña de acceso" />
+          <Fila
+            to={`${base}/perfil/desactivar`}
+            icono={<UserRoundX size={20} />}
+            titulo="Desactivar mi cuenta"
+            detalle="Cierra tu acceso; tu historial se conserva"
+            tono="danger"
+          />
         </Grupo>
 
         <Grupo titulo="Aplicación">
@@ -162,34 +169,14 @@ function Vista({ user, org }: { user: Usuario; org: Organizacion | null }) {
           />
         </Grupo>
 
-        <Button variant="danger-soft" fullWidth icon={<LogOut size={22} aria-hidden />} onClick={pedirSalida}>
+        <Button variant="danger-soft" fullWidth icon={<LogOut size={22} aria-hidden />} onClick={() => setConfirmarSalida(true)}>
           Cerrar sesión
         </Button>
       </div>
 
       <CambiarPassword open={cambiando} onClose={cerrarPassword} user={user} />
 
-      <Sheet
-        open={confirmarSalida}
-        onClose={cerrarSalida}
-        title="Tienes registros sin sincronizar"
-        footer={
-          <>
-            <ButtonLink to={`${base}/sincronizacion`} variant="outline" size="sm" icon={<RefreshCcw size={18} aria-hidden />}>
-              Sincronizar
-            </ButtonLink>
-            <Button variant="danger" size="sm" onClick={salir}>
-              Cerrar sesión igualmente
-            </Button>
-          </>
-        }
-      >
-        <p className="leading-normal text-ink-2">
-          Hay <strong className="text-ink">{pendientes.length}</strong> registro{pendientes.length === 1 ? '' : 's'} guardado{pendientes.length === 1 ? '' : 's'} solo en este
-          dispositivo. Si cierras sesión ahora, seguirán aquí y se enviarán la próxima vez que inicies sesión con conexión.
-        </p>
-        <p className="text-sm leading-normal text-warning-700">No borres los datos del navegador ni uses otro dispositivo hasta sincronizarlos, o podrían perderse.</p>
-      </Sheet>
+      <CerrarSesion open={confirmarSalida} onClose={cerrarSalida} base={base} />
 
       <Sheet
         open={confirmarReinicio}
@@ -214,7 +201,7 @@ function Vista({ user, org }: { user: Usuario; org: Organizacion | null }) {
   )
 }
 
-/** Mi perfil — compartido por los 4 roles. */
+/** Mi perfil — compartido por los 5 roles. */
 export default function MiPerfil() {
   const { user, org } = useSession()
   if (!user) return null

@@ -1,13 +1,14 @@
 /*
  * BarraSuperior.tsx — Barra superior fija de todas las pantallas autenticadas: logotipo (izquierda),
- * indicador de conexión/sincronización, notificaciones y usuario con su rol (derecha).
+ * indicador de conexión/sincronización, notificaciones y usuario con su rol (derecha). Si el usuario pertenece a
+ * varias cuentas, el nombre abre el selector de cuenta y rol activo (CR-177).
  * Módulo: layouts (SRS §18.3 "Encabezado de la aplicación" y §18.4 "Indicadores de estado offline").
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bell, Cloud, CloudOff, RefreshCw } from 'lucide-react'
-import { nombreCompleto, ROL_LABEL, useSession } from '@/domain/auth'
+import { nombreCompleto, ROL_LABEL, useMisCuentas, useSession } from '@/domain/auth'
 import { marcarNotificacionesLeidas, notificacionesDe } from '@/domain/api'
 import { useEnLinea } from '@/domain/conectividad'
 import { relativo } from '@/domain/dates'
@@ -18,6 +19,7 @@ import type { Notificacion } from '@/domain/types'
 import { Badge, Button, EmptyState, Sheet } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useShell } from './AppShell'
+import { SelectorCuenta } from './SelectorCuenta'
 
 /** Indicador permanente de conexión y registros pendientes de sincronización. */
 export function IndicadorConexion() {
@@ -131,22 +133,30 @@ function Notificaciones() {
 export function BarraSuperior() {
   const { user } = useSession()
   const { base, perfilPath } = useShell()
+  const varias = useMisCuentas().length > 1
+  const enLinea = useEnLinea()
+  const pendientes = usePendientes().length
+  // A 360 px no caben a la vez la marca, el estado de conexión con texto y el selector de cuenta (RF-06: sin scroll
+  // horizontal): en ese caso la palabra «CuidaRed» queda solo para lectores de pantalla.
+  const compacta = varias || !enLinea || pendientes > 0
   return (
     <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line-soft pt-safe no-print" role="banner">
       <div className="flex items-center gap-2 h-11 px-3 md:px-6">
-        <Link to={base} className="flex items-center gap-2 flex-none md:hidden" aria-label="CuidaRed, inicio">
+        <Link to={base} className="flex items-center gap-2 flex-none min-h-12 -my-2 px-1 md:hidden" aria-label="CuidaRed, inicio">
           <img src="/favicon.svg" alt="" width={24} height={24} />
-          <span className="font-bold text-navy">CuidaRed</span>
+          <span className={cn('font-bold text-navy', compacta && 'max-[430px]:sr-only')}>CuidaRed</span>
         </Link>
         <div className="flex-1" />
         <IndicadorConexion />
         <Notificaciones />
-        {user && (
+        {user && (varias ? (
+          <SelectorCuenta className="max-w-[48vw] -my-2" />
+        ) : (
           <Link to={perfilPath} className="flex flex-col items-end leading-tight min-w-0 max-w-[45vw] min-h-12 justify-center -my-2" data-testid="usuario-actual">
             <span className="text-sm font-semibold text-ink truncate max-w-full">{nombreCompleto(user)}</span>
             <span className="text-[11px] text-muted truncate max-w-full">{ROL_LABEL[user.rol]}</span>
           </Link>
-        )}
+        ))}
       </div>
     </div>
   )

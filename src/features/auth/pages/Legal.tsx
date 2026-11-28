@@ -5,7 +5,7 @@
  */
 import { Fragment, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUp, ChevronDown, Info, ListOrdered, TriangleAlert } from 'lucide-react'
+import { Aviso, ButtonLink, Icono } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { PRODUCTO } from '@/lib/proyecto'
 import { AuthScreen } from '../components/AuthScreen'
@@ -53,7 +53,7 @@ function BloqueLegal({ b }: { b: Bloque }) {
     const textos = Array.isArray(b.texto) ? b.texto : [b.texto]
     return (
       <div className="flex flex-col gap-1 border-l-[3px] border-blue-100 pl-3.5">
-        <h3 className="text-base font-semibold text-navy">{b.sub}</h3>
+        <h3 className="text-cuerpo font-semibold text-navy">{b.sub}</h3>
         {textos.map((t) => (
           <p key={t} className="text-pretty">
             <Rico texto={t} />
@@ -63,14 +63,12 @@ function BloqueLegal({ b }: { b: Bloque }) {
     )
   }
   if ('aviso' in b) {
-    const warning = b.tono === 'warning'
     return (
-      <div className={cn('flex items-start gap-3 rounded-md border px-4 py-3', warning ? 'border-warning bg-warning-100 text-[#5c3a00]' : 'border-blue bg-blue-100 text-navy')}>
-        {warning ? <TriangleAlert size={20} className="mt-0.5 flex-none" aria-hidden /> : <Info size={20} className="mt-0.5 flex-none" aria-hidden />}
+      <Aviso tipo={b.tono === 'warning' ? 'advertencia' : 'info'} role="none">
         <p className="text-pretty">
           <Rico texto={b.aviso} />
         </p>
-      </div>
+      </Aviso>
     )
   }
   const { cabecera, filas } = b.tabla
@@ -114,6 +112,8 @@ function saltar(e: MouseEvent<HTMLAnchorElement>, id: string) {
   destino.focus({ preventScroll: true })
 }
 
+const ENLACE_PIE = 'inline-flex min-h-12 items-center font-semibold text-navy underline underline-offset-[3px]'
+
 const ancho = () => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 768px)').matches
 
 function DocumentoLegal({ doc, otro }: { doc: Documento; otro: { to: string; texto: string } }) {
@@ -121,27 +121,27 @@ function DocumentoLegal({ doc, otro }: { doc: Documento; otro: { to: string; tex
 
   return (
     <AuthScreen title={doc.titulo} back gradient="registro" wide>
-      <article id="inicio-documento" tabIndex={-1} className="outline-nonemx-auto flex w-full max-w-[70ch] flex-col gap-6 text-base leading-relaxed text-ink md:gap-8 md:text-[1.0625rem]">
+      <article id="inicio-documento" tabIndex={-1} className="mx-auto flex w-full max-w-[70ch] flex-col gap-6 text-cuerpo text-ink outline-none md:gap-8">
         <p className="text-pretty text-ink-2">
           <Rico texto={doc.resumen} />
         </p>
 
         <details
-          className="group rounded-md border border-line-soft bg-surface shadow-1"
+          className="group rounded-md border border-line-soft bg-surface"
           open={indiceAbierto}
           onToggle={(e) => setIndiceAbierto((e.currentTarget as HTMLDetailsElement).open)}
         >
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 font-semibold text-navy [&::-webkit-details-marker]:hidden">
             <span className="flex items-center gap-2">
-              <ListOrdered size={20} aria-hidden /> Contenido
+              <Icono nombre="format_list_numbered" tamano={24} /> Contenido
             </span>
-            <ChevronDown size={20} aria-hidden className="transition-transform group-open:rotate-180" />
+            <Icono nombre="keyboard_arrow_down" tamano={24} className="transition-transform group-open:rotate-180" />
           </summary>
           <nav aria-label={`Índice de ${doc.titulo}`} className="border-t border-line-soft px-2 py-2">
             <ol className="grid md:grid-cols-2 md:gap-x-4">
               {doc.secciones.map((s) => (
                 <li key={s.id}>
-                  <a href={`#${s.id}`} onClick={(e) => saltar(e, s.id)} className="flex min-h-12 items-center rounded-sm px-2 text-[0.95rem] leading-snug text-ink-2 hover:bg-blue-100 hover:text-navy">
+                  <a href={`#${s.id}`} onClick={(e) => saltar(e, s.id)} className="flex min-h-12 items-center rounded-sm px-2 text-cuerpo text-ink-2 hover:bg-blue-100 hover:text-navy">
                     {s.titulo}
                   </a>
                 </li>
@@ -154,7 +154,7 @@ function DocumentoLegal({ doc, otro }: { doc: Documento; otro: { to: string; tex
 
         {doc.secciones.map((s) => (
           <section key={s.id} id={s.id} tabIndex={-1} aria-labelledby={`${s.id}-t`} className="flex scroll-mt-4 flex-col gap-3 outline-none">
-            <h2 id={`${s.id}-t`} className="text-lg font-bold leading-snug text-navy md:text-xl">
+            <h2 id={`${s.id}-t`} className="text-seccion font-bold text-navy">
               {s.titulo}
             </h2>
             {s.bloques.map((b, i) => (
@@ -171,17 +171,18 @@ function DocumentoLegal({ doc, otro }: { doc: Documento; otro: { to: string; tex
 
 function Pie({ otro, actualizado }: { otro: { to: string; texto: string }; actualizado: ReactNode }) {
   return (
-    <footer className="flex flex-col items-center gap-2 border-t border-line-soft pt-5 text-center">
-      <div className="flex flex-wrap justify-center gap-x-4">
-        <a href="#inicio-documento" onClick={(e) => saltar(e, 'inicio-documento')} className="inline-flex min-h-12 items-center gap-1.5 font-semibold text-navy underline underline-offset-[3px]">
-          <ArrowUp size={18} aria-hidden /> Volver al inicio
-        </a>
-        <Link to={otro.to} className="inline-flex min-h-12 items-center font-semibold text-navy underline underline-offset-[3px]">
-          {otro.texto}
-        </Link>
-      </div>
-      <p className="text-xs text-muted">{actualizado}</p>
-      <p className="text-xs text-muted">
+    <footer className="flex flex-col items-center gap-1 border-t border-line-soft pt-5 text-center">
+      <a href="#inicio-documento" onClick={(e) => saltar(e, 'inicio-documento')} className={ENLACE_PIE}>
+        Volver arriba
+      </a>
+      <Link to={otro.to} className={ENLACE_PIE}>
+        {otro.texto}
+      </Link>
+      <ButtonLink to="/" variant="outline" className="mt-3">
+        Ir a la portada
+      </ButtonLink>
+      <p className="mt-3 text-ayuda text-muted">{actualizado}</p>
+      <p className="text-ayuda text-muted">
         {PRODUCTO.copyright} Proyecto académico del {PRODUCTO.institucion}.
       </p>
     </footer>

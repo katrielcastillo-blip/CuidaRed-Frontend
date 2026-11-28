@@ -1,16 +1,14 @@
 /*
- * routes.tsx — Área del ADMINISTRADOR (/admin). Navegación: Inicio · Adultos · Usuarios · Alertas · Más.
- * Las pantallas de gestión de usuarios y configuración exigen además su permiso (RequirePermiso) y la capa de
- * servicios vuelve a comprobarlo en cada operación (RF-09 · CU-13 · SRS §8.2.2.3.5 c).
- *   index ................... Panel de administración (visión general de la organización)
- *   miembros ................ Usuarios (lista, búsqueda y filtros por rol/estado)        [usuarios:gestionar]
- *   miembros/nuevo .......... Agregar usuario (invitación o contraseña inicial)          [usuarios:gestionar]
- *   miembros/:usuarioId ..... Perfil de usuario (editar rol, desactivar, eliminar)       [usuarios:gestionar]
- *   roles ................... Roles y permisos (matriz generada desde MATRIZ)            [usuarios:gestionar]
- *   configuracion ........... Datos de la cuenta (Cuenta) y parámetros (Configuracion_Cuenta) [organizacion:configurar]
+ * routes.tsx — Área del ADMINISTRADOR (/admin, cuentas Organización). Navegación: Inicio · Adultos · Miembros · Alertas · Más.
+ * Los módulos administrativos son solo de este rol (RNF-3.3): el área exige el rol (RequireRole), cada pantalla exige
+ * además su permiso (RequirePermiso) y la capa de servicios vuelve a comprobarlo en cada operación (RF-09 · CU-13 ·
+ * SRS §8.2.2.3.5 c).
+ *   index ................... Inicio: indicadores, alertas activas, uso del plan y accesos a los módulos
+ *   mas ..................... Menú «Más opciones» (cada entrada se filtra con puede())
  *   suscripcion ............. Plan y suscripción: plan, prueba gratuita, uso y pagos      [cuenta:suscripcion]
  *   catalogos ............... Catálogos de la BD (solo lectura)                         [catalogos:ver]
- *   mas ..................... Menú «Más»
+ *   + cuentaRoutes() ........ miembros, miembros/nuevo, miembros/:usuarioId, roles y configuracion
+ *                             (compartidas con el Coordinador de una cuenta Familia)
  *   + agendaRoutes() (Tarea_agenda y Evidencias), visitasRoutes() (detalle de visitas/necesidades),
  *     gestionRoutes() (adultos, alertas, resumen, reportes), perfilRoutes() y sistemaRoutes() (auditoría,
  *     sincronización, ayuda, acerca).
@@ -27,14 +25,12 @@ import { sistemaRoutes } from '@/features/sistema/routes'
 import { gestionRoutes } from '@/features/gestion/routes'
 import { visitasRoutes } from '@/features/visitas/routes'
 import { AdminShell, BASE_ADMIN } from './components/AdminShell'
-import AgregarMiembro from './pages/AgregarMiembro'
+import { cuentaRoutes } from './cuentaRoutes'
+import { necesidadesOrgRoutes } from './necesidadesOrgRoutes'
+import { solicitudesRoutes } from '@/features/coordinador/solicitudes/routes'
 import Catalogos from './pages/Catalogos'
-import Configuracion from './pages/Configuracion'
 import Dashboard from './pages/Dashboard'
 import Mas from './pages/Mas'
-import Miembros from './pages/Miembros'
-import PerfilMiembro from './pages/PerfilMiembro'
-import Roles from './pages/Roles'
 import Suscripcion from './pages/Suscripcion'
 
 const con = (accion: Accion, el: ReactNode) => <RequirePermiso accion={accion}>{el}</RequirePermiso>
@@ -48,11 +44,10 @@ export const adminRoutes: RouteObject = {
   ),
   children: [
     { index: true, element: <Dashboard /> },
-    { path: 'miembros', element: con('usuarios:gestionar', <Miembros />) },
-    { path: 'miembros/nuevo', element: con('usuarios:gestionar', <AgregarMiembro />) },
-    { path: 'miembros/:usuarioId', element: con('usuarios:gestionar', <PerfilMiembro />) },
-    { path: 'roles', element: con('usuarios:gestionar', <Roles />) },
-    { path: 'configuracion', element: con('organizacion:configurar', <Configuracion />) },
+    ...cuentaRoutes(),
+    // Solicitudes de visita de personas externas (V2: el usuario principal las autoriza) y necesidades institucionales.
+    ...solicitudesRoutes(),
+    ...necesidadesOrgRoutes(),
     { path: 'suscripcion', element: con('cuenta:suscripcion', <Suscripcion />) },
     { path: 'catalogos', element: con('catalogos:ver', <Catalogos />) },
     { path: 'mas', element: <Mas /> },

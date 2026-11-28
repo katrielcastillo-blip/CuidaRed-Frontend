@@ -17,7 +17,7 @@ import { nombreCompleto } from '@/domain/auth'
 import { useEnLinea } from '@/domain/conectividad'
 import { fechaCorta, pad, todayISO } from '@/domain/dates'
 import { puede } from '@/domain/permisos'
-import { voluntariosDe } from '@/domain/relaciones'
+import { asignadosDe } from '@/domain/relaciones'
 import { Page, useShell } from '@/layouts/AppShell'
 import { useBorrador } from '@/lib/useBorrador'
 import { horaPautada12, RAZON_OTRA, RAZONES_VISITA, useOrgData } from './lib/datos'
@@ -59,7 +59,7 @@ export function ProgramarVisitaPage() {
 
   /** Primer voluntario activo con vínculo "voluntario_asignado" con el adulto. */
   const asignadoDe = (adultoId: string) => {
-    const ids = voluntariosDe(vinculos, adultoId)
+    const ids = asignadosDe(vinculos, adultoId)
     return voluntariosActivos.find((v) => ids.includes(v.id))?.id
   }
 
@@ -97,7 +97,7 @@ export function ProgramarVisitaPage() {
 
   // Los voluntarios ya asignados al adulto aparecen primero.
   const opcionesResponsable = useMemo(() => {
-    const ids = new Set(adulto ? voluntariosDe(vinculos, adulto.id) : [])
+    const ids = new Set(adulto ? asignadosDe(vinculos, adulto.id) : [])
     const orden = [...voluntariosActivos].sort(
       (a, b) => Number(ids.has(b.id)) - Number(ids.has(a.id)) || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'),
     )

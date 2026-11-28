@@ -1,0 +1,35 @@
+# ci.yml — Integración continua del frontend CuidaRed: tipos, lint, pruebas de componentes (Vitest),
+# pruebas unitarias del dominio y del acceso conectado (Playwright, servicios interceptados) y compilación.
+# © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
+name: CI
+
+on:
+  push:
+    branches: [master, Katriel-Cuidared-Desarrollo]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Pruebas de componentes (Vitest + Testing Library)
+        run: npm run test:componentes
+      - name: Navegador de pruebas
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas unitarias del dominio
+        run: npx playwright test --project=unit
+      - name: Acceso conectado (Auth y API interceptados)
+        run: npm run test:access
+      - name: Compilación de producción
+        run: npm run build

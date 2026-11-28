@@ -1,11 +1,12 @@
 /*
  * routes.tsx — Área del FAMILIAR RESPONSABLE (SRS §13.1 "Módulo de consulta restringida"), solo lectura.
- *   /familiar                           Estado del seguimiento de los adultos de su grupo familiar
- *   /familiar/adultos/:adultoId         Perfil del adulto (pestañas Necesidades | Visitas en ?tab=)
- *   /familiar/visitas/:visitaId         Detalle de visita
- *   /familiar/necesidades/:necesidadId  Detalle de necesidad
+ *   /familiar                           Mis envejecientes: seguimiento de los autorizados en la cuenta activa
+ *   /familiar/adultos/:adultoId         Perfil de solo lectura (pestañas Necesidades | Visitas | Indicaciones en ?tab=)
+ *   /familiar/visitas/:visitaId         Detalle de visita (?adulto= indica el envejeciente)
+ *   /familiar/necesidades/:necesidadId  Detalle de necesidad (?adulto= indica el envejeciente)
  *   /familiar/invitar                   Retirada: las cuentas y accesos los gestiona el administrador → inicio
  *   + perfilRoutes() (Mi perfil) y sistemaRoutes() (ayuda, acerca, sincronización)
+ * Las pantallas leen sus datos de los hooks de lib/datos.ts (store local hoy; API según lib/contrato-api.ts mañana).
  * Módulo: familiar.
  * © 2026 Equipo CuidaRed – INTEC. Todos los derechos reservados.
  */
@@ -39,7 +40,7 @@ export const familiarRoutes: RouteObject = {
     { path: 'adultos/:adultoId', element: <PerfilAdulto /> },
     { path: 'visitas/:visitaId', element: <DetalleVisita /> },
     { path: 'necesidades/:necesidadId', element: <DetalleNecesidad /> },
-    // Listados sin id y pantallas retiradas: el inicio ya lista a los adultos a cargo.
+    // Listados sin id y pantallas retiradas: el inicio ya lista a los envejecientes autorizados.
     { path: 'invitar', element: <Navigate to={BASE} replace /> },
     { path: 'adultos', element: <Navigate to={BASE} replace /> },
     { path: 'visitas', element: <Navigate to={BASE} replace /> },
